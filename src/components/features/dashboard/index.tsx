@@ -1,16 +1,20 @@
-"use client"
+"use client";
+
+import DashboardContextProvider from "@/components/features/dashboard/context";
+import DashboardHeader from "@/components/features/dashboard/components/header";
+import CategoryPieChart from "@/components/features/dashboard/components/category-pie-chart";
+import DailyBarChart from "@/components/features/dashboard/components/daily-bar-chart";
 
 export default function DashboardComponent() {
     return (
-        <div>
-            <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="aspect-video rounded-xl bg-muted/50" />
-                    <div className="aspect-video rounded-xl bg-muted/50" />
-                    <div className="aspect-video rounded-xl bg-muted/50" />
+        <DashboardContextProvider>
+            <div className="flex flex-col gap-4">
+                <DashboardHeader />
+                <div className="flex flex-col gap-4">
+                    <CategoryPieChart />
+                    <DailyBarChart />
                 </div>
-                <div className="min-h-screen flex-1 rounded-xl bg-muted/50 md:min-h-min" />
             </div>
-        </div>
-    )
+        </DashboardContextProvider>
+    );
 }
