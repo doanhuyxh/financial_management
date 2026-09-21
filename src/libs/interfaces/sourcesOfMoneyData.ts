@@ -1,9 +1,9 @@
 export enum SourcesOfMoneyType {
-    CASH = "cash",
-    BANK = "bank",
-    CREDIT_CARD = "credit_card",
-    INVESTMENT = "investment",
-    OTHER = "other",
+    CASH = "CASH",
+    BANK = "BANK",
+    CREDIT_CARD = "CREDIT_CARD",
+    E_WALLET = "E_WALLET",
+    OTHER = "OTHER",
 }
 
 
