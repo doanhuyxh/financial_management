@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Select } from "antd";
+import { Form, Input, Modal, Select } from "antd";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import {
     SOURCES_OF_MONEY_TYPE_LABELS,
     SourcesOfMoneyType,
     type IFromSourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 
 type FormValues = {
     name: string;
@@ -124,7 +125,7 @@ export default function SourcesOfMoneyFormModal() {
                             },
                         ]}
                     >
-                        <InputNumber
+                        <DebouncedNumberInput
                             className="w-full!"
                             min={0}
                             step={1000}
@@ -145,7 +146,7 @@ export default function SourcesOfMoneyFormModal() {
                                 },
                             ]}
                         >
-                            <InputNumber className="w-full!" min={0} step={1000} />
+                            <DebouncedNumberInput className="w-full!" min={0} step={1000} />
                         </Form.Item>
 
                         <Form.Item
@@ -160,7 +161,7 @@ export default function SourcesOfMoneyFormModal() {
                                 },
                             ]}
                         >
-                            <InputNumber className="w-full!" min={0} step={1000} />
+                            <DebouncedNumberInput className="w-full!" min={0} step={1000} />
                         </Form.Item>
 
                         <div className="grid grid-cols-2 gap-3 w-full!">
@@ -176,7 +177,7 @@ export default function SourcesOfMoneyFormModal() {
                                     },
                                 ]}
                             >
-                                <InputNumber className="w-full" min={1} max={31} placeholder="1-31" />
+                                <DebouncedNumberInput className="w-full" min={1} max={31} placeholder="1-31" />
                             </Form.Item>
                             <Form.Item
                                 name="dueDate"
@@ -190,7 +191,7 @@ export default function SourcesOfMoneyFormModal() {
                                     },
                                 ]}
                             >
-                                <InputNumber className="w-full" min={1} max={31} placeholder="1-31" />
+                                <DebouncedNumberInput className="w-full" min={1} max={31} placeholder="1-31" />
                             </Form.Item>
                         </div>
                     </div>
