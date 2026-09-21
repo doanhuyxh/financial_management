@@ -19,12 +19,15 @@ import { useLogin } from './hooks/useLogin';
 import { AuthLoginSchema, type AuthLoginSchemaType } from './schemas/login-schema';
 import { useAntdApp } from '@/libs/hooks/useAntdApp';
 import { EnvsConfig } from '@/libs/constants/configKey';
+import { useAppDispatch } from '@/libs/redux/redux';
+import { fetchAuthMe, setAuthFromLogin } from '@/libs/redux/authSlice';
 
 export default function AuthLoginComponent() {
     const [showPassword, setShowPassword] = useState(false);
     const { mutateAsync: loginMutation, isPending: isLoginPending } = useLogin();
     const { notification } = useAntdApp()
     const router = useRouter();
+    const dispatch = useAppDispatch();
     const {
         register,
         handleSubmit,
@@ -44,8 +47,11 @@ export default function AuthLoginComponent() {
             password: data.password,
         },
             {
-                onSuccess: (res: any) => {
-                    console.log("onSuccess: ", res);
+                onSuccess: async (res) => {
+                    if (res?.data) {
+                        dispatch(setAuthFromLogin(res.data));
+                    }
+                    await dispatch(fetchAuthMe());
                     router.push('/dashboard');
                 },
                 onError: (error: any) => {

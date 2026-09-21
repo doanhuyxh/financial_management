@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useAppDispatch, useAppSelector } from "@/libs/redux/redux"
 import { clearAuth, selectAuth } from "@/libs/redux/authSlice"
 import {
@@ -29,21 +29,33 @@ export function NavUser() {
   const dispatch = useAppDispatch()
   const auth = useAppSelector(selectAuth)
   const { isMobile } = useSidebar()
-  const user = auth.user
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Keep SSR and first client paint identical to avoid Avatar hydration mismatch
+  const user = mounted ? auth.user : null
+  const displayName = user?.fullName || user?.email || "Guest"
+  const secondaryText = !mounted
+    ? "..."
+    : user?.email ?? (auth.status === "loading" ? "Đang tải..." : "Chưa đăng nhập")
+
   const initials = useMemo(() => {
-    const name = user?.name ?? "Guest"
-    return name
+    return displayName
       .split(" ")
+      .filter(Boolean)
       .slice(0, 2)
       .map((part) => part[0])
       .join("")
       .toUpperCase()
-  }, [user])
+  }, [displayName])
 
   const handleLogout = async () => {
     dispatch(clearAuth())
     await authLogout()
-    redirect(EnvsConfig.CLIENT_BASE_URL||"")
+    redirect(EnvsConfig.CLIENT_BASE_URL || "/")
   }
 
   return (
@@ -56,12 +68,20 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user?.avatar ?? ""} alt={user?.name ?? "Guest"} />
-                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                {user?.avatarUrl ? (
+                  <AvatarImage src={user.avatarUrl} alt={displayName} />
+                ) : null}
+                <AvatarFallback className="rounded-lg" suppressHydrationWarning>
+                  {initials || "U"}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user?.name ?? "Guest"}</span>
-                <span className="truncate text-xs">{user?.email ?? "Demo auth chưa được bật"}</span>
+                <span className="truncate font-medium" suppressHydrationWarning>
+                  {displayName}
+                </span>
+                <span className="truncate text-xs" suppressHydrationWarning>
+                  {secondaryText}
+                </span>
               </div>
               <ChevronsUpDownIcon className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -73,9 +93,8 @@ export function NavUser() {
             sideOffset={4}
           >
             <DropdownMenuItem onClick={handleLogout}>
-              <LogOutIcon
-              />
-              {auth.isAuthenticated ? "Log out" : "Restore demo login"}
+              <LogOutIcon />
+              Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

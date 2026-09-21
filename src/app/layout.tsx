@@ -3,10 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { type ReactNode } from "react";
 import "./globals.css";
 
-// providers
 import NextTopLoader from "nextjs-toploader";
 import TanStackProvider from "@/components/providers/tanstack-provider";
 import AntdProvider from "@/components/providers/antd-provider";
+import { ReduxProvider } from "@/components/providers/redux-provider";
 import getValueCookieServer from "@/libs/utils/getValueCookieServer";
 import { configCookieKey } from "@/libs/constants/configKey";
 
@@ -41,7 +41,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body className="min-h-full bg-background text-foreground">
         <TanStackProvider>
           <AntdProvider initialTheme={initialTheme}>
-            {children}
+            <ReduxProvider>{children}</ReduxProvider>
           </AntdProvider>
         </TanStackProvider>
         <NextTopLoader />
