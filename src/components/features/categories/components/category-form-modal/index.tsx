@@ -2,47 +2,41 @@
 
 import { useEffect } from "react";
 import { Form, Input, Modal } from "antd";
-import type { ICategoriesData } from "@/libs/interfaces/categoriesData";
+import { useCategoryContext } from "@/components/features/categories/context";
 
-type CategoryFormModalProps = {
-    open: boolean;
-    loading?: boolean;
-    initialValues?: ICategoriesData | null;
-    onCancel: () => void;
-    onSubmit: (values: { name: string }) => void;
-};
+export default function CategoryFormModal() {
+    const {
+        modalOpen,
+        editingCategory,
+        isSubmitting,
+        closeModal,
+        handleSubmit,
+    } = useCategoryContext();
 
-export default function CategoryFormModal({
-    open,
-    loading = false,
-    initialValues,
-    onCancel,
-    onSubmit,
-}: CategoryFormModalProps) {
     const [form] = Form.useForm<{ name: string }>();
-    const isEdit = Boolean(initialValues?._id);
+    const isEdit = Boolean(editingCategory?._id);
 
     useEffect(() => {
-        if (!open) return;
-        if (initialValues) {
-            form.setFieldsValue({ name: initialValues.name });
+        if (!modalOpen) return;
+        if (editingCategory) {
+            form.setFieldsValue({ name: editingCategory.name });
         } else {
             form.resetFields();
         }
-    }, [open, initialValues, form]);
+    }, [modalOpen, editingCategory, form]);
 
     const handleOk = async () => {
         const values = await form.validateFields();
-        onSubmit({ name: values.name.trim() });
+        await handleSubmit({ name: values.name.trim() });
     };
 
     return (
         <Modal
             title={isEdit ? "Sửa danh mục" : "Thêm danh mục"}
-            open={open}
-            onCancel={onCancel}
+            open={modalOpen}
+            onCancel={closeModal}
             onOk={handleOk}
-            confirmLoading={loading}
+            confirmLoading={isSubmitting}
             destroyOnHidden
             okText={isEdit ? "Cập nhật" : "Tạo mới"}
             cancelText="Hủy"
