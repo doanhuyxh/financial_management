@@ -1,18 +1,18 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import type { TablePaginationConfig } from "antd/es/table";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAntdApp } from "@/libs/hooks/useAntdApp";
 import {
     useCreateCategory,
     useDeleteCategory,
     useGetCategories,
+    useReorderCategories,
     useUpdateCategory,
 } from "@/libs/hooks/customHooks/useCategories";
 import type { ICategoriesData } from "@/libs/interfaces/categoriesData";
 import type { ICategoryContextProps } from "./type";
 
-const DEFAULT_PAGE_SIZE = 10;
+const LIST_LIMIT = 100;
 
 interface ICategoryContextProviderProps {
     children: React.ReactNode;
@@ -20,47 +20,42 @@ interface ICategoryContextProviderProps {
 
 const CategoryContext = createContext<ICategoryContextProps | undefined>(undefined);
 
+function getErrorMessage(error: unknown, fallback: string) {
+    if (error && typeof error === "object" && "message" in error) {
+        return String((error as { message?: string }).message);
+    }
+    return fallback;
+}
+
 export default function CategoryContextProvider({ children }: ICategoryContextProviderProps) {
     const { notification, modal } = useAntdApp();
 
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [search, setSearch] = useState("");
+    const [localItems, setLocalItems] = useState<ICategoriesData[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<ICategoriesData | null>(null);
 
     const query = useMemo(
         () => ({
-            page,
-            limit: pageSize,
+            page: 1,
+            limit: LIST_LIMIT,
             search: search.trim() || undefined,
         }),
-        [page, pageSize, search],
+        [search],
     );
 
     const { data, isLoading, isFetching } = useGetCategories(query);
     const createMutation = useCreateCategory();
     const updateMutation = useUpdateCategory();
     const deleteMutation = useDeleteCategory();
+    const reorderMutation = useReorderCategories();
 
-    const items = data?.data?.items ?? [];
-    const pagination = data?.data?.pagination;
+    useEffect(() => {
+        setLocalItems(data?.data?.items ?? []);
+    }, [data?.data?.items]);
 
     const handleSearch = useCallback((value: string) => {
         setSearch(value);
-    }, []);
-
-    const handleChangePage = useCallback((nextPage: number) => {
-        setPage(nextPage);
-    }, []);
-
-    const handleChangePageSize = useCallback((nextPageSize: number) => {
-        setPageSize(nextPageSize);
-    }, []);
-
-    const handleTableChange = useCallback((pager: TablePaginationConfig) => {
-        setPage(pager.current ?? 1);
-        setPageSize(pager.pageSize ?? DEFAULT_PAGE_SIZE);
     }, []);
 
     const openCreateModal = useCallback(() => {
@@ -93,11 +88,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
                 }
                 closeModal();
             } catch (error: unknown) {
-                const message =
-                    error && typeof error === "object" && "message" in error
-                        ? String((error as { message?: string }).message)
-                        : "Thao tác thất bại";
-                notification.error({ title: message });
+                notification.error({ title: getErrorMessage(error, "Thao tác thất bại") });
             }
         },
         [editingCategory, updateMutation, createMutation, notification, closeModal],
@@ -116,11 +107,9 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
                         await deleteMutation.mutateAsync(record._id);
                         notification.success({ title: "Xóa danh mục thành công" });
                     } catch (error: unknown) {
-                        const message =
-                            error && typeof error === "object" && "message" in error
-                                ? String((error as { message?: string }).message)
-                                : "Xóa danh mục thất bại";
-                        notification.error({ title: message });
+                        notification.error({
+                            title: getErrorMessage(error, "Xóa danh mục thất bại"),
+                        });
                     }
                 },
             });
@@ -128,21 +117,34 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         [modal, deleteMutation, notification],
     );
 
+    const handleReorder = useCallback(
+        async (orderedItems: ICategoriesData[]) => {
+            const previous = localItems;
+            setLocalItems(orderedItems);
+
+            try {
+                await reorderMutation.mutateAsync(orderedItems.map((item) => item._id));
+            } catch (error: unknown) {
+                setLocalItems(previous);
+                notification.error({
+                    title: getErrorMessage(error, "Cập nhật thứ tự thất bại"),
+                });
+            }
+        },
+        [localItems, reorderMutation, notification],
+    );
+
     const value = useMemo<ICategoryContextProps>(
         () => ({
             search,
-            page,
-            pageSize,
-            items,
-            pagination,
+            items: localItems,
             isLoading: isLoading || isFetching,
+            isReordering: reorderMutation.isPending,
             modalOpen,
             editingCategory,
             isSubmitting: createMutation.isPending || updateMutation.isPending,
             handleSearch,
-            handleChangePage,
-            handleChangePageSize,
-            handleTableChange,
+            handleReorder,
             openCreateModal,
             openEditModal,
             closeModal,
@@ -151,20 +153,16 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         }),
         [
             search,
-            page,
-            pageSize,
-            items,
-            pagination,
+            localItems,
             isLoading,
             isFetching,
+            reorderMutation.isPending,
             modalOpen,
             editingCategory,
             createMutation.isPending,
             updateMutation.isPending,
             handleSearch,
-            handleChangePage,
-            handleChangePageSize,
-            handleTableChange,
+            handleReorder,
             openCreateModal,
             openEditModal,
             closeModal,

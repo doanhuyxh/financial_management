@@ -7,15 +7,14 @@ import { useCategoryContext } from "@/components/features/categories/context";
 import { useDebounce } from "@/libs/hooks/useDebounce";
 
 export default function CategoryHeader() {
-    const { search, handleSearch, handleChangePage, openCreateModal } = useCategoryContext();
+    const { search, handleSearch, openCreateModal } = useCategoryContext();
 
     const [localSearch, setLocalSearch] = useState(search ?? "");
     const debouncedSearch = useDebounce(localSearch, 500);
 
     useEffect(() => {
         handleSearch(debouncedSearch);
-        handleChangePage(1);
-    }, [debouncedSearch, handleSearch, handleChangePage]);
+    }, [debouncedSearch, handleSearch]);
 
     return (
         <div className="flex items-center justify-between gap-3">

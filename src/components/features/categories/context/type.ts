@@ -1,24 +1,18 @@
-import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 import type { ICategoriesData } from "@/libs/interfaces/categoriesData";
-import type { TablePaginationConfig } from "antd/es/table";
 
 export interface ICategoryContextProps {
     // values
     search: string;
-    page: number;
-    pageSize: number;
     items: ICategoriesData[];
-    pagination?: PaginatedResponse<ICategoriesData>["pagination"];
     isLoading: boolean;
+    isReordering: boolean;
     modalOpen: boolean;
     editingCategory: ICategoriesData | null;
     isSubmitting: boolean;
 
     // handlers
     handleSearch: (value: string) => void;
-    handleChangePage: (page: number) => void;
-    handleChangePageSize: (pageSize: number) => void;
-    handleTableChange: (pager: TablePaginationConfig) => void;
+    handleReorder: (orderedItems: ICategoriesData[]) => Promise<void>;
     openCreateModal: () => void;
     openEditModal: (record: ICategoriesData) => void;
     closeModal: () => void;

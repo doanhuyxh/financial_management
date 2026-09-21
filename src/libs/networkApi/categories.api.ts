@@ -37,6 +37,13 @@ export const updateCategory = async (id: string, body: IFromCategoriesData) => {
     });
 };
 
+export const reorderCategories = async (orderedIds: string[]) => {
+    return fetcherBackEnd<ApiResponse<null>>("/categories/reorder", {
+        method: "PUT",
+        body: { orderedIds },
+    });
+};
+
 export const deleteCategory = async (id: string) => {
     return fetcherBackEnd<ApiResponse<null>>(`/categories/${id}`, {
         method: "DELETE",
