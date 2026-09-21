@@ -1,16 +1,16 @@
 import LoadingComponent from "@/components/common/loading"
-import DashboardComponent from "@/components/features/dashboard"
+import SourcesOfMoneyComponent from "@/components/features/sources-of-money"
 import { Suspense } from "react"
 
 export const metadata = {
-    title: "Dashboard",
-    description: "Dashboard page",
+  title: "Nguồn tiền",
+  description: "Quản lý nguồn tiền",
 }
 
-export default async function Dashboard() {
+export default async function SourcesOfMoneyPage() {
   return (
     <Suspense fallback={<LoadingComponent />}>
-      <DashboardComponent />
+      <SourcesOfMoneyComponent />
     </Suspense>
   )
 }

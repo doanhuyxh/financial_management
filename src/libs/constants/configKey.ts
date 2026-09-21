@@ -14,6 +14,7 @@ export const EnvsConfig = {
 
 export const configQueryKey = {
 	CATEGORIES: "categories",
+	SOURCES_OF_MONEY: "sources-of-money",
 }
 
 export const configSessionKey = {
