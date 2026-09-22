@@ -44,7 +44,7 @@ echo "==> Đang pull code..."
 git pull --rebase --autostash
 
 echo "==> Cài đặt dependencies..."
-bun install --frozen-lockfile
+bun i
 
 echo "==> Build dự án..."
 bun run build
