@@ -13,17 +13,54 @@ import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput
 type FormValues = {
     name: string;
     type: SourcesOfMoneyType;
-    balance?: number;
-    creditLimit?: number;
-    currentDebt?: number;
-    statementDate?: number;
-    dueDate?: number;
+    balance?: string | number | null;
+    creditLimit?: string | number | null;
+    currentDebt?: string | number | null;
+    statementDate?: string | number | null;
+    dueDate?: string | number | null;
 };
 
 const typeOptions = Object.values(SourcesOfMoneyType).map((type) => ({
     value: type,
     label: SOURCES_OF_MONEY_TYPE_LABELS[type],
 }));
+
+/** DebouncedNumberInput uses stringMode — coerce before validate/submit. */
+function toNumber(value: string | number | null | undefined): number | undefined {
+    if (value === undefined || value === null || value === "") return undefined;
+    const num = typeof value === "number" ? value : Number(String(value).replace(/,/g, ""));
+    return Number.isFinite(num) ? num : undefined;
+}
+
+function numberMinRule(min: number, message: string) {
+    return {
+        validator(_: unknown, value: string | number | null | undefined) {
+            if (value === undefined || value === null || value === "") {
+                return Promise.resolve();
+            }
+            const num = toNumber(value);
+            if (num === undefined || num < min) {
+                return Promise.reject(new Error(message));
+            }
+            return Promise.resolve();
+        },
+    };
+}
+
+function numberRangeRule(min: number, max: number, message: string) {
+    return {
+        validator(_: unknown, value: string | number | null | undefined) {
+            if (value === undefined || value === null || value === "") {
+                return Promise.resolve();
+            }
+            const num = toNumber(value);
+            if (num === undefined || num < min || num > max) {
+                return Promise.reject(new Error(message));
+            }
+            return Promise.resolve();
+        },
+    };
+}
 
 export default function SourcesOfMoneyFormModal() {
     const { modalOpen, editingItem, isSubmitting, closeModal, handleSubmit } =
@@ -67,14 +104,14 @@ export default function SourcesOfMoneyFormModal() {
 
         if (values.type === SourcesOfMoneyType.CREDIT_CARD) {
             payload.creditDetails = {
-                creditLimit: values.creditLimit ?? 0,
-                currentDebt: values.currentDebt ?? 0,
-                statementDate: values.statementDate,
-                dueDate: values.dueDate,
+                creditLimit: toNumber(values.creditLimit) ?? 0,
+                currentDebt: toNumber(values.currentDebt) ?? 0,
+                statementDate: toNumber(values.statementDate),
+                dueDate: toNumber(values.dueDate),
             };
             payload.balance = 0;
         } else {
-            payload.balance = values.balance ?? 0;
+            payload.balance = toNumber(values.balance) ?? 0;
         }
 
         await handleSubmit(payload);
@@ -118,11 +155,7 @@ export default function SourcesOfMoneyFormModal() {
                         label="Số dư hiện có"
                         rules={[
                             { required: true, message: "Số dư là bắt buộc" },
-                            {
-                                type: "number",
-                                min: 0,
-                                message: "Số dư phải >= 0",
-                            },
+                            numberMinRule(0, "Số dư phải >= 0"),
                         ]}
                     >
                         <DebouncedNumberInput
@@ -139,11 +172,7 @@ export default function SourcesOfMoneyFormModal() {
                             label="Hạn mức tín dụng"
                             rules={[
                                 { required: true, message: "Hạn mức là bắt buộc" },
-                                {
-                                    type: "number",
-                                    min: 0,
-                                    message: "Hạn mức phải >= 0",
-                                },
+                                numberMinRule(0, "Hạn mức phải >= 0"),
                             ]}
                         >
                             <DebouncedNumberInput className="w-full!" min={0} step={1000} />
@@ -154,11 +183,7 @@ export default function SourcesOfMoneyFormModal() {
                             label="Dư nợ hiện tại"
                             rules={[
                                 { required: true, message: "Dư nợ là bắt buộc" },
-                                {
-                                    type: "number",
-                                    min: 0,
-                                    message: "Dư nợ phải >= 0",
-                                },
+                                numberMinRule(0, "Dư nợ phải >= 0"),
                             ]}
                         >
                             <DebouncedNumberInput className="w-full!" min={0} step={1000} />
@@ -168,28 +193,14 @@ export default function SourcesOfMoneyFormModal() {
                             <Form.Item
                                 name="statementDate"
                                 label="Ngày sao kê"
-                                rules={[
-                                    {
-                                        type: "number",
-                                        min: 1,
-                                        max: 31,
-                                        message: "Từ 1 đến 31",
-                                    },
-                                ]}
+                                rules={[numberRangeRule(1, 31, "Từ 1 đến 31")]}
                             >
                                 <DebouncedNumberInput className="w-full" min={1} max={31} placeholder="1-31" />
                             </Form.Item>
                             <Form.Item
                                 name="dueDate"
                                 label="Ngày đến hạn"
-                                rules={[
-                                    {
-                                        type: "number",
-                                        min: 1,
-                                        max: 31,
-                                        message: "Từ 1 đến 31",
-                                    },
-                                ]}
+                                rules={[numberRangeRule(1, 31, "Từ 1 đến 31")]}
                             >
                                 <DebouncedNumberInput className="w-full" min={1} max={31} placeholder="1-31" />
                             </Form.Item>
