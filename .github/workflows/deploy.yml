@@ -1,0 +1,39 @@
+name: Deploy Finance Management Web Nextjs
+
+on:
+   push:
+      branches:
+         - main
+
+jobs:
+   deploy:
+      runs-on: ubuntu-22.04
+      steps:
+         - name: Checkout
+           uses: actions/checkout@v4
+
+         - name: Deploy to server
+           uses: appleboy/ssh-action@v1.2.0
+           with:
+              host: ${{ secrets.SERVER_HOST }}
+              username: ${{ secrets.SERVER_USER }}
+              password: ${{ secrets.SERVER_PASSWORD }}
+              port: 22
+              script: |
+                 set -e
+
+                 KEY_PATH="${{ secrets.KEY_PATH }}"
+                 TARGET_USER="${{ secrets.TARGET_USER }}"
+                 TARGET_HOST="${{ secrets.TARGET_IP }}"
+
+                 chmod 600 "$KEY_PATH"
+
+                 ssh -i "$KEY_PATH" \
+                     -o StrictHostKeyChecking=no \
+                     "$TARGET_USER@$TARGET_HOST" << 'EOF'
+                   set -e
+                   echo "Đang thực thi tại host: $(hostname)"
+                   
+
+                   sudo bash -c "cd /home/rocky/financial_management/scripts && chmod +x deploy.sh && ./deploy.sh"
+                 EOF
