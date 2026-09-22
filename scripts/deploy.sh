@@ -40,6 +40,9 @@ fi
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+echo "==> Di chuyển đến thư mục project..."
+cd /home/rocky/financial_management
+
 echo "==> Đang pull code..."
 git pull --rebase --autostash
 
