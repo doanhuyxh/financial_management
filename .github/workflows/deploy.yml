@@ -21,6 +21,7 @@ jobs:
               port: 22
               script: |
                  set -e
+                 set -x
 
                  KEY_PATH="${{ secrets.KEY_PATH }}"
                  TARGET_USER="${{ secrets.TARGET_USER }}"
