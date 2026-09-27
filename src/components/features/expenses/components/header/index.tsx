@@ -52,19 +52,8 @@ export default function ExpensesHeader() {
     }, [debouncedSearch, handleSearch, handleChangePage]);
 
     return (
-        <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h1 className="text-xl font-semibold tracking-tight">Chi tiêu</h1>
-                <Button
-                    type="primary"
-                    icon={<Plus className="size-4" />}
-                    onClick={openCreateModal}
-                >
-                    Thêm chi tiêu
-                </Button>
-            </div>
-
-            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+        
+            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center w-full flex-1">
                 <Input
                     allowClear
                     prefix={<Search className="size-4 text-muted-foreground" />}
@@ -100,7 +89,16 @@ export default function ExpensesHeader() {
                     format="DD/MM/YYYY"
                     allowClear
                 />
+                <div className="flex-1 flex lg:justify-end">
+                    <Button
+                        className=""
+                        type="primary"
+                        icon={<Plus className="size-4" />}
+                        onClick={openCreateModal}
+                    >
+                        Thêm chi tiêu
+                    </Button>
+                </div>
             </div>
-        </div>
     );
 }

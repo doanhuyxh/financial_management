@@ -10,6 +10,7 @@ import {
     createSourcesOfMoney,
     deleteSourcesOfMoney,
     getSourcesOfMoney,
+    reorderSourcesOfMoney,
     updateSourcesOfMoney,
 } from "@/libs/networkApi/sources-of-money.api";
 
@@ -37,6 +38,17 @@ export const useUpdateSourcesOfMoney = () => {
     return useMutation({
         mutationFn: ({ id, body }: { id: string; body: IFromSourcesOfMoneyData }) =>
             updateSourcesOfMoney(id, body),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
+        },
+    });
+};
+
+export const useReorderSourcesOfMoney = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (orderedIds: string[]) => reorderSourcesOfMoney(orderedIds),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
         },

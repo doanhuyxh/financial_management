@@ -24,7 +24,6 @@ export default function SourcesOfMoneyHeader() {
         typeFilter,
         handleSearch,
         handleTypeFilter,
-        handleChangePage,
         openCreateModal,
     } = useSourcesOfMoneyContext();
 
@@ -33,8 +32,7 @@ export default function SourcesOfMoneyHeader() {
 
     useEffect(() => {
         handleSearch(debouncedSearch);
-        handleChangePage(1);
-    }, [debouncedSearch, handleSearch, handleChangePage]);
+    }, [debouncedSearch, handleSearch]);
 
     return (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

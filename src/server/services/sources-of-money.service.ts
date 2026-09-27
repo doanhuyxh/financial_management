@@ -3,6 +3,7 @@ import SourcesOfMoneyModel from "@/server/models/sources-of-money.model";
 import {
     IFromSourcesOfMoneyData,
     IPaginatedSourcesOfMoneyQuery,
+    IReorderSourcesOfMoneyData,
     SourcesOfMoneyType,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import {
@@ -82,7 +83,7 @@ export class SourcesOfMoneyService {
             return unauthorizedResponse();
         }
 
-        const { page = 1, limit = 10, search = "", type } = query;
+        const { page = 1, limit = 100, search = "", type } = query;
         const filter: Record<string, unknown> = { userId: user.userId };
 
         if (search) {
@@ -92,11 +93,30 @@ export class SourcesOfMoneyService {
             filter.type = type;
         }
 
+        // Backfill sortOrder for legacy documents
+        const missingSortOrder = await SourcesOfMoneyModel.countDocuments({
+            userId: user.userId,
+            $or: [{ sortOrder: { $exists: false } }, { sortOrder: null }],
+        });
+        if (missingSortOrder > 0) {
+            const all = await SourcesOfMoneyModel.find({ userId: user.userId })
+                .sort({ createdAt: 1 })
+                .select("_id");
+            await Promise.all(
+                all.map((doc, index) =>
+                    SourcesOfMoneyModel.updateOne(
+                        { _id: doc._id },
+                        { $set: { sortOrder: index } },
+                    ),
+                ),
+            );
+        }
+
         const [docs, total] = await Promise.all([
             SourcesOfMoneyModel.find(filter)
                 .skip((page - 1) * limit)
                 .limit(limit)
-                .sort({ createdAt: -1 }),
+                .sort({ sortOrder: 1, createdAt: 1 }),
             SourcesOfMoneyModel.countDocuments(filter),
         ]);
 
@@ -113,8 +133,15 @@ export class SourcesOfMoneyService {
 
         try {
             const payload = normalizePayload(data);
+            const last = await SourcesOfMoneyModel.findOne({ userId: user.userId })
+                .sort({ sortOrder: -1 })
+                .select("sortOrder")
+                .lean();
+            const sortOrder = (last?.sortOrder ?? -1) + 1;
+
             const created = await SourcesOfMoneyModel.create({
                 ...payload,
+                sortOrder,
                 userId: user.userId,
             });
             return successResponse(created.toJSON(), "Tạo nguồn tiền thành công");
@@ -163,6 +190,42 @@ export class SourcesOfMoneyService {
                 error instanceof Error ? error.message : "Cập nhật nguồn tiền thất bại";
             return errorResponseWithStatusCode(message, 400);
         }
+    }
+
+    static async reorderSourcesOfMoney(data: IReorderSourcesOfMoneyData) {
+        await dbConnect();
+        const user = await getCurrentUser();
+        if (!user?.userId) {
+            return unauthorizedResponse();
+        }
+
+        const orderedIds = data.orderedIds ?? [];
+        if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+            return errorResponseWithStatusCode("Danh sách thứ tự không hợp lệ", 400);
+        }
+
+        const owned = await SourcesOfMoneyModel.find({
+            userId: user.userId,
+            _id: { $in: orderedIds },
+        }).select("_id");
+
+        if (owned.length !== orderedIds.length) {
+            return errorResponseWithStatusCode(
+                "Một số nguồn tiền không tồn tại hoặc không thuộc về bạn",
+                400,
+            );
+        }
+
+        await Promise.all(
+            orderedIds.map((id, index) =>
+                SourcesOfMoneyModel.updateOne(
+                    { _id: id, userId: user.userId },
+                    { $set: { sortOrder: index } },
+                ),
+            ),
+        );
+
+        return successResponse(null, "Cập nhật thứ tự nguồn tiền thành công");
     }
 
     static async deleteSourcesOfMoney(id: string) {

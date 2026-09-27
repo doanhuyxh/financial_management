@@ -1,12 +1,12 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import type { TablePaginationConfig } from "antd/es/table";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAntdApp } from "@/libs/hooks/useAntdApp";
 import {
     useCreateSourcesOfMoney,
     useDeleteSourcesOfMoney,
     useGetSourcesOfMoney,
+    useReorderSourcesOfMoney,
     useUpdateSourcesOfMoney,
 } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import type {
@@ -16,7 +16,7 @@ import type {
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import type { ISourcesOfMoneyContextProps } from "./type";
 
-const DEFAULT_PAGE_SIZE = 10;
+const LIST_LIMIT = 100;
 
 interface ISourcesOfMoneyContextProviderProps {
     children: React.ReactNode;
@@ -38,30 +38,31 @@ export default function SourcesOfMoneyContextProvider({
 }: ISourcesOfMoneyContextProviderProps) {
     const { notification, modal } = useAntdApp();
 
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState<SourcesOfMoneyType | "">("");
+    const [localItems, setLocalItems] = useState<ISourcesOfMoneyData[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ISourcesOfMoneyData | null>(null);
 
     const query = useMemo(
         () => ({
-            page,
-            limit: pageSize,
+            page: 1,
+            limit: LIST_LIMIT,
             search: search.trim() || undefined,
             type: typeFilter || undefined,
         }),
-        [page, pageSize, search, typeFilter],
+        [search, typeFilter],
     );
 
     const { data, isLoading, isFetching } = useGetSourcesOfMoney(query);
     const createMutation = useCreateSourcesOfMoney();
     const updateMutation = useUpdateSourcesOfMoney();
     const deleteMutation = useDeleteSourcesOfMoney();
+    const reorderMutation = useReorderSourcesOfMoney();
 
-    const items = data?.data?.items ?? [];
-    const pagination = data?.data?.pagination;
+    useEffect(() => {
+        setLocalItems(data?.data?.items ?? []);
+    }, [data?.data?.items]);
 
     const handleSearch = useCallback((value: string) => {
         setSearch(value);
@@ -69,20 +70,6 @@ export default function SourcesOfMoneyContextProvider({
 
     const handleTypeFilter = useCallback((value: SourcesOfMoneyType | "") => {
         setTypeFilter(value);
-        setPage(1);
-    }, []);
-
-    const handleChangePage = useCallback((nextPage: number) => {
-        setPage(nextPage);
-    }, []);
-
-    const handleChangePageSize = useCallback((nextPageSize: number) => {
-        setPageSize(nextPageSize);
-    }, []);
-
-    const handleTableChange = useCallback((pager: TablePaginationConfig) => {
-        setPage(pager.current ?? 1);
-        setPageSize(pager.pageSize ?? DEFAULT_PAGE_SIZE);
     }, []);
 
     const openCreateModal = useCallback(() => {
@@ -146,23 +133,36 @@ export default function SourcesOfMoneyContextProvider({
         [modal, deleteMutation, notification],
     );
 
+    const handleReorder = useCallback(
+        async (orderedItems: ISourcesOfMoneyData[]) => {
+            const previous = localItems;
+            setLocalItems(orderedItems);
+
+            try {
+                await reorderMutation.mutateAsync(orderedItems.map((item) => item._id));
+            } catch (error: unknown) {
+                setLocalItems(previous);
+                notification.error({
+                    title: getErrorMessage(error, "Cập nhật thứ tự thất bại"),
+                });
+            }
+        },
+        [localItems, reorderMutation, notification],
+    );
+
     const value = useMemo<ISourcesOfMoneyContextProps>(
         () => ({
             search,
             typeFilter,
-            page,
-            pageSize,
-            items,
-            pagination,
+            items: localItems,
             isLoading: isLoading || isFetching,
+            isReordering: reorderMutation.isPending,
             modalOpen,
             editingItem,
             isSubmitting: createMutation.isPending || updateMutation.isPending,
             handleSearch,
             handleTypeFilter,
-            handleChangePage,
-            handleChangePageSize,
-            handleTableChange,
+            handleReorder,
             openCreateModal,
             openEditModal,
             closeModal,
@@ -172,21 +172,17 @@ export default function SourcesOfMoneyContextProvider({
         [
             search,
             typeFilter,
-            page,
-            pageSize,
-            items,
-            pagination,
+            localItems,
             isLoading,
             isFetching,
+            reorderMutation.isPending,
             modalOpen,
             editingItem,
             createMutation.isPending,
             updateMutation.isPending,
             handleSearch,
             handleTypeFilter,
-            handleChangePage,
-            handleChangePageSize,
-            handleTableChange,
+            handleReorder,
             openCreateModal,
             openEditModal,
             closeModal,

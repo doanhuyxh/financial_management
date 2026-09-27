@@ -38,6 +38,13 @@ export const updateSourcesOfMoney = async (id: string, body: IFromSourcesOfMoney
     });
 };
 
+export const reorderSourcesOfMoney = async (orderedIds: string[]) => {
+    return fetcherBackEnd<ApiResponse<null>>("/sources-of-money/reorder", {
+        method: "PUT",
+        body: { orderedIds },
+    });
+};
+
 export const deleteSourcesOfMoney = async (id: string) => {
     return fetcherBackEnd<ApiResponse<null>>(`/sources-of-money/${id}`, {
         method: "DELETE",

@@ -105,14 +105,6 @@ export default function CategoryTable() {
                 render: (name: string) => <span className="font-medium">{name}</span>,
             },
             {
-                title: "Ngày tạo",
-                dataIndex: "createdAt",
-                key: "createdAt",
-                width: 180,
-                render: (value?: string) =>
-                    value ? new Date(value).toLocaleString("vi-VN") : "—",
-            },
-            {
                 title: "Thao tác",
                 key: "actions",
                 width: 140,

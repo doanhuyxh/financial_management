@@ -7,6 +7,7 @@ export interface ISourcesOfMoney extends Document {
   name: string;
   type: SourcesOfMoneyType;
   balance: number; // Tiền hiện có (đối với CASH, BANK, E_WALLET)
+  sortOrder: number;
   // Chi tiết dành riêng cho thẻ tín dụng
   creditDetails?: {
     creditLimit: number;    // Hạn mức cấp (VD: 50,000,000)
@@ -45,6 +46,12 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
       },
       default: 0,
     },
+    sortOrder: {
+      type: Number,
+      required: true,
+      default: 0,
+      index: true,
+    },
     creditDetails: {
       creditLimit: { type: Number, default: 0, min: 0 },
       currentDebt: { type: Number, default: 0, min: 0 },
@@ -71,6 +78,8 @@ sourcesOfMoneySchema.virtual("availableCreditLimit").get(function (this: ISource
   const { creditLimit = 0, currentDebt = 0 } = this.creditDetails;
   return Math.max(0, creditLimit - currentDebt);
 });
+
+sourcesOfMoneySchema.index({ userId: 1, sortOrder: 1 });
 
 export const modelSourcesOfMoneyName = "sourcesOfMoney";
 const SourcesOfMoneyModel =
