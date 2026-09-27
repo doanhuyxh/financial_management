@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { ConfigProvider, App, theme as antdTheme } from "antd";
+import vi_VN from 'antd/locale/vi_VN';
 
 export default function AntdProvider({ children, initialTheme }: { children: React.ReactNode; initialTheme: "light" | "dark" }) {
     const [theme, setTheme] = useState<"light" | "dark">(initialTheme);
@@ -37,6 +38,7 @@ export default function AntdProvider({ children, initialTheme }: { children: Rea
     return (
         <AntdRegistry>
             <ConfigProvider
+                locale={vi_VN}
                 theme={{
                     algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
                     components: {

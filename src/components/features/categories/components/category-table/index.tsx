@@ -102,13 +102,14 @@ export default function CategoryTable() {
                 title: "Tên danh mục",
                 dataIndex: "name",
                 key: "name",
-                render: (name: string) => <span className="font-medium">{name}</span>,
+                render: (name: string) => <span className="font-medium text-nowrap">{name}</span>,
             },
             {
                 title: "Thao tác",
                 key: "actions",
                 width: 140,
-                align: "right",
+                align: "center",
+                className: "text-nowrap",
                 render: (_value, record) => (
                     <Space size="small">
                         <Button
@@ -163,6 +164,7 @@ export default function CategoryTable() {
                             row: SortableRow,
                         },
                     }}
+                    scroll={{ x: "max-content" }}
                 />
             </SortableContext>
         </DndContext>

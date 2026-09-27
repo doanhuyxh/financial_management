@@ -15,6 +15,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/shadcn/ui/sidebar"
 import { useAppSelector } from "@/libs/redux/redux"
 import { selectPathname } from "@/libs/redux/navigationSlice"
@@ -35,6 +36,7 @@ export function NavMain({
   }[]
 }) {
   const pathname = useAppSelector(selectPathname)
+  const { isMobile, setOpenMobile } = useSidebar()
 
   const isPathActive = (url: string) => {
     if (!url || url === "#") {
@@ -42,6 +44,12 @@ export function NavMain({
     }
 
     return pathname === url || pathname.startsWith(`${url}/`)
+  }
+
+  const closeMobileSidebar = () => {
+    if (isMobile) {
+      setOpenMobile(false)
+    }
   }
 
   return (
@@ -56,7 +64,7 @@ export function NavMain({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title} isActive={isItemActive}>
-                  <Link href={item.url}>
+                  <Link href={item.url} onClick={closeMobileSidebar}>
                     {item.icon}
                     <span>{item.title}</span>
                   </Link>
@@ -85,7 +93,7 @@ export function NavMain({
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
                         <SidebarMenuSubButton asChild isActive={isPathActive(subItem.url)}>
-                          <Link href={subItem.url}>
+                          <Link href={subItem.url} onClick={closeMobileSidebar}>
                             <span>{subItem.title}</span>
                           </Link>
                         </SidebarMenuSubButton>
