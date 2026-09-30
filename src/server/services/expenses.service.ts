@@ -79,7 +79,7 @@ async function adjustSourceBalance(
         const updated = await SourcesOfMoneyModel.findOneAndUpdate(
             { _id: sourceId, userId, type: SourcesOfMoneyType.CREDIT_CARD },
             { $inc: { "creditDetails.currentDebt": debtDelta } },
-            { new: true },
+            { returnDocument: "after" },
         );
         if (!updated) {
             throw new Error("Cập nhật thẻ tín dụng thất bại");
@@ -100,7 +100,7 @@ async function adjustSourceBalance(
     const updated = await SourcesOfMoneyModel.findOneAndUpdate(
         filter,
         { $inc: { balance: balanceDelta } },
-        { new: true },
+        { returnDocument: "after" },
     );
 
     if (!updated) {
@@ -276,7 +276,7 @@ export class ExpensesService {
                         note: payload.note,
                         spentAt: payload.spentAt,
                     },
-                    { new: true },
+                    { returnDocument: "after" },
                 );
 
                 if (!updated) {

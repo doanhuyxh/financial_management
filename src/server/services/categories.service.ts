@@ -90,7 +90,7 @@ export class CategoriesService {
         const updatedCategory = await CategoriesModel.findOneAndUpdate(
             { _id: id, userId: user.userId },
             { name: category.name.trim() },
-            { new: true },
+            { returnDocument: "after" },
         );
 
         if (!updatedCategory) {

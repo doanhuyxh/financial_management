@@ -91,7 +91,7 @@ async function adjustSourceBalance(
         const updated = await SourcesOfMoneyModel.findOneAndUpdate(
             filter,
             { $inc: { "creditDetails.currentDebt": debtDelta } },
-            { new: true },
+            { returnDocument: "after" },
         );
         if (!updated) {
             throw new Error(
@@ -117,7 +117,7 @@ async function adjustSourceBalance(
     const updated = await SourcesOfMoneyModel.findOneAndUpdate(
         filter,
         { $inc: { balance: balanceDelta } },
-        { new: true },
+        { returnDocument: "after" },
     );
 
     if (!updated) {
@@ -292,7 +292,7 @@ export class IncomesService {
                         note: payload.note,
                         receivedAt: payload.receivedAt,
                     },
-                    { new: true },
+                    { returnDocument: "after" },
                 );
 
                 if (!updated) {

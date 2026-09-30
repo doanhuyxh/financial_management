@@ -177,7 +177,7 @@ export class SourcesOfMoneyService {
             const updated = await SourcesOfMoneyModel.findOneAndUpdate(
                 { _id: id, userId: user.userId },
                 updateQuery,
-                { new: true },
+                { returnDocument: "after" },
             );
 
             if (!updated) {
