@@ -3,6 +3,7 @@
 import { Empty, Spin } from "antd";
 import { Column } from "@ant-design/plots";
 import { useDashboardContext } from "@/components/features/dashboard/context";
+import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -12,24 +13,39 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
 
 export default function DailyBarChart() {
     const { summary, isLoading, monthValue } = useDashboardContext();
+    const isDark = useIsDarkMode();
     const data = summary?.byDay ?? [];
     const hasData = data.some((item) => item.total > 0);
 
+    const tickFill = isDark ? "#cbd5e1" : "#475569";
+    const gridStroke = isDark ? "#334155" : "#e2e8f0";
+
     const config = {
         data,
+        theme: isDark ? "classicDark" : "classic",
         xField: "label",
         yField: "total",
         axis: {
             x: {
-                title: "Ngày",
+                title: false,
+                labelFill: tickFill,
+                labelFontSize: 11,
+                tickStroke: tickFill,
+                lineStroke: gridStroke,
             },
             y: {
                 title: false,
+                labelFill: tickFill,
+                labelFontSize: 11,
                 labelFormatter: (value: number) =>
                     new Intl.NumberFormat("vi-VN", {
                         notation: "compact",
                         compactDisplay: "short",
                     }).format(value),
+                gridStroke,
+                gridStrokeOpacity: 1,
+                tickStroke: tickFill,
+                lineStroke: gridStroke,
             },
         },
         style: {
@@ -70,7 +86,7 @@ export default function DailyBarChart() {
                 </div>
             ) : (
                 <div className="h-80">
-                    <Column {...config} height={320} autoFit />
+                    <Column key={isDark ? "dark" : "light"} {...config} height={320} autoFit />
                 </div>
             )}
         </div>

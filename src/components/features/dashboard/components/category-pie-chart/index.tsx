@@ -3,6 +3,7 @@
 import { Empty, Spin } from "antd";
 import { Pie } from "@ant-design/plots";
 import { useDashboardContext } from "@/components/features/dashboard/context";
+import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -12,10 +13,12 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
 
 export default function CategoryPieChart() {
     const { summary, isLoading, monthValue } = useDashboardContext();
+    const isDark = useIsDarkMode();
     const data = summary?.byCategory ?? [];
 
     const config = {
         data,
+        theme: isDark ? "classicDark" : "classic",
         angleField: "total",
         colorField: "categoryName",
         radius: 0.9,
@@ -25,6 +28,7 @@ export default function CategoryPieChart() {
                 title: false,
                 position: "bottom" as const,
                 rowPadding: 4,
+                itemLabelFill: isDark ? "#e2e8f0" : "#0f172a",
             },
         },
         label: {
@@ -33,7 +37,9 @@ export default function CategoryPieChart() {
             position: "outside" as const,
             style: {
                 fontSize: 11,
+                fill: isDark ? "#e2e8f0" : "#0f172a",
             },
+            connectorStroke: isDark ? "#64748b" : "#94a3b8",
         },
         tooltip: {
             title: "categoryName",
@@ -71,7 +77,7 @@ export default function CategoryPieChart() {
                 </div>
             ) : (
                 <div className="h-80">
-                    <Pie {...config} height={320} autoFit />
+                    <Pie key={isDark ? "dark" : "light"} {...config} height={320} autoFit />
                 </div>
             )}
         </div>
