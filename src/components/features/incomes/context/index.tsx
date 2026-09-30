@@ -5,21 +5,21 @@ import type { Dayjs } from "dayjs";
 import type { TablePaginationConfig } from "antd/es/table";
 import { useAntdApp } from "@/libs/hooks/useAntdApp";
 import {
-    useCreateExpense,
-    useDeleteExpense,
-    useGetExpenses,
-    useUpdateExpense,
-} from "@/libs/hooks/customHooks/useExpenses";
-import type { IExpensesData, IFromExpensesData } from "@/libs/interfaces/expensesData";
-import type { IExpensesContextProps } from "./type";
+    useCreateIncome,
+    useDeleteIncome,
+    useGetIncomes,
+    useUpdateIncome,
+} from "@/libs/hooks/customHooks/useIncomes";
+import type { IFromIncomesData, IIncomesData } from "@/libs/interfaces/incomesData";
+import type { IIncomesContextProps } from "./type";
 
 const DEFAULT_PAGE_SIZE = 10;
 
-interface IExpensesContextProviderProps {
+interface IIncomesContextProviderProps {
     children: React.ReactNode;
 }
 
-const ExpensesContext = createContext<IExpensesContextProps | undefined>(undefined);
+const IncomesContext = createContext<IIncomesContextProps | undefined>(undefined);
 
 function getErrorMessage(error: unknown, fallback: string) {
     if (error && typeof error === "object" && "message" in error) {
@@ -28,9 +28,9 @@ function getErrorMessage(error: unknown, fallback: string) {
     return fallback;
 }
 
-export default function ExpensesContextProvider({
+export default function IncomesContextProvider({
     children,
-}: IExpensesContextProviderProps) {
+}: IIncomesContextProviderProps) {
     const { notification, modal } = useAntdApp();
 
     const [page, setPage] = useState(1);
@@ -42,7 +42,7 @@ export default function ExpensesContextProvider({
         null,
     );
     const [modalOpen, setModalOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<IExpensesData | null>(null);
+    const [editingItem, setEditingItem] = useState<IIncomesData | null>(null);
 
     const query = useMemo(
         () => ({
@@ -57,10 +57,10 @@ export default function ExpensesContextProvider({
         [page, pageSize, search, categoryFilter, sourceFilter, dateRange],
     );
 
-    const { data, isLoading, isFetching } = useGetExpenses(query);
-    const createMutation = useCreateExpense();
-    const updateMutation = useUpdateExpense();
-    const deleteMutation = useDeleteExpense();
+    const { data, isLoading, isFetching } = useGetIncomes(query);
+    const createMutation = useCreateIncome();
+    const updateMutation = useUpdateIncome();
+    const deleteMutation = useDeleteIncome();
 
     const items = data?.data?.items ?? [];
     const pagination = data?.data?.pagination;
@@ -101,7 +101,7 @@ export default function ExpensesContextProvider({
         setModalOpen(true);
     }, []);
 
-    const openEditModal = useCallback((record: IExpensesData) => {
+    const openEditModal = useCallback((record: IIncomesData) => {
         setEditingItem(record);
         setModalOpen(true);
     }, []);
@@ -112,18 +112,18 @@ export default function ExpensesContextProvider({
     }, []);
 
     const handleSubmit = useCallback(
-        async (values: IFromExpensesData, options?: { keepOpen?: boolean }) => {
+        async (values: IFromIncomesData, options?: { keepOpen?: boolean }) => {
             try {
                 if (editingItem?._id) {
                     await updateMutation.mutateAsync({
                         id: editingItem._id,
                         body: values,
                     });
-                    notification.success({ title: "Cập nhật chi tiêu thành công" });
+                    notification.success({ title: "Cập nhật thu nhập thành công" });
                     closeModal();
                 } else {
                     await createMutation.mutateAsync(values);
-                    notification.success({ title: "Tạo chi tiêu thành công" });
+                    notification.success({ title: "Tạo thu nhập thành công" });
                     if (!options?.keepOpen) {
                         closeModal();
                     }
@@ -140,20 +140,21 @@ export default function ExpensesContextProvider({
     );
 
     const handleDelete = useCallback(
-        (record: IExpensesData) => {
+        (record: IIncomesData) => {
             modal.confirm({
-                title: "Xóa chi tiêu",
-                content: "Bạn có chắc muốn xóa khoản chi tiêu này? Số tiền sẽ được hoàn vào nguồn.",
+                title: "Xóa thu nhập",
+                content:
+                    "Bạn có chắc muốn xóa khoản thu nhập này? Số tiền sẽ được hoàn lại trên nguồn (giảm số dư / tăng dư nợ thẻ).",
                 okText: "Xóa",
                 okType: "danger",
                 cancelText: "Hủy",
                 onOk: async () => {
                     try {
                         await deleteMutation.mutateAsync(record._id);
-                        notification.success({ title: "Xóa chi tiêu thành công" });
+                        notification.success({ title: "Xóa thu nhập thành công" });
                     } catch (error: unknown) {
                         notification.error({
-                            title: getErrorMessage(error, "Xóa chi tiêu thất bại"),
+                            title: getErrorMessage(error, "Xóa thu nhập thất bại"),
                         });
                     }
                 },
@@ -162,7 +163,7 @@ export default function ExpensesContextProvider({
         [modal, deleteMutation, notification],
     );
 
-    const value = useMemo<IExpensesContextProps>(
+    const value = useMemo<IIncomesContextProps>(
         () => ({
             search,
             categoryFilter,
@@ -218,14 +219,14 @@ export default function ExpensesContextProvider({
     );
 
     return (
-        <ExpensesContext.Provider value={value}>{children}</ExpensesContext.Provider>
+        <IncomesContext.Provider value={value}>{children}</IncomesContext.Provider>
     );
 }
 
-export const useExpensesContext = () => {
-    const context = useContext(ExpensesContext);
+export const useIncomesContext = () => {
+    const context = useContext(IncomesContext);
     if (!context) {
-        throw new Error("useExpensesContext must be used within a ExpensesContextProvider");
+        throw new Error("useIncomesContext must be used within a IncomesContextProvider");
     }
     return context;
 };

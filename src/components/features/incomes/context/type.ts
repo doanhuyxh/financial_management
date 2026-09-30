@@ -1,12 +1,12 @@
 import type { Dayjs } from "dayjs";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 import type {
-    IExpensesData,
-    IFromExpensesData,
-} from "@/libs/interfaces/expensesData";
+    IFromIncomesData,
+    IIncomesData,
+} from "@/libs/interfaces/incomesData";
 import type { TablePaginationConfig } from "antd/es/table";
 
-export interface IExpensesContextProps {
+export interface IIncomesContextProps {
     // values
     search: string;
     categoryFilter: string;
@@ -14,11 +14,11 @@ export interface IExpensesContextProps {
     dateRange: [Dayjs | null, Dayjs | null] | null;
     page: number;
     pageSize: number;
-    items: IExpensesData[];
-    pagination?: PaginatedResponse<IExpensesData>["pagination"];
+    items: IIncomesData[];
+    pagination?: PaginatedResponse<IIncomesData>["pagination"];
     isLoading: boolean;
     modalOpen: boolean;
-    editingItem: IExpensesData | null;
+    editingItem: IIncomesData | null;
     isSubmitting: boolean;
 
     // handlers
@@ -29,11 +29,11 @@ export interface IExpensesContextProps {
     handleChangePage: (page: number) => void;
     handleTableChange: (pager: TablePaginationConfig) => void;
     openCreateModal: () => void;
-    openEditModal: (record: IExpensesData) => void;
+    openEditModal: (record: IIncomesData) => void;
     closeModal: () => void;
     handleSubmit: (
-        values: IFromExpensesData,
+        values: IFromIncomesData,
         options?: { keepOpen?: boolean },
     ) => Promise<boolean>;
-    handleDelete: (record: IExpensesData) => void;
+    handleDelete: (record: IIncomesData) => void;
 }

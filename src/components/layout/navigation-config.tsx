@@ -5,6 +5,7 @@ import {
     WalletCards,
     CreditCardIcon,
     ListIcon,
+    TrendingUpIcon,
 } from "lucide-react"
 import { MENU_KEY } from "@/libs/constants/menuKey"
 export type SidebarTeam = {
@@ -51,6 +52,11 @@ export const sidebarConfig: SidebarConfig = {
             title: "Chi tiêu",
             url: `${MENU_KEY.EXPENSES}`,
             icon: <CreditCardIcon />,
+        },
+        {
+            title: "Thu nhập",
+            url: `${MENU_KEY.INCOMES}`,
+            icon: <TrendingUpIcon />,
         },
         {
             title: "Danh mục",

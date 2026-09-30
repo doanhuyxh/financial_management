@@ -16,6 +16,7 @@ export const configQueryKey = {
 	CATEGORIES: "categories",
 	SOURCES_OF_MONEY: "sources-of-money",
 	EXPENSES: "expenses",
+	INCOMES: "incomes",
 	DASHBOARD_EXPENSES_SUMMARY: "dashboard-expenses-summary",
 }
 

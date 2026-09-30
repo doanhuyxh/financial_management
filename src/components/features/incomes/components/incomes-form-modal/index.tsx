@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { DatePicker, Form, Input, Modal, Select, Switch } from "antd";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
-import { useExpensesContext } from "@/components/features/expenses/context";
-import { formatMoney, getRefId } from "@/components/features/expenses/utils";
+import { useIncomesContext } from "@/components/features/incomes/context";
+import { formatMoney, getRefId } from "@/components/features/incomes/utils";
 import { useGetCategories } from "@/libs/hooks/customHooks/useCategories";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
-import type { IFromExpensesData } from "@/libs/interfaces/expensesData";
+import type { IFromIncomesData } from "@/libs/interfaces/incomesData";
 import {
     SOURCES_OF_MONEY_TYPE_LABELS,
     SourcesOfMoneyType,
@@ -20,15 +20,13 @@ type FormValues = {
     sourceOfMoneyId: string;
     amount: string | number | null;
     note?: string;
-    spentAt: dayjs.Dayjs;
+    receivedAt: dayjs.Dayjs;
 };
 
-function getSourceRemaining(source?: ISourcesOfMoneyData | null) {
+function getSourceDisplayAmount(source?: ISourcesOfMoneyData | null) {
     if (!source) return null;
     if (source.type === SourcesOfMoneyType.CREDIT_CARD) {
-        const limit = source.creditDetails?.creditLimit ?? 0;
-        const debt = source.creditDetails?.currentDebt ?? 0;
-        return Math.max(0, limit - debt);
+        return source.creditDetails?.currentDebt ?? 0;
     }
     return source.balance ?? 0;
 }
@@ -36,15 +34,15 @@ function getSourceRemaining(source?: ISourcesOfMoneyData | null) {
 function resetCreateForm(form: ReturnType<typeof Form.useForm<FormValues>>[0]) {
     form.resetFields();
     form.setFieldsValue({
-        spentAt: dayjs(),
+        receivedAt: dayjs(),
         amount: "",
         note: "",
     });
 }
 
-export default function ExpensesFormModal() {
+export default function IncomesFormModal() {
     const { modalOpen, editingItem, isSubmitting, closeModal, handleSubmit } =
-        useExpensesContext();
+        useIncomesContext();
 
     const [form] = Form.useForm<FormValues>();
     const [keepCreating, setKeepCreating] = useState(false);
@@ -66,19 +64,23 @@ export default function ExpensesFormModal() {
         [sources, selectedSourceId],
     );
 
-    const remaining = useMemo(() => {
-        const base = getSourceRemaining(selectedSource);
+    const displayAmount = useMemo(() => {
+        const base = getSourceDisplayAmount(selectedSource);
         if (base == null) return null;
-        // When editing same source, current expense amount is already deducted — add it back for display
+        // When editing same source, income already applied — undo for display
         if (
             editingItem &&
             getRefId(editingItem.sourceOfMoneyId) === selectedSourceId
         ) {
-            return base + editingItem.amount;
+            if (selectedSource?.type === SourcesOfMoneyType.CREDIT_CARD) {
+                // Income reduced debt → add amount back to show original debt
+                return base + editingItem.amount;
+            }
+            // Income increased balance → subtract amount back
+            return Math.max(0, base - editingItem.amount);
         }
         return base;
     }, [selectedSource, editingItem, selectedSourceId]);
-
 
     const categoryOptions = (categoriesData?.data?.items ?? []).map((item) => ({
         value: item._id,
@@ -102,7 +104,9 @@ export default function ExpensesFormModal() {
                 sourceOfMoneyId: getRefId(editingItem.sourceOfMoneyId),
                 amount: editingItem.amount,
                 note: editingItem.note ?? "",
-                spentAt: editingItem.spentAt ? dayjs(editingItem.spentAt) : dayjs(),
+                receivedAt: editingItem.receivedAt
+                    ? dayjs(editingItem.receivedAt)
+                    : dayjs(),
             });
         } else {
             resetCreateForm(form);
@@ -117,12 +121,26 @@ export default function ExpensesFormModal() {
             return;
         }
 
-        const payload: IFromExpensesData = {
+        if (
+            selectedSource?.type === SourcesOfMoneyType.CREDIT_CARD &&
+            displayAmount != null &&
+            amount > displayAmount
+        ) {
+            form.setFields([
+                {
+                    name: "amount",
+                    errors: ["Số tiền thanh toán không được vượt dư nợ hiện tại"],
+                },
+            ]);
+            return;
+        }
+
+        const payload: IFromIncomesData = {
             categoryId: values.categoryId,
             sourceOfMoneyId: values.sourceOfMoneyId,
             amount,
             note: values.note?.trim() || "",
-            spentAt: values.spentAt.toISOString(),
+            receivedAt: values.receivedAt.toISOString(),
         };
 
         const shouldKeepOpen = !isEdit && keepCreating;
@@ -134,7 +152,7 @@ export default function ExpensesFormModal() {
 
     return (
         <Modal
-            title={isEdit ? "Sửa chi tiêu" : "Thêm chi tiêu"}
+            title={isEdit ? "Sửa thu nhập" : "Thêm thu nhập"}
             open={modalOpen}
             onCancel={closeModal}
             onOk={handleOk}
@@ -166,9 +184,9 @@ export default function ExpensesFormModal() {
         >
             <Form form={form} layout="vertical" className="mt-4">
                 <Form.Item
-                    name="spentAt"
-                    label="Ngày chi"
-                    rules={[{ required: true, message: "Ngày chi là bắt buộc" }]}
+                    name="receivedAt"
+                    label="Ngày thu"
+                    rules={[{ required: true, message: "Ngày thu là bắt buộc" }]}
                 >
                     <DatePicker className="w-full" format="DD/MM/YYYY" />
                 </Form.Item>
@@ -194,8 +212,8 @@ export default function ExpensesFormModal() {
                     extra={
                         selectedSource
                             ? selectedSource.type === SourcesOfMoneyType.CREDIT_CARD
-                                ? `Hạn mức còn lại: ${formatMoney(remaining)}`
-                                : `Số dư hiện có: ${formatMoney(remaining)}`
+                                ? `Dư nợ hiện tại: ${formatMoney(displayAmount)} (thu nhập = thanh toán dư nợ)`
+                                : `Số dư hiện có: ${formatMoney(displayAmount)} (thu nhập sẽ tăng số dư)`
                             : undefined
                     }
                 >
