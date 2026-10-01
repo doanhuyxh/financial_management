@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, Input, Select } from "antd";
-import { Plus, Search } from "lucide-react";
+import { ArrowLeftRight, Plus, Search } from "lucide-react";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import { useDebounce } from "@/libs/hooks/useDebounce";
 import {
@@ -25,6 +25,7 @@ export default function SourcesOfMoneyHeader() {
         handleSearch,
         handleTypeFilter,
         openCreateModal,
+        openTransferModal,
     } = useSourcesOfMoneyContext();
 
     const [localSearch, setLocalSearch] = useState(search ?? "");
@@ -53,9 +54,21 @@ export default function SourcesOfMoneyHeader() {
                     placeholder="Loại"
                 />
             </div>
-            <Button type="primary" icon={<Plus className="size-4" />} onClick={openCreateModal}>
-                Thêm nguồn tiền
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+                <Button
+                    icon={<ArrowLeftRight className="size-4" />}
+                    onClick={openTransferModal}
+                >
+                    Chuyển tiền
+                </Button>
+                <Button
+                    type="primary"
+                    icon={<Plus className="size-4" />}
+                    onClick={openCreateModal}
+                >
+                    Thêm nguồn tiền
+                </Button>
+            </div>
         </div>
     );
 }

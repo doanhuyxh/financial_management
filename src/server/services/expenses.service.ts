@@ -243,25 +243,33 @@ export class ExpensesService {
 
             const oldSourceId = existing.sourceOfMoneyId.toString();
             const oldAmount = existing.amount;
+            const skipBalance = Boolean(existing.skipBalanceAdjust);
 
-            // Revert old effect, then apply new
-            await adjustSourceBalance(user.userId, oldSourceId, oldAmount, "revert");
-
-            try {
-                await adjustSourceBalance(
-                    user.userId,
-                    payload.sourceOfMoneyId,
-                    payload.amount,
-                    "apply",
-                );
-            } catch (applyError) {
+            if (!skipBalance) {
+                // Revert old effect, then apply new
                 await adjustSourceBalance(
                     user.userId,
                     oldSourceId,
                     oldAmount,
-                    "apply",
+                    "revert",
                 );
-                throw applyError;
+
+                try {
+                    await adjustSourceBalance(
+                        user.userId,
+                        payload.sourceOfMoneyId,
+                        payload.amount,
+                        "apply",
+                    );
+                } catch (applyError) {
+                    await adjustSourceBalance(
+                        user.userId,
+                        oldSourceId,
+                        oldAmount,
+                        "apply",
+                    );
+                    throw applyError;
+                }
             }
 
             try {
@@ -286,19 +294,21 @@ export class ExpensesService {
                 const populated = await getPopulatedExpense(id, user.userId);
                 return successResponse(populated, "Cập nhật chi tiêu thành công");
             } catch (updateError) {
-                // Roll back to previous balances
-                await adjustSourceBalance(
-                    user.userId,
-                    payload.sourceOfMoneyId,
-                    payload.amount,
-                    "revert",
-                );
-                await adjustSourceBalance(
-                    user.userId,
-                    oldSourceId,
-                    oldAmount,
-                    "apply",
-                );
+                if (!skipBalance) {
+                    // Roll back to previous balances
+                    await adjustSourceBalance(
+                        user.userId,
+                        payload.sourceOfMoneyId,
+                        payload.amount,
+                        "revert",
+                    );
+                    await adjustSourceBalance(
+                        user.userId,
+                        oldSourceId,
+                        oldAmount,
+                        "apply",
+                    );
+                }
                 throw updateError;
             }
         } catch (error: unknown) {
@@ -322,12 +332,16 @@ export class ExpensesService {
                 return errorResponseWithStatusCode("Không tìm thấy chi tiêu", 404);
             }
 
-            await adjustSourceBalance(
-                user.userId,
-                existing.sourceOfMoneyId.toString(),
-                existing.amount,
-                "revert",
-            );
+            const skipBalance = Boolean(existing.skipBalanceAdjust);
+
+            if (!skipBalance) {
+                await adjustSourceBalance(
+                    user.userId,
+                    existing.sourceOfMoneyId.toString(),
+                    existing.amount,
+                    "revert",
+                );
+            }
 
             try {
                 await ExpensesModel.findOneAndDelete({
@@ -335,12 +349,14 @@ export class ExpensesService {
                     userId: user.userId,
                 });
             } catch (deleteError) {
-                await adjustSourceBalance(
-                    user.userId,
-                    existing.sourceOfMoneyId.toString(),
-                    existing.amount,
-                    "apply",
-                );
+                if (!skipBalance) {
+                    await adjustSourceBalance(
+                        user.userId,
+                        existing.sourceOfMoneyId.toString(),
+                        existing.amount,
+                        "apply",
+                    );
+                }
                 throw deleteError;
             }
 

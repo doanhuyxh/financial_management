@@ -3,5 +3,6 @@ export const MENU_KEY = {
     SOURCES_OF_MONEY: "/sources-of-money",
     EXPENSES: "/expenses",
     INCOMES: "/incomes",
+    TRANSFERS: "/transfers",
     CATEGORIES: "/categories",
 }

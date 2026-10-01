@@ -9,11 +9,13 @@ import {
     useReorderSourcesOfMoney,
     useUpdateSourcesOfMoney,
 } from "@/libs/hooks/customHooks/useSourcesOfMoney";
+import { useCreateTransfer } from "@/libs/hooks/customHooks/useTransfers";
 import type {
     IFromSourcesOfMoneyData,
     ISourcesOfMoneyData,
     SourcesOfMoneyType,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
 import type { ISourcesOfMoneyContextProps } from "./type";
 
 const LIST_LIMIT = 100;
@@ -43,6 +45,7 @@ export default function SourcesOfMoneyContextProvider({
     const [localItems, setLocalItems] = useState<ISourcesOfMoneyData[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ISourcesOfMoneyData | null>(null);
+    const [transferModalOpen, setTransferModalOpen] = useState(false);
 
     const query = useMemo(
         () => ({
@@ -59,6 +62,7 @@ export default function SourcesOfMoneyContextProvider({
     const updateMutation = useUpdateSourcesOfMoney();
     const deleteMutation = useDeleteSourcesOfMoney();
     const reorderMutation = useReorderSourcesOfMoney();
+    const createTransferMutation = useCreateTransfer();
 
     useEffect(() => {
         setLocalItems(data?.data?.items ?? []);
@@ -87,6 +91,14 @@ export default function SourcesOfMoneyContextProvider({
         setEditingItem(null);
     }, []);
 
+    const openTransferModal = useCallback(() => {
+        setTransferModalOpen(true);
+    }, []);
+
+    const closeTransferModal = useCallback(() => {
+        setTransferModalOpen(false);
+    }, []);
+
     const handleSubmit = useCallback(
         async (values: IFromSourcesOfMoneyData) => {
             try {
@@ -108,6 +120,25 @@ export default function SourcesOfMoneyContextProvider({
             }
         },
         [editingItem, updateMutation, createMutation, notification, closeModal],
+    );
+
+    const handleTransferSubmit = useCallback(
+        async (values: IFromTransfersData, options?: { keepOpen?: boolean }) => {
+            try {
+                await createTransferMutation.mutateAsync(values);
+                notification.success({ title: "Chuyển tiền thành công" });
+                if (!options?.keepOpen) {
+                    closeTransferModal();
+                }
+                return true;
+            } catch (error: unknown) {
+                notification.error({
+                    title: getErrorMessage(error, "Chuyển tiền thất bại"),
+                });
+                return false;
+            }
+        },
+        [createTransferMutation, notification, closeTransferModal],
     );
 
     const handleDelete = useCallback(
@@ -160,6 +191,8 @@ export default function SourcesOfMoneyContextProvider({
             modalOpen,
             editingItem,
             isSubmitting: createMutation.isPending || updateMutation.isPending,
+            transferModalOpen,
+            isTransferSubmitting: createTransferMutation.isPending,
             handleSearch,
             handleTypeFilter,
             handleReorder,
@@ -168,6 +201,9 @@ export default function SourcesOfMoneyContextProvider({
             closeModal,
             handleSubmit,
             handleDelete,
+            openTransferModal,
+            closeTransferModal,
+            handleTransferSubmit,
         }),
         [
             search,
@@ -180,6 +216,8 @@ export default function SourcesOfMoneyContextProvider({
             editingItem,
             createMutation.isPending,
             updateMutation.isPending,
+            transferModalOpen,
+            createTransferMutation.isPending,
             handleSearch,
             handleTypeFilter,
             handleReorder,
@@ -188,6 +226,9 @@ export default function SourcesOfMoneyContextProvider({
             closeModal,
             handleSubmit,
             handleDelete,
+            openTransferModal,
+            closeTransferModal,
+            handleTransferSubmit,
         ],
     );
 

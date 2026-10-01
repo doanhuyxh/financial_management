@@ -3,6 +3,7 @@ import type {
     ISourcesOfMoneyData,
     SourcesOfMoneyType,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
 
 export interface ISourcesOfMoneyContextProps {
     // values
@@ -14,6 +15,8 @@ export interface ISourcesOfMoneyContextProps {
     modalOpen: boolean;
     editingItem: ISourcesOfMoneyData | null;
     isSubmitting: boolean;
+    transferModalOpen: boolean;
+    isTransferSubmitting: boolean;
 
     // handlers
     handleSearch: (value: string) => void;
@@ -24,4 +27,10 @@ export interface ISourcesOfMoneyContextProps {
     closeModal: () => void;
     handleSubmit: (values: IFromSourcesOfMoneyData) => Promise<void>;
     handleDelete: (record: ISourcesOfMoneyData) => void;
+    openTransferModal: () => void;
+    closeTransferModal: () => void;
+    handleTransferSubmit: (
+        values: IFromTransfersData,
+        options?: { keepOpen?: boolean },
+    ) => Promise<boolean>;
 }

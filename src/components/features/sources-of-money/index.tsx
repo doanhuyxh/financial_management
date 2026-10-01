@@ -4,6 +4,7 @@ import SourcesOfMoneyContextProvider from "@/components/features/sources-of-mone
 import SourcesOfMoneyHeader from "@/components/features/sources-of-money/components/header";
 import SourcesOfMoneyTable from "@/components/features/sources-of-money/components/sources-of-money-table";
 import SourcesOfMoneyFormModal from "@/components/features/sources-of-money/components/sources-of-money-form-modal";
+import SourcesTransferFormModal from "@/components/features/sources-of-money/components/transfer-form-modal";
 
 export default function SourcesOfMoneyComponent() {
     return (
@@ -12,6 +13,7 @@ export default function SourcesOfMoneyComponent() {
                 <SourcesOfMoneyHeader />
                 <SourcesOfMoneyTable />
                 <SourcesOfMoneyFormModal />
+                <SourcesTransferFormModal />
             </div>
         </SourcesOfMoneyContextProvider>
     );

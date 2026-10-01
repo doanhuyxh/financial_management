@@ -10,6 +10,8 @@ export interface IExpense extends Document {
     amount: number;
     note?: string;
     spentAt: Date;
+    /** Phí chuyển tiền từ thẻ: chỉ ghi nhận, không điều chỉnh số dư/dư nợ */
+    skipBalanceAdjust?: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -49,6 +51,10 @@ const expensesSchema = new Schema<IExpense>(
             required: true,
             default: Date.now,
             index: true,
+        },
+        skipBalanceAdjust: {
+            type: Boolean,
+            default: false,
         },
     },
     { timestamps: true },
