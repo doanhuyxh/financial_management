@@ -19,7 +19,7 @@ send_zalo_msg() {
 on_failure() {
   local exit_code=$?
   local failed_line=$1
-  local err_msg="❌ Deploy THẤT BẠI! Lỗi tại dòng $failed_line (Mã lỗi: $exit_code)"
+  local err_msg="❌ [Finance Management] Deploy thất bại! Lỗi tại dòng $failed_line (Mã lỗi: $exit_code)"
   
   echo "$err_msg"
   send_zalo_msg "$err_msg"
@@ -43,19 +43,29 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 echo "==> Di chuyển đến thư mục project..."
 cd /home/rocky/financial_management
 
-echo "==> Đang pull code..."
+echo "==> Dừng service..."
+pm2 stop ecosystem.config.js
+
+echo "==> Xóa cache..."
+bun cache clean --all
+
+echo "==> Lấy mới nhất code..."
 git pull --rebase --autostash
 
 echo "==> Cài đặt dependencies..."
+rm -rf node_modules
+rm -rf package-lock.json
+rm -rf bun.lockb
 bun i
 
 echo "==> Build dự án..."
+rm -rf .next
 bun run build
 
 echo "==> Khởi động lại service..."
 pm2 restart ecosystem.config.js --update-env
 
 # ==================== GỬI THÀNH CÔNG ====================
-success_msg="🚀 Deploy THÀNH CÔNG trên server!"
+success_msg="🚀 [Finance Management] Deploy thành công"
 echo "$success_msg"
 send_zalo_msg "$success_msg"
