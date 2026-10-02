@@ -120,7 +120,7 @@ export default function TransfersTable() {
         {
             title: "Thao tác",
             key: "actions",
-            width: 80,
+            width: 100,
             align: "right",
             render: (_value, record) => (
                 <Space size="small">

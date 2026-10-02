@@ -2,11 +2,8 @@ import type { ReactNode } from "react"
 import {
     GalleryVerticalEndIcon,
     PieChartIcon,
-    WalletCards,
-    CreditCardIcon,
-    ListIcon,
-    TrendingUpIcon,
-    ArrowLeftRightIcon,
+    ReceiptIcon,
+    FolderCogIcon,
 } from "lucide-react"
 import { MENU_KEY } from "@/libs/constants/menuKey"
 export type SidebarTeam = {
@@ -45,30 +42,39 @@ export const sidebarConfig: SidebarConfig = {
             isActive: true,
         },
         {
-            title: "Nguồn tiền",
-            url: `${MENU_KEY.SOURCES_OF_MONEY}`,
-            icon: <WalletCards />,
+            title: "Giao dịch",
+            url: "#",
+            icon: <ReceiptIcon />,
+            items: [
+                {
+                    title: "Chi tiêu",
+                    url: `${MENU_KEY.EXPENSES}`,
+                },
+                {
+                    title: "Thu nhập",
+                    url: `${MENU_KEY.INCOMES}`,
+                },
+                {
+                    title: "Chuyển tiền",
+                    url: `${MENU_KEY.TRANSFERS}`,
+                },
+            ],
         },
         {
-            title: "Chi tiêu",
-            url: `${MENU_KEY.EXPENSES}`,
-            icon: <CreditCardIcon />,
+            title: "Quản lý",
+            url: "#",
+            icon: <FolderCogIcon />,
+            items: [
+                {
+                    title: "Nguồn tiền",
+                    url: `${MENU_KEY.SOURCES_OF_MONEY}`,
+                },
+                {
+                    title: "Danh mục",
+                    url: `${MENU_KEY.CATEGORIES}`,
+                },
+            ],
         },
-        {
-            title: "Thu nhập",
-            url: `${MENU_KEY.INCOMES}`,
-            icon: <TrendingUpIcon />,
-        },
-        {
-            title: "Chuyển tiền",
-            url: `${MENU_KEY.TRANSFERS}`,
-            icon: <ArrowLeftRightIcon />,
-        },
-        {
-            title: "Danh mục",
-            url: `${MENU_KEY.CATEGORIES}`,
-            icon: <ListIcon />,
-        }
     ],
 }
 
