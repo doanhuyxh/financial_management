@@ -125,7 +125,7 @@ export default function CategoryPieChart() {
                     <Empty description="Chưa có chi tiêu trong tháng này" />
                 </div>
             ) : (
-                <div className="h-[420px]">
+                <div className="h-105">
                     <Pie key={isDark ? "dark" : "light"} {...config} height={420} autoFit />
                 </div>
             )}
