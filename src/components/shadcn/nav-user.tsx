@@ -32,7 +32,9 @@ export function NavUser() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
+    setTimeout(() => {
+      setMounted(true)
+    }, 0)
   }, [])
 
   // Keep SSR and first client paint identical to avoid Avatar hydration mismatch
@@ -94,7 +96,7 @@ export function NavUser() {
           >
             <DropdownMenuItem onClick={handleLogout}>
               <LogOutIcon />
-              Log out
+              Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

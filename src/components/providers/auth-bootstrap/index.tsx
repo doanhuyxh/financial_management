@@ -2,11 +2,12 @@
 
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/libs/redux/redux";
-import { fetchAuthMe, selectAuth } from "@/libs/redux/authSlice";
+import { fetchAuthMe } from "@/libs/redux/authSlice";
+import { RootState } from "@/libs/redux/store";
 
 export default function AuthBootstrap({ children }: { children: React.ReactNode }) {
     const dispatch = useAppDispatch();
-    const { status } = useAppSelector(selectAuth);
+    const { status } = useAppSelector((state: RootState) => state.auth);
 
     useEffect(() => {
         if (status === "idle") {

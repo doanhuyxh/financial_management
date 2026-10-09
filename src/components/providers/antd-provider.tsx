@@ -9,7 +9,9 @@ export default function AntdProvider({ children, initialTheme }: { children: Rea
     const [theme, setTheme] = useState<"light" | "dark">(initialTheme);
 
     useEffect(() => {
-        setTheme(initialTheme);
+        setTimeout(() => {
+            setTheme(initialTheme);
+        }, 0);
     }, [initialTheme]);
 
     useEffect(() => {
