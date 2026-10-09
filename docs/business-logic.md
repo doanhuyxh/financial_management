@@ -99,6 +99,7 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 - Khoảng thời gian: ngày 1 00:00 đến ngày cuối tháng 23:59:59.999, theo +07:00.
 - `byCategory`: tổng theo danh mục (pie chart), sắp xếp theo tổng giảm dần.
 - `byDay`: tổng theo từng ngày trong tháng (bar chart), ngày không có chi tiêu vẫn có giá trị 0.
+- `bySource`: tổng theo nguồn tiền (`sourceId, sourceName, sourceType`; donut chart kèm tỷ lệ %), sắp xếp theo tổng giảm dần. Nguồn đã bị xóa gom vào "Không xác định" (`sourceType = null`). Tỷ lệ % tính phía client = total / tổng tháng.
 - `totalAmount` = tổng `byCategory`.
 - **Phí chuyển tiền (expense có skipBalanceAdjust) được tính vào chi tiêu.**
 
@@ -119,7 +120,7 @@ Nút "Thêm chi tiêu" trên dashboard điều hướng tới `/expenses?action=
 | URL | Feature folder | Nội dung |
 |---|---|---|
 | `/` | `auth-login` | Đăng nhập |
-| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; bảng dư nợ thẻ tín dụng và hạn thanh toán; pie chart theo danh mục, bar chart theo ngày |
+| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; bảng dư nợ thẻ tín dụng và hạn thanh toán; donut chart theo danh mục và theo nguồn tiền (số tiền + %), bar chart theo ngày |
 | `/expenses` | `expenses` | Bảng và form chi tiêu (có tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal |
 | `/incomes` | `incomes` | Bảng và form thu nhập (có tùy chọn "tiếp tục tạo") |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
@@ -132,7 +133,7 @@ Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm
 - expense → `EXPENSES`, `SOURCES_OF_MONEY`, `DASHBOARD_EXPENSES_SUMMARY`
 - income → `INCOMES`, `SOURCES_OF_MONEY`
 - transfer → `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`
-- staleTime mặc định là 10 giây (`tanstack-provider.tsx`).
+- Mặc định (`tanstack-provider.tsx`): staleTime 60 giây, gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần. Dữ liệu chỉ đổi qua mutation của chính app nên dựa vào invalidate ở trên.
 
 ## 9. Điểm cần lưu ý / nợ kỹ thuật đã biết
 

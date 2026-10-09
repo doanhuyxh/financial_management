@@ -4,23 +4,23 @@ import { useMemo } from "react";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import ExpenseDonutChart from "@/components/features/dashboard/components/expense-donut-chart";
 
-export default function CategoryPieChart() {
+export default function SourcePieChart() {
     const { summary, isLoading, monthValue } = useDashboardContext();
-    const byCategory = summary?.byCategory;
+    const bySource = summary?.bySource;
 
     const items = useMemo(
         () =>
-            (byCategory ?? []).map((item) => ({
-                key: item.categoryId,
-                name: item.categoryName,
+            (bySource ?? []).map((item) => ({
+                key: item.sourceId,
+                name: item.sourceName,
                 total: item.total,
             })),
-        [byCategory],
+        [bySource],
     );
 
     return (
         <ExpenseDonutChart
-            title="Chi tiêu theo danh mục"
+            title="Chi tiêu theo nguồn tiền"
             subtitle={`Tháng ${monthValue.format("MM/YYYY")}`}
             items={items}
             isLoading={isLoading}

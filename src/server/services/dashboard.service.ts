@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import dbConnect from "@/server/connectDb";
 import ExpensesModel from "@/server/models/expenses.model";
 import CategoriesModel from "@/server/models/categories.model";
+import SourcesOfMoneyModel from "@/server/models/sources-of-money.model";
 import type { IDashboardExpensesSummaryQuery } from "@/libs/interfaces/dashboardData";
 import {
     errorResponseWithStatusCode,
@@ -46,14 +47,16 @@ export class DashboardService {
         const { start, end, daysInMonth } = getMonthRange(year, month);
         const userObjectId = new mongoose.Types.ObjectId(user.userId);
 
-        const [byCategoryAgg, byDayAgg] = await Promise.all([
+        const monthMatch = {
+            $match: {
+                userId: userObjectId,
+                spentAt: { $gte: start, $lte: end },
+            },
+        };
+
+        const [byCategoryAgg, byDayAgg, bySourceAgg] = await Promise.all([
             ExpensesModel.aggregate([
-                {
-                    $match: {
-                        userId: userObjectId,
-                        spentAt: { $gte: start, $lte: end },
-                    },
-                },
+                monthMatch,
                 {
                     $group: {
                         _id: "$categoryId",
@@ -88,12 +91,7 @@ export class DashboardService {
                 { $sort: { total: -1, sortOrder: 1 } },
             ]),
             ExpensesModel.aggregate([
-                {
-                    $match: {
-                        userId: userObjectId,
-                        spentAt: { $gte: start, $lte: end },
-                    },
-                },
+                monthMatch,
                 {
                     $group: {
                         _id: {
@@ -106,6 +104,42 @@ export class DashboardService {
                     },
                 },
                 { $sort: { _id: 1 } },
+            ]),
+            ExpensesModel.aggregate([
+                monthMatch,
+                {
+                    $group: {
+                        _id: "$sourceOfMoneyId",
+                        total: { $sum: "$amount" },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: SourcesOfMoneyModel.collection.name,
+                        localField: "_id",
+                        foreignField: "_id",
+                        as: "source",
+                    },
+                },
+                {
+                    $unwind: {
+                        path: "$source",
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        sourceId: { $toString: "$_id" },
+                        sourceName: {
+                            $ifNull: ["$source.name", "Không xác định"],
+                        },
+                        sourceType: { $ifNull: ["$source.type", null] },
+                        total: 1,
+                        sortOrder: { $ifNull: ["$source.sortOrder", 9999] },
+                    },
+                },
+                { $sort: { total: -1, sortOrder: 1 } },
             ]),
         ]);
 
@@ -137,6 +171,20 @@ export class DashboardService {
             }),
         );
 
+        const bySource = bySourceAgg.map(
+            (item: {
+                sourceId: string;
+                sourceName: string;
+                sourceType: string | null;
+                total: number;
+            }) => ({
+                sourceId: item.sourceId,
+                sourceName: item.sourceName,
+                sourceType: item.sourceType,
+                total: item.total,
+            }),
+        );
+
         const totalAmount = byCategory.reduce(
             (sum: number, item: { total: number }) => sum + item.total,
             0,
@@ -149,6 +197,7 @@ export class DashboardService {
                 totalAmount,
                 byCategory,
                 byDay,
+                bySource,
             },
             "Lấy thống kê chi tiêu thành công",
         );

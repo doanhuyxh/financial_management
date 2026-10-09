@@ -1,6 +1,16 @@
+import type { SourcesOfMoneyType } from "./sourcesOfMoneyData";
+
 export interface IExpenseByCategoryItem {
     categoryId: string;
     categoryName: string;
+    total: number;
+}
+
+export interface IExpenseBySourceItem {
+    sourceId: string;
+    sourceName: string;
+    /** null when the source was deleted */
+    sourceType: SourcesOfMoneyType | null;
     total: number;
 }
 
@@ -16,6 +26,7 @@ export interface IDashboardExpensesSummary {
     totalAmount: number;
     byCategory: IExpenseByCategoryItem[];
     byDay: IExpenseByDayItem[];
+    bySource: IExpenseBySourceItem[];
 }
 
 export interface IDashboardExpensesSummaryQuery {

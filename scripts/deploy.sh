@@ -46,13 +46,15 @@ cd /home/rocky/financial_management
 echo "==> Dừng service..."
 pm2 stop ecosystem.config.js
 
+echo "==> Xóa lock files..."
+rm -rf package-lock.json
+rm -rf bun.lockb
+
 echo "==> Lấy mới nhất code..."
 git pull --rebase --autostash
 
 echo "==> Cài đặt dependencies..."
 rm -rf node_modules
-rm -rf package-lock.json
-rm -rf bun.lockb
 bun i
 
 echo "==> Build dự án..."
