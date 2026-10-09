@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Dayjs } from "dayjs";
 import type { TablePaginationConfig } from "antd/es/table";
 import { useAntdApp } from "@/libs/hooks/useAntdApp";
@@ -32,6 +33,9 @@ export default function ExpensesContextProvider({
     children,
 }: IExpensesContextProviderProps) {
     const { notification, modal } = useAntdApp();
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -41,7 +45,10 @@ export default function ExpensesContextProvider({
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(
         null,
     );
-    const [modalOpen, setModalOpen] = useState(false);
+    // Opened from another screen (e.g. dashboard) via `?action=create`
+    const [modalOpen, setModalOpen] = useState(
+        () => searchParams.get("action") === "create",
+    );
     const [editingItem, setEditingItem] = useState<IExpensesData | null>(null);
 
     const query = useMemo(
@@ -105,6 +112,12 @@ export default function ExpensesContextProvider({
         setEditingItem(record);
         setModalOpen(true);
     }, []);
+
+    // Drop `?action=create` once consumed so a reload doesn't reopen the modal
+    useEffect(() => {
+        if (searchParams.get("action") !== "create") return;
+        router.replace(pathname, { scroll: false });
+    }, [searchParams, router, pathname]);
 
     const closeModal = useCallback(() => {
         setModalOpen(false);

@@ -102,6 +102,10 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 - `totalAmount` = tổng `byCategory`.
 - **Phí chuyển tiền (expense có skipBalanceAdjust) được tính vào chi tiêu.**
 
+**Dư nợ thẻ tín dụng** (tính phía client, `features/dashboard/utils.ts`): lấy các nguồn `CREDIT_CARD` có `currentDebt > 0`. Ngày đến hạn kế tiếp là lần gần nhất (tính từ hôm nay) có ngày = `dueDate`; nếu tháng ngắn hơn thì lấy ngày cuối tháng. Trạng thái: hôm nay → "Đến hạn hôm nay" (đỏ); ≤ 3 ngày → đỏ; ≤ 7 ngày → cam; còn lại → xanh; không có `dueDate` → "Chưa đặt ngày đến hạn". Hệ thống không theo dõi việc đã thanh toán kỳ nào: còn dư nợ là còn hiện cảnh báo.
+
+Nút "Thêm chi tiêu" trên dashboard điều hướng tới `/expenses?action=create`. Trang chi tiêu mở sẵn modal tạo mới, sau đó xóa query param.
+
 ## 7. Xác thực
 
 - `POST /api/auth/login` với `{ email, password }`: so sánh password **dạng plain text**. Thành công thì set cookie `access_token` (HttpOnly, Secure, SameSite=Strict, sống 1 năm). JWT là HS256, `exp` 365 ngày, payload gồm `userId, email, phoneNumber, fullName, avatarUrl`.
@@ -115,8 +119,8 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 | URL | Feature folder | Nội dung |
 |---|---|---|
 | `/` | `auth-login` | Đăng nhập |
-| `/dashboard` | `dashboard` | Chọn tháng; pie chart theo danh mục, bar chart theo ngày |
-| `/expenses` | `expenses` | Bảng và form chi tiêu (có tùy chọn "tiếp tục tạo") |
+| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; bảng dư nợ thẻ tín dụng và hạn thanh toán; pie chart theo danh mục, bar chart theo ngày |
+| `/expenses` | `expenses` | Bảng và form chi tiêu (có tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal |
 | `/incomes` | `incomes` | Bảng và form thu nhập (có tùy chọn "tiếp tục tạo") |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
 | `/sources-of-money` | `sources-of-money` | Quản lý nguồn tiền, kéo-thả sắp xếp, chuyển tiền nhanh |
@@ -125,10 +129,10 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục). Route key ở `src/libs/constants/menuKey.ts`.
 
 **Cache React Query** (key ở `configQueryKey`), các mutation invalidate như sau:
-- expense → `EXPENSES`, `SOURCES_OF_MONEY`
+- expense → `EXPENSES`, `SOURCES_OF_MONEY`, `DASHBOARD_EXPENSES_SUMMARY`
 - income → `INCOMES`, `SOURCES_OF_MONEY`
-- transfer → `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`
-- **Không mutation nào invalidate `DASHBOARD_EXPENSES_SUMMARY`.** Dashboard chỉ cập nhật khi refetch hoặc mount lại.
+- transfer → `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`
+- staleTime mặc định là 10 giây (`tanstack-provider.tsx`).
 
 ## 9. Điểm cần lưu ý / nợ kỹ thuật đã biết
 

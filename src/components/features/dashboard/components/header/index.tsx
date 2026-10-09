@@ -1,6 +1,7 @@
 "use client";
 
-import { DatePicker, Spin } from "antd";
+import { Button, DatePicker, Spin } from "antd";
+import { Plus } from "lucide-react";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
@@ -10,7 +11,8 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
 });
 
 export default function DashboardHeader() {
-    const { monthValue, summary, isLoading, handleChangeMonth } = useDashboardContext();
+    const { monthValue, summary, isLoading, handleChangeMonth, handleCreateExpense } =
+        useDashboardContext();
 
     return (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -31,6 +33,13 @@ export default function DashboardHeader() {
 
             <div className="flex items-center gap-3">
                 {isLoading ? <Spin size="small" /> : null}
+                <Button
+                    type="primary"
+                    icon={<Plus className="size-4" />}
+                    onClick={handleCreateExpense}
+                >
+                    Thêm chi tiêu
+                </Button>
                 <DatePicker
                     picker="month"
                     value={monthValue}
