@@ -44,14 +44,17 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         [search],
     );
 
-    const { data, isLoading, isFetching } = useGetCategories(query);
-    const createMutation = useCreateCategory();
-    const updateMutation = useUpdateCategory();
-    const deleteMutation = useDeleteCategory();
-    const reorderMutation = useReorderCategories();
+    const { data, isLoading, isFetching, isPlaceholderData } = useGetCategories(query);
+    const { mutateAsync: createCategory, isPending: isCreating } = useCreateCategory();
+    const { mutateAsync: updateCategory, isPending: isUpdating } = useUpdateCategory();
+    const { mutateAsync: deleteCategory } = useDeleteCategory();
+    const { mutateAsync: reorderCategories, isPending: isReordering } =
+        useReorderCategories();
 
     useEffect(() => {
-        setLocalItems(data?.data?.items ?? []);
+        setTimeout(() => {
+            setLocalItems(data?.data?.items ?? []);
+        }, 0);
     }, [data?.data?.items]);
 
     const handleSearch = useCallback((value: string) => {
@@ -77,13 +80,13 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         async (values: { name: string }) => {
             try {
                 if (editingCategory?._id) {
-                    await updateMutation.mutateAsync({
+                    await updateCategory({
                         id: editingCategory._id,
                         body: values,
                     });
                     notification.success({ title: "Cập nhật danh mục thành công" });
                 } else {
-                    await createMutation.mutateAsync(values);
+                    await createCategory(values);
                     notification.success({ title: "Tạo danh mục thành công" });
                 }
                 closeModal();
@@ -91,7 +94,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
                 notification.error({ title: getErrorMessage(error, "Thao tác thất bại") });
             }
         },
-        [editingCategory, updateMutation, createMutation, notification, closeModal],
+        [editingCategory, updateCategory, createCategory, notification, closeModal],
     );
 
     const handleDelete = useCallback(
@@ -104,7 +107,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
                 cancelText: "Hủy",
                 onOk: async () => {
                     try {
-                        await deleteMutation.mutateAsync(record._id);
+                        await deleteCategory(record._id);
                         notification.success({ title: "Xóa danh mục thành công" });
                     } catch (error: unknown) {
                         notification.error({
@@ -114,7 +117,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
                 },
             });
         },
-        [modal, deleteMutation, notification],
+        [modal, deleteCategory, notification],
     );
 
     const handleReorder = useCallback(
@@ -123,7 +126,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
             setLocalItems(orderedItems);
 
             try {
-                await reorderMutation.mutateAsync(orderedItems.map((item) => item._id));
+                await reorderCategories(orderedItems.map((item) => item._id));
             } catch (error: unknown) {
                 setLocalItems(previous);
                 notification.error({
@@ -131,18 +134,20 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
                 });
             }
         },
-        [localItems, reorderMutation, notification],
+        [localItems, reorderCategories, notification],
     );
 
     const value = useMemo<ICategoryContextProps>(
         () => ({
             search,
             items: localItems,
-            isLoading: isLoading || isFetching,
-            isReordering: reorderMutation.isPending,
+            // Only show loading for first load or a changed query (page/filter);
+            // background refetches keep the current rows on screen.
+            isLoading: isLoading || (isFetching && isPlaceholderData),
+            isReordering,
             modalOpen,
             editingCategory,
-            isSubmitting: createMutation.isPending || updateMutation.isPending,
+            isSubmitting: isCreating || isUpdating,
             handleSearch,
             handleReorder,
             openCreateModal,
@@ -156,11 +161,12 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
             localItems,
             isLoading,
             isFetching,
-            reorderMutation.isPending,
+            isPlaceholderData,
+            isReordering,
             modalOpen,
             editingCategory,
-            createMutation.isPending,
-            updateMutation.isPending,
+            isCreating,
+            isUpdating,
             handleSearch,
             handleReorder,
             openCreateModal,

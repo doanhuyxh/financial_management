@@ -14,6 +14,7 @@ import type { IFromIncomesData, IIncomesData } from "@/libs/interfaces/incomesDa
 import type { IIncomesContextProps } from "./type";
 
 const DEFAULT_PAGE_SIZE = 10;
+const EMPTY_ITEMS: IIncomesData[] = [];
 
 interface IIncomesContextProviderProps {
     children: React.ReactNode;
@@ -57,12 +58,12 @@ export default function IncomesContextProvider({
         [page, pageSize, search, categoryFilter, sourceFilter, dateRange],
     );
 
-    const { data, isLoading, isFetching } = useGetIncomes(query);
-    const createMutation = useCreateIncome();
-    const updateMutation = useUpdateIncome();
-    const deleteMutation = useDeleteIncome();
+    const { data, isLoading, isFetching, isPlaceholderData } = useGetIncomes(query);
+    const { mutateAsync: createIncome, isPending: isCreating } = useCreateIncome();
+    const { mutateAsync: updateIncome, isPending: isUpdating } = useUpdateIncome();
+    const { mutateAsync: deleteIncome } = useDeleteIncome();
 
-    const items = data?.data?.items ?? [];
+    const items = data?.data?.items ?? EMPTY_ITEMS;
     const pagination = data?.data?.pagination;
 
     const handleSearch = useCallback((value: string) => {
@@ -115,14 +116,14 @@ export default function IncomesContextProvider({
         async (values: IFromIncomesData, options?: { keepOpen?: boolean }) => {
             try {
                 if (editingItem?._id) {
-                    await updateMutation.mutateAsync({
+                    await updateIncome({
                         id: editingItem._id,
                         body: values,
                     });
                     notification.success({ title: "Cập nhật thu nhập thành công" });
                     closeModal();
                 } else {
-                    await createMutation.mutateAsync(values);
+                    await createIncome(values);
                     notification.success({ title: "Tạo thu nhập thành công" });
                     if (!options?.keepOpen) {
                         closeModal();
@@ -136,7 +137,7 @@ export default function IncomesContextProvider({
                 return false;
             }
         },
-        [editingItem, updateMutation, createMutation, notification, closeModal],
+        [editingItem, updateIncome, createIncome, notification, closeModal],
     );
 
     const handleDelete = useCallback(
@@ -150,7 +151,7 @@ export default function IncomesContextProvider({
                 cancelText: "Hủy",
                 onOk: async () => {
                     try {
-                        await deleteMutation.mutateAsync(record._id);
+                        await deleteIncome(record._id);
                         notification.success({ title: "Xóa thu nhập thành công" });
                     } catch (error: unknown) {
                         notification.error({
@@ -160,7 +161,7 @@ export default function IncomesContextProvider({
                 },
             });
         },
-        [modal, deleteMutation, notification],
+        [modal, deleteIncome, notification],
     );
 
     const value = useMemo<IIncomesContextProps>(
@@ -173,10 +174,12 @@ export default function IncomesContextProvider({
             pageSize,
             items,
             pagination,
-            isLoading: isLoading || isFetching,
+            // Only show loading for first load or a changed query (page/filter);
+            // background refetches keep the current rows on screen.
+            isLoading: isLoading || (isFetching && isPlaceholderData),
             modalOpen,
             editingItem,
-            isSubmitting: createMutation.isPending || updateMutation.isPending,
+            isSubmitting: isCreating || isUpdating,
             handleSearch,
             handleCategoryFilter,
             handleSourceFilter,
@@ -200,10 +203,11 @@ export default function IncomesContextProvider({
             pagination,
             isLoading,
             isFetching,
+            isPlaceholderData,
             modalOpen,
             editingItem,
-            createMutation.isPending,
-            updateMutation.isPending,
+            isCreating,
+            isUpdating,
             handleSearch,
             handleCategoryFilter,
             handleSourceFilter,

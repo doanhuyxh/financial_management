@@ -16,6 +16,7 @@ import {
     unauthorizedResponse,
 } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
+import { escapeRegex } from "../utils/escapeRegex";
 
 type SourceDoc = {
     _id: mongoose.Types.ObjectId;
@@ -332,7 +333,7 @@ export class TransfersService {
         const filter: Record<string, unknown> = { userId: user.userId };
 
         if (search) {
-            filter.note = { $regex: search, $options: "i" };
+            filter.note = { $regex: escapeRegex(search), $options: "i" };
         }
         if (fromSourceId) filter.fromSourceId = fromSourceId;
         if (toSourceId) filter.toSourceId = toSourceId;

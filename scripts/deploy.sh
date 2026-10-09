@@ -46,9 +46,6 @@ cd /home/rocky/financial_management
 echo "==> Dừng service..."
 pm2 stop ecosystem.config.js
 
-echo "==> Xóa cache..."
-bun cache clean --all
-
 echo "==> Lấy mới nhất code..."
 git pull --rebase --autostash
 

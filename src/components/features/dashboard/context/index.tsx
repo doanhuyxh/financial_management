@@ -30,7 +30,8 @@ export default function DashboardContextProvider({
         [monthValue],
     );
 
-    const { data, isLoading, isFetching } = useGetDashboardExpensesSummary(query);
+    const { data, isLoading, isFetching, isPlaceholderData } =
+        useGetDashboardExpensesSummary(query);
     const { data: creditCardsData, isLoading: isCreditCardsLoading } =
         useGetSourcesOfMoney({
             page: 1,
@@ -59,7 +60,9 @@ export default function DashboardContextProvider({
         () => ({
             monthValue,
             summary: data?.data,
-            isLoading: isLoading || isFetching,
+            // Spinner only on first load or month change, not on background refetch
+            // (which would unmount and re-create the charts).
+            isLoading: isLoading || (isFetching && isPlaceholderData),
             creditCardDebts,
             totalCreditDebt,
             isCreditCardsLoading,
@@ -71,6 +74,7 @@ export default function DashboardContextProvider({
             data?.data,
             isLoading,
             isFetching,
+            isPlaceholderData,
             creditCardDebts,
             totalCreditDebt,
             isCreditCardsLoading,

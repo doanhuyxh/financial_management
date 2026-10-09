@@ -8,14 +8,16 @@ export default function TanStackProvider({ children }: { children: ReactNode }) 
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
-                refetchOnWindowFocus: true,
+                // Data only changes via this app's own mutations (which invalidate
+                // related keys), so aggressive background refetching just causes
+                // spinners and chart re-mounts.
+                refetchOnWindowFocus: false,
                 refetchOnMount: true,
                 refetchOnReconnect: true,
-                refetchIntervalInBackground: true,
-                retry: true,
-                retryDelay: 3000,
-                staleTime: 1000 * 10,
-                gcTime: 1000 * 10 * 3,
+                retry: 1,
+                retryDelay: 1000,
+                staleTime: 1000 * 60,
+                gcTime: 1000 * 60 * 5,
                 placeholderData: (previousData: any) => previousData,
             },
         },

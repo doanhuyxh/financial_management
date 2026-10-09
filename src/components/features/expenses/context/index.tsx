@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import type { Dayjs } from "dayjs";
 import type { TablePaginationConfig } from "antd/es/table";
 import { useAntdApp } from "@/libs/hooks/useAntdApp";
@@ -15,6 +15,7 @@ import type { IExpensesData, IFromExpensesData } from "@/libs/interfaces/expense
 import type { IExpensesContextProps } from "./type";
 
 const DEFAULT_PAGE_SIZE = 10;
+const EMPTY_ITEMS: IExpensesData[] = [];
 
 interface IExpensesContextProviderProps {
     children: React.ReactNode;
@@ -33,8 +34,6 @@ export default function ExpensesContextProvider({
     children,
 }: IExpensesContextProviderProps) {
     const { notification, modal } = useAntdApp();
-    const router = useRouter();
-    const pathname = usePathname();
     const searchParams = useSearchParams();
 
     const [page, setPage] = useState(1);
@@ -64,12 +63,12 @@ export default function ExpensesContextProvider({
         [page, pageSize, search, categoryFilter, sourceFilter, dateRange],
     );
 
-    const { data, isLoading, isFetching } = useGetExpenses(query);
-    const createMutation = useCreateExpense();
-    const updateMutation = useUpdateExpense();
-    const deleteMutation = useDeleteExpense();
+    const { data, isLoading, isFetching, isPlaceholderData } = useGetExpenses(query);
+    const { mutateAsync: createExpense, isPending: isCreating } = useCreateExpense();
+    const { mutateAsync: updateExpense, isPending: isUpdating } = useUpdateExpense();
+    const { mutateAsync: deleteExpense } = useDeleteExpense();
 
-    const items = data?.data?.items ?? [];
+    const items = data?.data?.items ?? EMPTY_ITEMS;
     const pagination = data?.data?.pagination;
 
     const handleSearch = useCallback((value: string) => {
@@ -113,11 +112,15 @@ export default function ExpensesContextProvider({
         setModalOpen(true);
     }, []);
 
-    // Drop `?action=create` once consumed so a reload doesn't reopen the modal
+    // Drop `?action=create` once consumed so a reload doesn't reopen the modal.
+    // Native history API syncs with the Next router without a server round-trip.
     useEffect(() => {
         if (searchParams.get("action") !== "create") return;
-        router.replace(pathname, { scroll: false });
-    }, [searchParams, router, pathname]);
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("action");
+        const qs = params.toString();
+        window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+    }, [searchParams]);
 
     const closeModal = useCallback(() => {
         setModalOpen(false);
@@ -128,14 +131,14 @@ export default function ExpensesContextProvider({
         async (values: IFromExpensesData, options?: { keepOpen?: boolean }) => {
             try {
                 if (editingItem?._id) {
-                    await updateMutation.mutateAsync({
+                    await updateExpense({
                         id: editingItem._id,
                         body: values,
                     });
                     notification.success({ title: "Cập nhật chi tiêu thành công" });
                     closeModal();
                 } else {
-                    await createMutation.mutateAsync(values);
+                    await createExpense(values);
                     notification.success({ title: "Tạo chi tiêu thành công" });
                     if (!options?.keepOpen) {
                         closeModal();
@@ -149,7 +152,7 @@ export default function ExpensesContextProvider({
                 return false;
             }
         },
-        [editingItem, updateMutation, createMutation, notification, closeModal],
+        [editingItem, updateExpense, createExpense, notification, closeModal],
     );
 
     const handleDelete = useCallback(
@@ -162,7 +165,7 @@ export default function ExpensesContextProvider({
                 cancelText: "Hủy",
                 onOk: async () => {
                     try {
-                        await deleteMutation.mutateAsync(record._id);
+                        await deleteExpense(record._id);
                         notification.success({ title: "Xóa chi tiêu thành công" });
                     } catch (error: unknown) {
                         notification.error({
@@ -172,7 +175,7 @@ export default function ExpensesContextProvider({
                 },
             });
         },
-        [modal, deleteMutation, notification],
+        [modal, deleteExpense, notification],
     );
 
     const value = useMemo<IExpensesContextProps>(
@@ -185,10 +188,12 @@ export default function ExpensesContextProvider({
             pageSize,
             items,
             pagination,
-            isLoading: isLoading || isFetching,
+            // Only show loading for first load or a changed query (page/filter);
+            // background refetches keep the current rows on screen.
+            isLoading: isLoading || (isFetching && isPlaceholderData),
             modalOpen,
             editingItem,
-            isSubmitting: createMutation.isPending || updateMutation.isPending,
+            isSubmitting: isCreating || isUpdating,
             handleSearch,
             handleCategoryFilter,
             handleSourceFilter,
@@ -212,10 +217,11 @@ export default function ExpensesContextProvider({
             pagination,
             isLoading,
             isFetching,
+            isPlaceholderData,
             modalOpen,
             editingItem,
-            createMutation.isPending,
-            updateMutation.isPending,
+            isCreating,
+            isUpdating,
             handleSearch,
             handleCategoryFilter,
             handleSourceFilter,

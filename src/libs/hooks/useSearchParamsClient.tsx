@@ -1,9 +1,8 @@
 'use client'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useCallback } from 'react'
 
 function useSearchParamsClient<T>(key: string, defaultValue: T): [T, (value: string | number | ((currentValue: T) => string | number)) => void] {
-    const router = useRouter()
     const searchParams = useSearchParams()
 
     const currentValue = (searchParams.get(key) as T) ?? defaultValue
@@ -11,20 +10,16 @@ function useSearchParamsClient<T>(key: string, defaultValue: T): [T, (value: str
     const setValue = useCallback(
         (value: string | number | ((currentValue: T) => string | number)) => {
             const resolvedValue = typeof value === 'function' ? (value as (currentValue: T) => string | number)(currentValue) : value
-            const newValue = String(resolvedValue)
-            const baseQuery = typeof window !== 'undefined' ? window.location.search : searchParams.toString()
-            const params = new URLSearchParams(baseQuery)
-            params.set(key, newValue)
+            const params = new URLSearchParams(window.location.search)
+            params.set(key, String(resolvedValue))
 
-            if (typeof window !== 'undefined') {
-                const nextQuery = params.toString()
-                const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`
-                window.history.replaceState(window.history.state, '', nextUrl)
-            }
-
-            router.replace(`?${params.toString()}`, { scroll: false })
+            const nextQuery = params.toString()
+            const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`
+            // Native history API syncs `useSearchParams` without a server round-trip
+            // (router.replace would re-render the dynamic layouts on the server).
+            window.history.replaceState(window.history.state, '', nextUrl)
         },
-        [key, router, searchParams, currentValue]
+        [key, currentValue]
     )
 
     return [currentValue, setValue]

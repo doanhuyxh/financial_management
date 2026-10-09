@@ -12,6 +12,7 @@ import {
     unauthorizedResponse,
 } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
+import { escapeRegex } from "../utils/escapeRegex";
 
 export class CategoriesService {
     static async getCategories(query: IPaginatedCategoriesQuery) {
@@ -24,7 +25,7 @@ export class CategoriesService {
         const { page = 1, limit = 100, search = "" } = query;
         const filter: Record<string, unknown> = { userId: user.userId };
         if (search) {
-            filter.name = { $regex: search, $options: "i" };
+            filter.name = { $regex: escapeRegex(search), $options: "i" };
         }
 
         // Backfill sortOrder for legacy documents

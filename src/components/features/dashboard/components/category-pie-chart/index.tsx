@@ -1,10 +1,20 @@
 "use client";
 
 import { useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Empty, Spin } from "antd";
-import { Pie } from "@ant-design/plots";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
+
+// G2 is ~380KB gzipped: load it in a separate chunk, client-only.
+const Pie = dynamic(() => import("@ant-design/plots").then((mod) => mod.Pie), {
+    ssr: false,
+    loading: () => (
+        <div className="flex h-105 items-center justify-center">
+            <Spin />
+        </div>
+    ),
+});
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -17,11 +27,15 @@ const MAX_VISIBLE_SLICES = 6;
 /** Hide outside labels for slices below this share of the total. */
 const MIN_LABEL_RATIO = 0.05;
 
+const formatCurrency = (value: number) => currencyFormatter.format(value);
+
 type CategorySlice = {
     categoryId: string;
     categoryName: string;
     total: number;
 };
+
+const EMPTY_SLICES: CategorySlice[] = [];
 
 function prepareChartData(data: CategorySlice[]): CategorySlice[] {
     if (data.length <= MAX_VISIBLE_SLICES) {
@@ -46,7 +60,7 @@ function prepareChartData(data: CategorySlice[]): CategorySlice[] {
 export default function CategoryPieChart() {
     const { summary, isLoading, monthValue } = useDashboardContext();
     const isDark = useIsDarkMode();
-    const rawData = summary?.byCategory ?? [];
+    const rawData = summary?.byCategory ?? EMPTY_SLICES;
 
     const data = useMemo(() => prepareChartData(rawData), [rawData]);
     const totalAmount = useMemo(
@@ -54,56 +68,59 @@ export default function CategoryPieChart() {
         [data],
     );
 
-    const config = {
-        data,
-        theme: isDark ? "classicDark" : "classic",
-        angleField: "total",
-        colorField: "categoryName",
-        radius: 0.72,
-        innerRadius: 0.55,
-        padding: 24,
-        legend: {
-            color: {
-                title: false,
-                position: "bottom" as const,
-                rowPadding: 6,
-                itemLabelFill: isDark ? "#e2e8f0" : "#0f172a",
-            },
-        },
-        label: {
-            text: (item: CategorySlice) => {
-                if (!totalAmount || item.total / totalAmount < MIN_LABEL_RATIO) {
-                    return "";
-                }
-                return `${item.categoryName}\n${currencyFormatter.format(item.total)}`;
-            },
-            position: "outside" as const,
-            transform: [
-                { type: "overlapDodgeY" as const },
-                { type: "overlapHide" as const },
-                { type: "exceedAdjust" as const },
-            ],
-            style: {
-                fontSize: 11,
-                lineHeight: 14,
-                fill: isDark ? "#e2e8f0" : "#0f172a",
-            },
-            connectorStroke: isDark ? "#64748b" : "#94a3b8",
-        },
-        tooltip: {
-            title: "categoryName",
-            items: [
-                {
-                    field: "total",
-                    name: "Chi tiêu",
-                    valueFormatter: (value: number) => currencyFormatter.format(value),
+    const config = useMemo(
+        () => ({
+            data,
+            theme: isDark ? "classicDark" : "classic",
+            angleField: "total",
+            colorField: "categoryName",
+            radius: 0.72,
+            innerRadius: 0.55,
+            padding: 24,
+            legend: {
+                color: {
+                    title: false,
+                    position: "bottom" as const,
+                    rowPadding: 6,
+                    itemLabelFill: isDark ? "#e2e8f0" : "#0f172a",
                 },
-            ],
-        },
-        interaction: {
-            elementHighlight: true,
-        },
-    };
+            },
+            label: {
+                text: (item: CategorySlice) => {
+                    if (!totalAmount || item.total / totalAmount < MIN_LABEL_RATIO) {
+                        return "";
+                    }
+                    return `${item.categoryName}\n${currencyFormatter.format(item.total)}`;
+                },
+                position: "outside" as const,
+                transform: [
+                    { type: "overlapDodgeY" as const },
+                    { type: "overlapHide" as const },
+                    { type: "exceedAdjust" as const },
+                ],
+                style: {
+                    fontSize: 11,
+                    lineHeight: 14,
+                    fill: isDark ? "#e2e8f0" : "#0f172a",
+                },
+                connectorStroke: isDark ? "#64748b" : "#94a3b8",
+            },
+            tooltip: {
+                title: "categoryName",
+                items: [
+                    {
+                        field: "total",
+                        name: "Chi tiêu",
+                        valueFormatter: formatCurrency,
+                    },
+                ],
+            },
+            interaction: {
+                elementHighlight: true,
+            },
+        }),
+        [data, isDark, totalAmount],
+    );
 
     return (
         <div className="rounded-xl border border-border bg-background p-4">

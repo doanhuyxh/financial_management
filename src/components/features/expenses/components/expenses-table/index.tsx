@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Button, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Pencil, Trash2 } from "lucide-react";
@@ -27,83 +28,86 @@ export default function ExpensesTable() {
         handleDelete,
     } = useExpensesContext();
 
-    const columns: ColumnsType<IExpensesData> = [
-        {
-            title: "STT",
-            key: "index",
-            width: 64,
-            render: (_value, _record, index) => (page - 1) * pageSize + index + 1,
-        },
-        {
-            title: "Ngày chi",
-            dataIndex: "spentAt",
-            key: "spentAt",
-            width: 120,
-            render: (value?: string) =>
-                value ? new Date(value).toLocaleDateString("vi-VN") : "—",
-        },
-        {
-            title: "Số tiền",
-            dataIndex: "amount",
-            key: "amount",
-            width: 140,
-            render: (amount: number) => (
-                <span className="font-semibold text-rose-600">{formatMoney(amount)}</span>
-            ),
-        },
-        {
-            title: "Danh mục",
-            key: "category",
-            render: (_value, record) => getExpenseCategory(record)?.name ?? "—",
-        },
-        {
-            title: "Nguồn tiền",
-            key: "source",
-            render: (_value, record) => {
-                const source = getExpenseSource(record);
-                if (!source) return "—";
-                return (
-                    <div className="flex flex-col gap-0.5">
-                        <span>{source.name}</span>
-                        <Tag className="w-fit">
-                            {SOURCES_OF_MONEY_TYPE_LABELS[source.type as SourcesOfMoneyType] ??
-                                source.type}
-                        </Tag>
-                    </div>
-                );
+    const columns: ColumnsType<IExpensesData> = useMemo(
+        () => [
+            {
+                title: "STT",
+                key: "index",
+                width: 64,
+                render: (_value, _record, index) => (page - 1) * pageSize + index + 1,
             },
-        },
-        {
-            title: "Ghi chú",
-            dataIndex: "note",
-            key: "note",
-            ellipsis: true,
-            render: (note?: string) => note || "—",
-        },
-        {
-            title: "Thao tác",
-            key: "actions",
-            width: 120,
-            align: "right",
-            render: (_value, record) => (
-                <Space size="small">
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<Pencil className="size-4" />}
-                        onClick={() => openEditModal(record)}
-                    />
-                    <Button
-                        type="text"
-                        size="small"
-                        danger
-                        icon={<Trash2 className="size-4" />}
-                        onClick={() => handleDelete(record)}
-                    />
-                </Space>
-            ),
-        },
-    ];
+            {
+                title: "Ngày chi",
+                dataIndex: "spentAt",
+                key: "spentAt",
+                width: 120,
+                render: (value?: string) =>
+                    value ? new Date(value).toLocaleDateString("vi-VN") : "—",
+            },
+            {
+                title: "Số tiền",
+                dataIndex: "amount",
+                key: "amount",
+                width: 140,
+                render: (amount: number) => (
+                    <span className="font-semibold text-rose-600">{formatMoney(amount)}</span>
+                ),
+            },
+            {
+                title: "Danh mục",
+                key: "category",
+                render: (_value, record) => getExpenseCategory(record)?.name ?? "—",
+            },
+            {
+                title: "Nguồn tiền",
+                key: "source",
+                render: (_value, record) => {
+                    const source = getExpenseSource(record);
+                    if (!source) return "—";
+                    return (
+                        <div className="flex flex-col gap-0.5">
+                            <span>{source.name}</span>
+                            <Tag className="w-fit">
+                                {SOURCES_OF_MONEY_TYPE_LABELS[source.type as SourcesOfMoneyType] ??
+                                    source.type}
+                            </Tag>
+                        </div>
+                    );
+                },
+            },
+            {
+                title: "Ghi chú",
+                dataIndex: "note",
+                key: "note",
+                ellipsis: true,
+                render: (note?: string) => note || "—",
+            },
+            {
+                title: "Thao tác",
+                key: "actions",
+                width: 120,
+                align: "right",
+                render: (_value, record) => (
+                    <Space size="small">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<Pencil className="size-4" />}
+                            onClick={() => openEditModal(record)}
+                        />
+                        <Button
+                            type="text"
+                            size="small"
+                            danger
+                            icon={<Trash2 className="size-4" />}
+                            onClick={() => handleDelete(record)}
+                        />
+                    </Space>
+                ),
+            },
+        ],
+        [page, pageSize, openEditModal, handleDelete],
+    );
 
     return (
         <Table<IExpensesData>

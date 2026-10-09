@@ -16,6 +16,7 @@ import type {
 import type { ITransfersContextProps } from "./type";
 
 const DEFAULT_PAGE_SIZE = 10;
+const EMPTY_ITEMS: ITransfersData[] = [];
 
 interface ITransfersContextProviderProps {
     children: React.ReactNode;
@@ -60,11 +61,11 @@ export default function TransfersContextProvider({
         [page, pageSize, search, fromSourceFilter, toSourceFilter, dateRange],
     );
 
-    const { data, isLoading, isFetching } = useGetTransfers(query);
-    const createMutation = useCreateTransfer();
-    const deleteMutation = useDeleteTransfer();
+    const { data, isLoading, isFetching, isPlaceholderData } = useGetTransfers(query);
+    const { mutateAsync: createTransfer, isPending: isCreating } = useCreateTransfer();
+    const { mutateAsync: deleteTransfer } = useDeleteTransfer();
 
-    const items = data?.data?.items ?? [];
+    const items = data?.data?.items ?? EMPTY_ITEMS;
     const pagination = data?.data?.pagination;
 
     const handleSearch = useCallback((value: string) => {
@@ -109,7 +110,7 @@ export default function TransfersContextProvider({
     const handleSubmit = useCallback(
         async (values: IFromTransfersData, options?: { keepOpen?: boolean }) => {
             try {
-                await createMutation.mutateAsync(values);
+                await createTransfer(values);
                 notification.success({ title: "Chuyển tiền thành công" });
                 if (!options?.keepOpen) {
                     closeModal();
@@ -122,7 +123,7 @@ export default function TransfersContextProvider({
                 return false;
             }
         },
-        [createMutation, notification, closeModal],
+        [createTransfer, notification, closeModal],
     );
 
     const handleDelete = useCallback(
@@ -136,7 +137,7 @@ export default function TransfersContextProvider({
                 cancelText: "Hủy",
                 onOk: async () => {
                     try {
-                        await deleteMutation.mutateAsync(record._id);
+                        await deleteTransfer(record._id);
                         notification.success({
                             title: "Xóa giao dịch chuyển tiền thành công",
                         });
@@ -151,7 +152,7 @@ export default function TransfersContextProvider({
                 },
             });
         },
-        [modal, deleteMutation, notification],
+        [modal, deleteTransfer, notification],
     );
 
     const value = useMemo<ITransfersContextProps>(
@@ -164,9 +165,11 @@ export default function TransfersContextProvider({
             pageSize,
             items,
             pagination,
-            isLoading: isLoading || isFetching,
+            // Only show loading for first load or a changed query (page/filter);
+            // background refetches keep the current rows on screen.
+            isLoading: isLoading || (isFetching && isPlaceholderData),
             modalOpen,
-            isSubmitting: createMutation.isPending,
+            isSubmitting: isCreating,
             handleSearch,
             handleFromSourceFilter,
             handleToSourceFilter,
@@ -189,8 +192,9 @@ export default function TransfersContextProvider({
             pagination,
             isLoading,
             isFetching,
+            isPlaceholderData,
             modalOpen,
-            createMutation.isPending,
+            isCreating,
             handleSearch,
             handleFromSourceFilter,
             handleToSourceFilter,

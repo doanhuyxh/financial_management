@@ -76,6 +76,13 @@ function SortableRow({ children, ...props }: RowProps) {
     );
 }
 
+// Module-level so antd Table doesn't see a new `components` object every render.
+const TABLE_COMPONENTS = {
+    body: {
+        row: SortableRow,
+    },
+};
+
 export function createSortColumn<T>(): ColumnsType<T>[number] {
     return {
         key: "sort",
@@ -112,6 +119,8 @@ export default function SortableTable<T extends ISortableItem>({
         return [sortColumn, ...rest];
     }, [columns]);
 
+    const itemIds = useMemo(() => items.map((item) => item._id), [items]);
+
     const onDragEnd = async ({ active, over }: DragEndEvent) => {
         if (!over || active.id === over.id) return;
 
@@ -130,7 +139,7 @@ export default function SortableTable<T extends ISortableItem>({
     return (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext
-                items={items.map((item) => item._id)}
+                items={itemIds}
                 strategy={verticalListSortingStrategy}
             >
                 <Table<T>
@@ -138,11 +147,7 @@ export default function SortableTable<T extends ISortableItem>({
                     columns={mergedColumns}
                     dataSource={items}
                     pagination={pagination}
-                    components={{
-                        body: {
-                            row: SortableRow,
-                        },
-                    }}
+                    components={TABLE_COMPONENTS}
                     {...tableProps}
                 />
             </SortableContext>

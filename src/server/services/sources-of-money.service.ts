@@ -13,6 +13,7 @@ import {
     unauthorizedResponse,
 } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
+import { escapeRegex } from "../utils/escapeRegex";
 
 function normalizePayload(data: IFromSourcesOfMoneyData) {
     const name = data.name?.trim();
@@ -87,7 +88,7 @@ export class SourcesOfMoneyService {
         const filter: Record<string, unknown> = { userId: user.userId };
 
         if (search) {
-            filter.name = { $regex: search, $options: "i" };
+            filter.name = { $regex: escapeRegex(search), $options: "i" };
         }
         if (type) {
             filter.type = type;

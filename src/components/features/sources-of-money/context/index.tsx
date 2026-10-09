@@ -57,15 +57,19 @@ export default function SourcesOfMoneyContextProvider({
         [search, typeFilter],
     );
 
-    const { data, isLoading, isFetching } = useGetSourcesOfMoney(query);
-    const createMutation = useCreateSourcesOfMoney();
-    const updateMutation = useUpdateSourcesOfMoney();
-    const deleteMutation = useDeleteSourcesOfMoney();
-    const reorderMutation = useReorderSourcesOfMoney();
-    const createTransferMutation = useCreateTransfer();
+    const { data, isLoading, isFetching, isPlaceholderData } = useGetSourcesOfMoney(query);
+    const { mutateAsync: createSource, isPending: isCreating } = useCreateSourcesOfMoney();
+    const { mutateAsync: updateSource, isPending: isUpdating } = useUpdateSourcesOfMoney();
+    const { mutateAsync: deleteSource } = useDeleteSourcesOfMoney();
+    const { mutateAsync: reorderSources, isPending: isReordering } =
+        useReorderSourcesOfMoney();
+    const { mutateAsync: createTransfer, isPending: isTransferSubmitting } =
+        useCreateTransfer();
 
     useEffect(() => {
-        setLocalItems(data?.data?.items ?? []);
+        setTimeout(() => {
+            setLocalItems(data?.data?.items ?? []);
+        }, 0);
     }, [data?.data?.items]);
 
     const handleSearch = useCallback((value: string) => {
@@ -103,13 +107,13 @@ export default function SourcesOfMoneyContextProvider({
         async (values: IFromSourcesOfMoneyData) => {
             try {
                 if (editingItem?._id) {
-                    await updateMutation.mutateAsync({
+                    await updateSource({
                         id: editingItem._id,
                         body: values,
                     });
                     notification.success({ title: "Cập nhật nguồn tiền thành công" });
                 } else {
-                    await createMutation.mutateAsync(values);
+                    await createSource(values);
                     notification.success({ title: "Tạo nguồn tiền thành công" });
                 }
                 closeModal();
@@ -119,13 +123,13 @@ export default function SourcesOfMoneyContextProvider({
                 });
             }
         },
-        [editingItem, updateMutation, createMutation, notification, closeModal],
+        [editingItem, updateSource, createSource, notification, closeModal],
     );
 
     const handleTransferSubmit = useCallback(
         async (values: IFromTransfersData, options?: { keepOpen?: boolean }) => {
             try {
-                await createTransferMutation.mutateAsync(values);
+                await createTransfer(values);
                 notification.success({ title: "Chuyển tiền thành công" });
                 if (!options?.keepOpen) {
                     closeTransferModal();
@@ -138,7 +142,7 @@ export default function SourcesOfMoneyContextProvider({
                 return false;
             }
         },
-        [createTransferMutation, notification, closeTransferModal],
+        [createTransfer, notification, closeTransferModal],
     );
 
     const handleDelete = useCallback(
@@ -151,7 +155,7 @@ export default function SourcesOfMoneyContextProvider({
                 cancelText: "Hủy",
                 onOk: async () => {
                     try {
-                        await deleteMutation.mutateAsync(record._id);
+                        await deleteSource(record._id);
                         notification.success({ title: "Xóa nguồn tiền thành công" });
                     } catch (error: unknown) {
                         notification.error({
@@ -161,7 +165,7 @@ export default function SourcesOfMoneyContextProvider({
                 },
             });
         },
-        [modal, deleteMutation, notification],
+        [modal, deleteSource, notification],
     );
 
     const handleReorder = useCallback(
@@ -170,7 +174,7 @@ export default function SourcesOfMoneyContextProvider({
             setLocalItems(orderedItems);
 
             try {
-                await reorderMutation.mutateAsync(orderedItems.map((item) => item._id));
+                await reorderSources(orderedItems.map((item) => item._id));
             } catch (error: unknown) {
                 setLocalItems(previous);
                 notification.error({
@@ -178,7 +182,7 @@ export default function SourcesOfMoneyContextProvider({
                 });
             }
         },
-        [localItems, reorderMutation, notification],
+        [localItems, reorderSources, notification],
     );
 
     const value = useMemo<ISourcesOfMoneyContextProps>(
@@ -186,13 +190,15 @@ export default function SourcesOfMoneyContextProvider({
             search,
             typeFilter,
             items: localItems,
-            isLoading: isLoading || isFetching,
-            isReordering: reorderMutation.isPending,
+            // Only show loading for first load or a changed query (page/filter);
+            // background refetches keep the current rows on screen.
+            isLoading: isLoading || (isFetching && isPlaceholderData),
+            isReordering,
             modalOpen,
             editingItem,
-            isSubmitting: createMutation.isPending || updateMutation.isPending,
+            isSubmitting: isCreating || isUpdating,
             transferModalOpen,
-            isTransferSubmitting: createTransferMutation.isPending,
+            isTransferSubmitting,
             handleSearch,
             handleTypeFilter,
             handleReorder,
@@ -211,13 +217,14 @@ export default function SourcesOfMoneyContextProvider({
             localItems,
             isLoading,
             isFetching,
-            reorderMutation.isPending,
+            isPlaceholderData,
+            isReordering,
             modalOpen,
             editingItem,
-            createMutation.isPending,
-            updateMutation.isPending,
+            isCreating,
+            isUpdating,
             transferModalOpen,
-            createTransferMutation.isPending,
+            isTransferSubmitting,
             handleSearch,
             handleTypeFilter,
             handleReorder,

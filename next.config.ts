@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
     serverFunctions: true,
     browserToTerminal: false,
   },
-  productionBrowserSourceMaps: !isDevelopment,
+  productionBrowserSourceMaps: false,
   compiler: {
     removeConsole: !isDevelopment,
   },
