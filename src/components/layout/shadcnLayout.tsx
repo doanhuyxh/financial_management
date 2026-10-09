@@ -12,6 +12,7 @@ import {
 } from "@/components/shadcn/ui/sidebar"
 import { TooltipProvider } from "@/components/shadcn/ui/tooltip"
 import BannerHeader from "../shadcn/banner-header"
+import { cn } from "@/libs/shadcn/utils"
 
 export default function ShadcnLayout({
   children,
@@ -26,7 +27,15 @@ export default function ShadcnLayout({
         <RouteSync />
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b">
+          <header
+            className={cn(
+              "flex h-16 shrink-0 items-center justify-between gap-2",
+              "sticky top-0 z-10 bg-background",
+              "border-b",
+              "transition-[width,height] ease-linear",
+              "group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",
+            )}
+          >
             <div className="flex min-w-0 items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator
