@@ -32,6 +32,8 @@
 
     --sidebar-accent: color-mix(in srgb, var(--primary) 15%, white);
     --sidebar-accent-foreground: var(--primary);
+    /* Active row sits on a near-white sidebar, so it needs a stronger fill than hover. */
+    --sidebar-accent-active: color-mix(in srgb, var(--primary) 22%, #fff4eb);
     --sidebar-border: #e2e8f0;
     --sidebar-ring: #94a3b8;
 
@@ -109,6 +111,38 @@
     100% {
         background-position: 100% 50%;
     }
+}
+
+/*
+ * Ant Design sets every anchor to colorLink (#BC4800). On the dark sidebar that
+ * paints inactive links the same orange as the selected item.
+ */
+[data-sidebar="sidebar"] :is(a[data-sidebar="menu-button"], a[data-sidebar="menu-sub-button"]) {
+    color: var(--sidebar-foreground);
+}
+
+[data-sidebar="sidebar"] :is(a[data-sidebar="menu-button"], a[data-sidebar="menu-sub-button"]):hover {
+    color: var(--primary);
+}
+
+/* Light: stronger fill and a bar, because a 15% tint disappears on white. */
+html:not(.dark) [data-sidebar="menu-button"][data-active="true"],
+html:not(.dark) [data-sidebar="menu-sub-button"][data-active="true"] {
+    background-color: var(--sidebar-accent-active);
+    color: var(--primary);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--primary);
+}
+
+/* Dark: stronger tint only. No light bar, which reads as a stray stripe on black. */
+.dark [data-sidebar="menu-button"][data-active="true"],
+.dark [data-sidebar="menu-sub-button"][data-active="true"] {
+    background-color: rgba(188, 72, 0, 0.32);
+    color: var(--primary);
+}
+
+.dark [data-sidebar="menu-sub"] {
+    border-left-color: rgba(255, 255, 255, 0.08);
 }
 
 @layer base {

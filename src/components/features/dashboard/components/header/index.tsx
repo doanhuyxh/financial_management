@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Button, DatePicker, Skeleton, Spin } from "antd";
 import dayjs from "dayjs";
-import { CalendarArrowUp, Plus, Tags, TrendingUp, Wallet } from "lucide-react";
+import { CalendarArrowUp, CreditCard, Plus, Tags, TrendingUp, Wallet } from "lucide-react";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import MiniStat from "@/components/features/dashboard/components/mini-stat";
 
@@ -14,8 +14,15 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
 });
 
 export default function DashboardHeader() {
-    const { monthValue, summary, isLoading, handleChangeMonth, handleCreateExpense } =
-        useDashboardContext();
+    const {
+        monthValue,
+        summary,
+        isLoading,
+        totalCreditDebt,
+        isCreditCardsLoading,
+        handleChangeMonth,
+        handleCreateExpense,
+    } = useDashboardContext();
 
     const stats = useMemo(() => {
         if (!summary) return null;
@@ -48,21 +55,46 @@ export default function DashboardHeader() {
             />
 
             <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex min-w-0 items-center gap-4">
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-                        <Wallet className="size-6" />
-                    </span>
-                    <div className="min-w-0">
-                        <p className="text-sm text-muted-foreground">
-                            Tổng chi tiêu tháng {monthValue.format("MM/YYYY")}
-                        </p>
-                        {summary ? (
-                            <p className="truncate text-2xl font-bold tracking-tight tabular-nums sm:text-3xl">
-                                {currencyFormatter.format(summary.totalAmount)}
+                <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:gap-6">
+                    <div className="flex min-w-0 items-center gap-4">
+                        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                            <Wallet className="size-6" />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="text-sm text-muted-foreground">
+                                Tổng chi tiêu tháng {monthValue.format("MM/YYYY")}
                             </p>
-                        ) : (
-                            <Skeleton.Input active size="large" className="mt-1" />
-                        )}
+                            {summary ? (
+                                <p className="truncate text-2xl font-bold tracking-tight tabular-nums sm:text-3xl">
+                                    {currencyFormatter.format(summary.totalAmount)}
+                                </p>
+                            ) : (
+                                <Skeleton.Input active size="large" className="mt-1" />
+                            )}
+                        </div>
+                    </div>
+
+                    <span
+                        aria-hidden
+                        className="hidden h-10 w-px shrink-0 bg-primary/25 lg:block"
+                    />
+
+                    <div className="flex min-w-0 items-center gap-4">
+                        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-red-500/15 text-red-500">
+                            <CreditCard className="size-6" />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="text-sm text-muted-foreground">
+                                Tổng dư nợ thẻ tín dụng
+                            </p>
+                            {isCreditCardsLoading ? (
+                                <Skeleton.Input active size="large" className="mt-1" />
+                            ) : (
+                                <p className="truncate text-2xl font-bold tracking-tight text-red-500 tabular-nums sm:text-3xl">
+                                    {currencyFormatter.format(totalCreditDebt)}
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
 

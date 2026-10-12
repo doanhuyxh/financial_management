@@ -1,6 +1,6 @@
 # Nghiệp vụ — Money Manager (financial_management)
 
-> Tài liệu tóm tắt nghiệp vụ đang chạy, đọc trước khi sửa code. Cập nhật lần cuối: 2026-10-09.
+> Tài liệu tóm tắt nghiệp vụ đang chạy, đọc trước khi sửa code. Cập nhật lần cuối: 2026-10-12.
 > Nguồn sự thật là `src/server/services/*.service.ts` — nếu code khác tài liệu, tin code và sửa lại tài liệu.
 
 ## 1. Tổng quan
@@ -103,6 +103,7 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 - `totalAmount` = tổng `byCategory`.
 - **Phí chuyển tiền (expense có skipBalanceAdjust) được tính vào chi tiêu.**
 - Thẻ tổng quan ở header (tính phía client từ summary): **Trung bình / ngày** = totalAmount chia cho số ngày đã qua (tháng hiện tại tính đến hôm nay, tháng trước tính cả tháng, tháng tương lai trả về 0); **Ngày chi nhiều nhất** = ngày có tổng lớn nhất trong `byDay`; **Số danh mục đã chi** = số phần tử của `byCategory`.
+- Cạnh tổng chi tiêu, header còn hiện **Tổng dư nợ thẻ tín dụng**: tổng `currentDebt` của các thẻ đang có dư nợ (cùng số với "Tổng dư nợ" ở bảng dư nợ phía dưới). Đây là dư nợ hiện tại, không đổi khi chọn tháng khác.
 
 **Dư nợ thẻ tín dụng** (tính phía client, `features/dashboard/utils.ts`): lấy các nguồn `CREDIT_CARD` có `currentDebt > 0`. Ngày đến hạn kế tiếp là lần gần nhất (tính từ hôm nay) có ngày = `dueDate`; nếu tháng ngắn hơn thì lấy ngày cuối tháng. Trạng thái: hôm nay → "Đến hạn hôm nay" (đỏ); ≤ 3 ngày → đỏ; ≤ 7 ngày → cam; còn lại → xanh; không có `dueDate` → "Chưa đặt ngày đến hạn". Hệ thống không theo dõi việc đã thanh toán kỳ nào: còn dư nợ là còn hiện cảnh báo.
 
@@ -121,7 +122,7 @@ Nút "Thêm chi tiêu" trên dashboard điều hướng tới `/expenses?action=
 | URL | Feature folder | Nội dung |
 |---|---|---|
 | `/` | `auth-login` | Đăng nhập |
-| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; bảng dư nợ thẻ tín dụng và hạn thanh toán; donut chart theo danh mục và theo nguồn tiền (số tiền + %), bar chart theo ngày |
+| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; header hiện tổng chi tiêu tháng và tổng dư nợ thẻ tín dụng hiện tại; bảng dư nợ thẻ tín dụng và hạn thanh toán; donut chart theo danh mục và theo nguồn tiền (số tiền + %), bar chart theo ngày |
 | `/expenses` | `expenses` | Bảng và form chi tiêu (có tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal |
 | `/incomes` | `incomes` | Bảng và form thu nhập (có tùy chọn "tiếp tục tạo") |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
