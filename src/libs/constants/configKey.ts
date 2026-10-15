@@ -34,3 +34,11 @@ export const configCookieKey = {
 	ACCESS_TOKEN_KEY: "access_token",
 }
 
+/** JWT and access_token cookie lifetime. */
+export const AUTH_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+
+export const QUERY_STALE_TIME = {
+	REFERENCE: 1000 * 60 * 5,
+	TRANSACTION: 1000 * 30,
+}
+

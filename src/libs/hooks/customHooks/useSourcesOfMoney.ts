@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { configQueryKey } from "@/libs/constants/configKey";
+import { useMemo } from "react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { configQueryKey, QUERY_STALE_TIME } from "@/libs/constants/configKey";
 import type {
     IFromSourcesOfMoneyData,
     IPaginatedSourcesOfMoneyQuery,
@@ -13,11 +14,14 @@ import {
     reorderSourcesOfMoney,
     updateSourcesOfMoney,
 } from "@/libs/networkApi/sources-of-money.api";
+import { optimisticReorder, restoreQuerySnapshots } from "@/libs/hooks/customHooks/reorderCache";
 
 export const useGetSourcesOfMoney = (query: IPaginatedSourcesOfMoneyQuery = {}) => {
     return useQuery({
         queryKey: [configQueryKey.SOURCES_OF_MONEY, query],
         queryFn: () => getSourcesOfMoney(query),
+        placeholderData: keepPreviousData,
+        staleTime: QUERY_STALE_TIME.REFERENCE,
     });
 };
 
@@ -49,10 +53,33 @@ export const useReorderSourcesOfMoney = () => {
 
     return useMutation({
         mutationFn: (orderedIds: string[]) => reorderSourcesOfMoney(orderedIds),
-        onSuccess: () => {
+        onMutate: (orderedIds) =>
+            optimisticReorder(queryClient, configQueryKey.SOURCES_OF_MONEY, orderedIds),
+        onError: (_error, _ids, snapshots) => {
+            if (snapshots) restoreQuerySnapshots(queryClient, snapshots);
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
         },
     });
+};
+
+export const useSourceOptions = (allLabel?: string) => {
+    const query = useGetSourcesOfMoney({ page: 1, limit: 100 });
+    const options = useMemo(() => {
+        const mapped = (query.data?.data?.items ?? []).map((item) => ({
+            value: item._id,
+            label: item.name,
+        }));
+        if (!allLabel) return mapped;
+        return [{ value: "", label: allLabel }, ...mapped];
+    }, [query.data, allLabel]);
+
+    return {
+        options,
+        items: query.data?.data?.items ?? [],
+        isLoading: query.isLoading,
+    };
 };
 
 export const useDeleteSourcesOfMoney = () => {

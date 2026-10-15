@@ -14,6 +14,7 @@ import type {
     ITransfersData,
 } from "@/libs/interfaces/transfersData";
 import type { ITransfersContextProps } from "./type";
+import { formatMoney } from "@/libs/utils/formatMoney";
 
 const DEFAULT_PAGE_SIZE = 10;
 const EMPTY_ITEMS: ITransfersData[] = [];
@@ -130,8 +131,7 @@ export default function TransfersContextProvider({
         (record: ITransfersData) => {
             modal.confirm({
                 title: "Xóa giao dịch chuyển tiền",
-                content:
-                    "Bạn có chắc muốn xóa? Số dư nguồn tiền sẽ được hoàn tác và chi tiêu phí (nếu có) sẽ bị xóa.",
+                content: `Xóa chuyển tiền ${formatMoney(record.amount)}? Số dư nguồn tiền sẽ được hoàn tác và chi tiêu phí (nếu có) sẽ bị xóa.`,
                 okText: "Xóa",
                 okType: "danger",
                 cancelText: "Hủy",

@@ -11,6 +11,7 @@ import {
     useUpdateIncome,
 } from "@/libs/hooks/customHooks/useIncomes";
 import type { IFromIncomesData, IIncomesData } from "@/libs/interfaces/incomesData";
+import { formatMoney } from "@/libs/utils/formatMoney";
 import type { IIncomesContextProps } from "./type";
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -144,8 +145,7 @@ export default function IncomesContextProvider({
         (record: IIncomesData) => {
             modal.confirm({
                 title: "Xóa thu nhập",
-                content:
-                    "Bạn có chắc muốn xóa khoản thu nhập này? Số tiền sẽ được hoàn lại trên nguồn (giảm số dư / tăng dư nợ thẻ).",
+                content: `Xóa khoản thu ${formatMoney(record.amount)}? Số tiền sẽ được hoàn lại trên nguồn (giảm số dư / tăng dư nợ thẻ).`,
                 okText: "Xóa",
                 okType: "danger",
                 cancelText: "Hủy",

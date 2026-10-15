@@ -12,6 +12,7 @@ import {
     useUpdateExpense,
 } from "@/libs/hooks/customHooks/useExpenses";
 import type { IExpensesData, IFromExpensesData } from "@/libs/interfaces/expensesData";
+import { formatMoney } from "@/libs/utils/formatMoney";
 import type { IExpensesContextProps } from "./type";
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -159,7 +160,7 @@ export default function ExpensesContextProvider({
         (record: IExpensesData) => {
             modal.confirm({
                 title: "Xóa chi tiêu",
-                content: "Bạn có chắc muốn xóa khoản chi tiêu này? Số tiền sẽ được hoàn vào nguồn.",
+                content: `Xóa khoản chi ${formatMoney(record.amount)}? Số tiền sẽ được hoàn vào nguồn.`,
                 okText: "Xóa",
                 okType: "danger",
                 cancelText: "Hủy",

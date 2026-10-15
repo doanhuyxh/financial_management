@@ -1,7 +1,7 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { configQueryKey } from "@/libs/constants/configKey";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { configQueryKey, QUERY_STALE_TIME } from "@/libs/constants/configKey";
 import type {
     IFromTransfersData,
     IPaginatedTransfersQuery,
@@ -25,6 +25,8 @@ export const useGetTransfers = (query: IPaginatedTransfersQuery = {}) => {
     return useQuery({
         queryKey: [configQueryKey.TRANSFERS, query],
         queryFn: () => getTransfers(query),
+        placeholderData: keepPreviousData,
+        staleTime: QUERY_STALE_TIME.TRANSACTION,
     });
 };
 

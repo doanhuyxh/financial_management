@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Provider } from "react-redux";
-import { store } from "@/libs/redux/store";
+import { makeStore } from "@/libs/redux/store";
 import AuthBootstrap from "@/components/providers/auth-bootstrap";
 
 export function ReduxProvider({ children }: { children: React.ReactNode }) {
+    const [store] = useState(makeStore);
+
     return (
         <Provider store={store}>
             <AuthBootstrap>{children}</AuthBootstrap>

@@ -2,33 +2,20 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Empty, Spin } from "antd";
+import { Empty, Skeleton, Spin } from "antd";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
+import { useIsMobile } from "@/libs/hooks/use-mobile";
+import { formatCompactMoney, formatMoney } from "@/libs/utils/formatMoney";
 
 // G2 is ~380KB gzipped: load it in a separate chunk, client-only.
 const Column = dynamic(() => import("@ant-design/plots").then((mod) => mod.Column), {
     ssr: false,
-    loading: () => (
-        <div className="flex h-80 items-center justify-center">
-            <Spin />
-        </div>
-    ),
+    loading: () => <Skeleton.Node active className="h-60! w-full!" />,
 });
 
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-});
-
-const compactFormatter = new Intl.NumberFormat("vi-VN", {
-    notation: "compact",
-    compactDisplay: "short",
-});
-
-const formatCurrency = (value: number) => currencyFormatter.format(value);
-const formatCompact = (value: number) => compactFormatter.format(value);
+const formatCurrency = (value: number) => formatMoney(value);
+const formatCompact = (value: number) => formatCompactMoney(value);
 const formatTooltipTitle = (item: { label: string }) => `Ngày ${item.label}`;
 
 const EMPTY_DAYS: { day: number; label: string; total: number }[] = [];
@@ -36,6 +23,8 @@ const EMPTY_DAYS: { day: number; label: string; total: number }[] = [];
 export default function DailyBarChart() {
     const { summary, isLoading, monthValue } = useDashboardContext();
     const isDark = useIsDarkMode();
+    const isMobile = useIsMobile();
+    const chartHeight = isMobile ? 240 : 320;
     const data = summary?.byDay ?? EMPTY_DAYS;
     const hasData = data.some((item) => item.total > 0);
 
@@ -104,8 +93,15 @@ export default function DailyBarChart() {
                     <Empty description="Chưa có chi tiêu trong tháng này" />
                 </div>
             ) : (
-                <div className="h-80">
-                    <Column key={isDark ? "dark" : "light"} {...config} height={320} autoFit />
+                <div className="overflow-x-auto">
+                    <div className="min-w-[640px] md:min-w-0" style={{ height: chartHeight }}>
+                        <Column
+                            key={`${isDark ? "dark" : "light"}-${chartHeight}`}
+                            {...config}
+                            height={chartHeight}
+                            autoFit
+                        />
+                    </div>
                 </div>
             )}
         </div>

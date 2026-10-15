@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { Form, Input, Modal, Select } from "antd";
+import { Form, Input, Select } from "antd";
+import ResponsiveModal from "@/components/common/responsive-modal";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import {
     SOURCES_OF_MONEY_TYPE_LABELS,
@@ -118,7 +119,7 @@ export default function SourcesOfMoneyFormModal() {
     };
 
     return (
-        <Modal
+        <ResponsiveModal
             title={isEdit ? "Sửa nguồn tiền" : "Thêm nguồn tiền"}
             open={modalOpen}
             onCancel={closeModal}
@@ -166,7 +167,7 @@ export default function SourcesOfMoneyFormModal() {
                         />
                     </Form.Item>
                 ) : (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <Form.Item
                             name="creditLimit"
                             label="Hạn mức tín dụng"
@@ -208,6 +209,6 @@ export default function SourcesOfMoneyFormModal() {
                     </div>
                 )}
             </Form>
-        </Modal>
+        </ResponsiveModal>
     );
 }

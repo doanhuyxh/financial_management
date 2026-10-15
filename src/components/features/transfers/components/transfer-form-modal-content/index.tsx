@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DatePicker, Form, Input, Modal, Select, Switch } from "antd";
+import { DatePicker, Form, Input, Select, Switch } from "antd";
+import ResponsiveModal from "@/components/common/responsive-modal";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import { formatMoney } from "@/components/features/transfers/utils";
@@ -223,7 +224,21 @@ export default function TransferFormModalContent({
 
         const success = await onSubmit(payload, { keepOpen: keepCreating });
         if (success && keepCreating) {
-            resetCreateForm(form);
+            // Giữ lại ngày đã chọn để nhập nhanh nhiều khoản trong cùng ngày
+            form.resetFields([
+                "fromSourceId",
+                "toSourceId",
+                "amount",
+                "feePercent",
+                "feeCategoryId",
+                "note",
+            ]);
+            form.setFieldsValue({
+                amount: "",
+                feePercent: 0,
+                note: "",
+                feeCategoryId: undefined,
+            });
         }
     };
 
@@ -237,7 +252,7 @@ export default function TransferFormModalContent({
     }
 
     return (
-        <Modal
+        <ResponsiveModal
             title="Chuyển tiền"
             open={open}
             onCancel={onClose}
@@ -248,7 +263,7 @@ export default function TransferFormModalContent({
             cancelText="Hủy"
             width={520}
             footer={(_, { OkBtn, CancelBtn }) => (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center md:justify-between">
                     <label className="flex items-center gap-2 text-sm text-neutral-600">
                         <Switch
                             size="small"
@@ -257,7 +272,7 @@ export default function TransferFormModalContent({
                         />
                         Tạo tiếp
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center">
                         <CancelBtn />
                         <OkBtn />
                     </div>
@@ -270,7 +285,7 @@ export default function TransferFormModalContent({
                     label="Ngày chuyển"
                     rules={[{ required: true, message: "Ngày chuyển là bắt buộc" }]}
                 >
-                    <DatePicker className="w-full" format="DD/MM/YYYY" />
+                    <DatePicker inputReadOnly className="w-full" format="DD/MM/YYYY" />
                 </Form.Item>
 
                 <Form.Item
@@ -379,6 +394,6 @@ export default function TransferFormModalContent({
                     />
                 </Form.Item>
             </Form>
-        </Modal>
+        </ResponsiveModal>
     );
 }

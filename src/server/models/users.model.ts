@@ -9,7 +9,8 @@ const userSchema = new Schema({
 	},
 	fullName: {
 		type: String,
-		required: true,
+		required: false,
+		default: "",
 	},
 	phoneNumber: {
 		type: String,
@@ -25,6 +26,11 @@ const userSchema = new Schema({
 		type: String,
 		required: false,
 		default: "",
+	},
+	tokenVersion: {
+		type: Number,
+		required: false,
+		default: 0,
 	},
 }, { timestamps: true });
 

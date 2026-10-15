@@ -36,6 +36,6 @@ export const authMe = async () => {
 
 export const authLogout = async () => {
     return fetcherBackEnd("/auth/logout", {
-        method: "GET",
+        method: "POST",
     });
 };

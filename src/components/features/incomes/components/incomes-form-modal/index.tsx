@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DatePicker, Form, Input, Modal, Select, Switch } from "antd";
+import { DatePicker, Form, Input, Select, Switch } from "antd";
+import ResponsiveModal from "@/components/common/responsive-modal";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import { useIncomesContext } from "@/components/features/incomes/context";
@@ -146,12 +147,14 @@ export default function IncomesFormModal() {
         const shouldKeepOpen = !isEdit && keepCreating;
         const success = await handleSubmit(payload, { keepOpen: shouldKeepOpen });
         if (success && shouldKeepOpen) {
-            resetCreateForm(form);
+            // Giữ lại ngày đã chọn để nhập nhanh nhiều khoản trong cùng ngày
+            form.resetFields(["categoryId", "sourceOfMoneyId", "amount", "note"]);
+            form.setFieldsValue({ amount: "", note: "" });
         }
     };
 
     return (
-        <Modal
+        <ResponsiveModal
             title={isEdit ? "Sửa thu nhập" : "Thêm thu nhập"}
             open={modalOpen}
             onCancel={closeModal}
@@ -162,7 +165,7 @@ export default function IncomesFormModal() {
             cancelText="Hủy"
             width={520}
             footer={(_, { OkBtn, CancelBtn }) => (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center md:justify-between">
                     {!isEdit ? (
                         <label className="flex items-center gap-2 text-sm text-neutral-600">
                             <Switch
@@ -175,7 +178,7 @@ export default function IncomesFormModal() {
                     ) : (
                         <span />
                     )}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center">
                         <CancelBtn />
                         <OkBtn />
                     </div>
@@ -188,7 +191,7 @@ export default function IncomesFormModal() {
                     label="Ngày thu"
                     rules={[{ required: true, message: "Ngày thu là bắt buộc" }]}
                 >
-                    <DatePicker className="w-full" format="DD/MM/YYYY" />
+                    <DatePicker inputReadOnly className="w-full" format="DD/MM/YYYY" />
                 </Form.Item>
 
                 <Form.Item
@@ -243,6 +246,6 @@ export default function IncomesFormModal() {
                     />
                 </Form.Item>
             </Form>
-        </Modal>
+        </ResponsiveModal>
     );
 }

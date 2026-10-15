@@ -6,12 +6,7 @@ import dayjs from "dayjs";
 import { CalendarArrowUp, CreditCard, Plus, Tags, TrendingUp, Wallet } from "lucide-react";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import MiniStat from "@/components/features/dashboard/components/mini-stat";
-
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-});
+import { formatMoney } from "@/libs/utils/formatMoney";
 
 export default function DashboardHeader() {
     const {
@@ -65,8 +60,8 @@ export default function DashboardHeader() {
                                 Tổng chi tiêu tháng {monthValue.format("MM/YYYY")}
                             </p>
                             {summary ? (
-                                <p className="truncate text-2xl font-bold tracking-tight tabular-nums sm:text-3xl">
-                                    {currencyFormatter.format(summary.totalAmount)}
+                                <p className="text-xl font-bold tracking-tight break-words tabular-nums sm:text-3xl">
+                                    {formatMoney(summary.totalAmount)}
                                 </p>
                             ) : (
                                 <Skeleton.Input active size="large" className="mt-1" />
@@ -90,8 +85,8 @@ export default function DashboardHeader() {
                             {isCreditCardsLoading ? (
                                 <Skeleton.Input active size="large" className="mt-1" />
                             ) : (
-                                <p className="truncate text-2xl font-bold tracking-tight text-red-500 tabular-nums sm:text-3xl">
-                                    {currencyFormatter.format(totalCreditDebt)}
+                                <p className="text-xl font-bold tracking-tight break-words text-red-500 tabular-nums sm:text-3xl">
+                                    {formatMoney(totalCreditDebt)}
                                 </p>
                             )}
                         </div>
@@ -99,18 +94,20 @@ export default function DashboardHeader() {
                 </div>
 
                 {/* Controls live inside the card so the header reads as one block */}
-                <div className="flex items-center gap-2 sm:shrink-0">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center">
                     {isLoading ? <Spin size="small" /> : null}
                     <DatePicker
+                        inputReadOnly
                         picker="month"
                         value={monthValue}
                         onChange={handleChangeMonth}
                         format="MM/YYYY"
                         allowClear={false}
-                        className="flex-1 sm:w-32 sm:flex-none"
+                        className="w-full sm:w-32"
                     />
                     <Button
                         type="primary"
+                        className="w-full sm:w-auto"
                         icon={<Plus className="size-4" />}
                         onClick={handleCreateExpense}
                     >
@@ -120,26 +117,28 @@ export default function DashboardHeader() {
             </div>
 
             {stats ? (
-                <div className="relative mt-4 grid grid-cols-1 gap-3 border-t border-primary/15 pt-4 sm:grid-cols-3">
+                <div className="relative mt-4 grid grid-cols-2 gap-3 border-t border-primary/15 pt-4 sm:grid-cols-3">
                     <MiniStat
                         icon={<TrendingUp className="size-4" />}
                         label="Trung bình / ngày"
-                        value={currencyFormatter.format(stats.avgPerDay)}
+                        value={formatMoney(stats.avgPerDay)}
                     />
                     <MiniStat
                         icon={<CalendarArrowUp className="size-4" />}
                         label="Ngày chi nhiều nhất"
                         value={
                             stats.peakDay
-                                ? `${stats.peakDay.label}/${monthValue.format("MM")} · ${currencyFormatter.format(stats.peakDay.total)}`
+                                ? `${stats.peakDay.label}/${monthValue.format("MM")} · ${formatMoney(stats.peakDay.total)}`
                                 : "—"
                         }
                     />
-                    <MiniStat
-                        icon={<Tags className="size-4" />}
-                        label="Số danh mục đã chi"
-                        value={stats.categoryCount}
-                    />
+                    <div className="col-span-2 sm:col-span-1">
+                        <MiniStat
+                            icon={<Tags className="size-4" />}
+                            label="Số danh mục đã chi"
+                            value={stats.categoryCount}
+                        />
+                    </div>
                 </div>
             ) : null}
         </div>

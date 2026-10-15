@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import { Button, Space, Tag } from "antd";
+import { useIsMobile } from "@/libs/hooks/use-mobile";
+import { formatMoney } from "@/libs/utils/formatMoney";
 import type { ColumnsType } from "antd/es/table";
 import { Pencil, Trash2 } from "lucide-react";
 import SortableTable from "@/components/common/sortable-table";
@@ -11,17 +13,6 @@ import {
     SourcesOfMoneyType,
     type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
-
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-});
-
-function formatMoney(value?: number | null) {
-    if (value == null || Number.isNaN(value)) return "—";
-    return currencyFormatter.format(value);
-}
 
 const TYPE_COLORS: Record<SourcesOfMoneyType, string> = {
     [SourcesOfMoneyType.CASH]: "green",
@@ -40,6 +31,7 @@ export default function SourcesOfMoneyTable() {
         openEditModal,
         handleDelete,
     } = useSourcesOfMoneyContext();
+    const isMobile = useIsMobile();
 
     const columns: ColumnsType<ISourcesOfMoneyData> = useMemo(
         () => [
@@ -47,6 +39,7 @@ export default function SourcesOfMoneyTable() {
                 title: "STT",
                 key: "index",
                 width: 64,
+                responsive: ["md"],
                 render: (_value, _record, index) => index + 1,
             },
             {
@@ -60,6 +53,7 @@ export default function SourcesOfMoneyTable() {
                 dataIndex: "type",
                 key: "type",
                 width: 140,
+                responsive: ["md"],
                 render: (type: SourcesOfMoneyType) => (
                     <Tag color={TYPE_COLORS[type]}>{SOURCES_OF_MONEY_TYPE_LABELS[type]}</Tag>
                 ),
@@ -97,14 +91,18 @@ export default function SourcesOfMoneyTable() {
                     <Space size="small">
                         <Button
                             type="text"
-                            size="small"
+                            size={isMobile ? "middle" : "small"}
+                            aria-label="Sửa nguồn tiền"
+                            className={isMobile ? "size-10" : undefined}
                             icon={<Pencil className="size-4" />}
                             onClick={() => openEditModal(record)}
                         />
                         <Button
                             type="text"
-                            size="small"
+                            size={isMobile ? "middle" : "small"}
                             danger
+                            aria-label="Xóa nguồn tiền"
+                            className={isMobile ? "size-10" : undefined}
                             icon={<Trash2 className="size-4" />}
                             onClick={() => handleDelete(record)}
                         />
@@ -112,16 +110,17 @@ export default function SourcesOfMoneyTable() {
                 ),
             },
         ],
-        [openEditModal, handleDelete],
+        [openEditModal, handleDelete, isMobile],
     );
 
     return (
         <SortableTable<ISourcesOfMoneyData>
             items={items}
             columns={columns}
+            size={isMobile ? "small" : "middle"}
             loading={isLoading || isReordering}
             onReorder={handleReorder}
-            scroll={{ x: 800 }}
+            scroll={{ x: "max-content" }}
         />
     );
 }

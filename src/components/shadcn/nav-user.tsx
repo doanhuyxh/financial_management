@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useAppDispatch, useAppSelector } from "@/libs/redux/redux"
-import { clearAuth, selectAuth } from "@/libs/redux/authSlice"
+import { useAppSelector } from "@/libs/redux/redux"
+import { selectAuth } from "@/libs/redux/authSlice"
 import {
   Avatar,
   AvatarFallback,
@@ -21,13 +21,11 @@ import {
   useSidebar,
 } from "@/components/shadcn/ui/sidebar"
 import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
-import { authLogout } from "@/libs/networkApi/auth.api"
-import { redirect } from "next/navigation"
-import { EnvsConfig } from "@/libs/constants/configKey"
+import { useLogout } from "@/libs/hooks/useLogout"
 
 export function NavUser() {
-  const dispatch = useAppDispatch()
   const auth = useAppSelector(selectAuth)
+  const handleLogout = useLogout()
   const { isMobile } = useSidebar()
   const [mounted, setMounted] = useState(false)
 
@@ -53,12 +51,6 @@ export function NavUser() {
       .join("")
       .toUpperCase()
   }, [displayName])
-
-  const handleLogout = async () => {
-    dispatch(clearAuth())
-    await authLogout()
-    redirect(EnvsConfig.CLIENT_BASE_URL || "/")
-  }
 
   return (
     <SidebarMenu>

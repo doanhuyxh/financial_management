@@ -2,28 +2,15 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Empty, Spin } from "antd";
+import { Empty, Skeleton, Spin } from "antd";
 import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
+import { useIsMobile } from "@/libs/hooks/use-mobile";
+import { formatMoney, formatPercent } from "@/libs/utils/formatMoney";
 
 // G2 is ~380KB gzipped: load it in a separate chunk, client-only.
 const Pie = dynamic(() => import("@ant-design/plots").then((mod) => mod.Pie), {
     ssr: false,
-    loading: () => (
-        <div className="flex h-105 items-center justify-center">
-            <Spin />
-        </div>
-    ),
-});
-
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-});
-
-const percentFormatter = new Intl.NumberFormat("vi-VN", {
-    style: "percent",
-    maximumFractionDigits: 1,
+    loading: () => <Skeleton.Node active className="h-70! w-full!" />,
 });
 
 /** Max individual slices; remaining are merged into "Khác". */
@@ -31,8 +18,7 @@ const MAX_VISIBLE_SLICES = 6;
 /** Hide outside labels for slices below this share of the total. */
 const MIN_LABEL_RATIO = 0.05;
 
-const formatCurrency = (value: number) => currencyFormatter.format(value);
-const formatPercent = (value: number) => percentFormatter.format(value);
+const formatCurrency = (value: number) => formatMoney(value);
 
 export type DonutItem = {
     key: string;
@@ -82,7 +68,9 @@ export default function ExpenseDonutChart({
     isLoading,
 }: IExpenseDonutChartProps) {
     const isDark = useIsDarkMode();
+    const isMobile = useIsMobile();
     const data = useMemo(() => prepareChartData(items), [items]);
+    const chartHeight = isMobile ? 360 : 420;
 
     const config = useMemo(
         () => ({
@@ -96,14 +84,16 @@ export default function ExpenseDonutChart({
             legend: {
                 color: {
                     title: false,
-                    position: "bottom" as const,
+                    position: (isMobile ? "bottom" : "right") as "bottom" | "right",
+                    maxRows: isMobile ? 3 : undefined,
+                    flipPage: isMobile ? true : undefined,
                     rowPadding: 6,
                     itemLabelFill: isDark ? "#e2e8f0" : "#0f172a",
                 },
             },
             label: {
                 text: (item: DonutSlice) => {
-                    if (item.ratio < MIN_LABEL_RATIO) {
+                    if (isMobile || item.ratio < MIN_LABEL_RATIO) {
                         return "";
                     }
                     return `${item.name} · ${formatPercent(item.ratio)}\n${formatCurrency(item.total)}`;
@@ -140,7 +130,7 @@ export default function ExpenseDonutChart({
                 elementHighlight: true,
             },
         }),
-        [data, isDark],
+        [data, isDark, isMobile],
     );
 
     return (
@@ -159,8 +149,8 @@ export default function ExpenseDonutChart({
                     <Empty description="Chưa có chi tiêu trong tháng này" />
                 </div>
             ) : (
-                <div className="h-105">
-                    <Pie key={isDark ? "dark" : "light"} {...config} height={420} autoFit />
+                <div style={{ height: chartHeight }}>
+                    <Pie key={`${isDark ? "dark" : "light"}-${chartHeight}`} {...config} height={chartHeight} autoFit />
                 </div>
             )}
         </div>

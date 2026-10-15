@@ -16,27 +16,25 @@ import { cn } from "@/libs/shadcn/utils"
 
 export default function ShadcnLayout({
   children,
-  theme,
 }: {
   children: React.ReactNode
-  theme: "light" | "dark"
 }) {
   return (
     <TooltipProvider>
       <SidebarProvider>
         <RouteSync />
         <AppSidebar />
-        <SidebarInset>
+        <SidebarInset className="min-w-0">
           <header
             className={cn(
-              "flex h-16 shrink-0 items-center justify-between gap-2",
+              "flex h-14 shrink-0 items-center justify-between gap-2 md:h-16",
               "sticky top-0 z-10 bg-background",
               "border-b",
               "transition-[width,height] ease-linear",
               "group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",
             )}
           >
-            <div className="flex min-w-0 items-center gap-2 px-4">
+            <div className="flex min-w-0 items-center gap-2 px-3 md:px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator
                 orientation="vertical"
@@ -44,12 +42,14 @@ export default function ShadcnLayout({
               />
               <BreadcrumbTrail />
             </div>
-            <BannerHeader />
-            <div className="px-4">
-              <ThemeToggle theme={theme} />
+            <div className="hidden min-w-0 flex-1 md:flex">
+              <BannerHeader />
+            </div>
+            <div className="px-3 md:px-4">
+              <ThemeToggle />
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-5">
+          <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-4 pb-safe md:p-4 md:pt-5">
             {children}
           </div>
         </SidebarInset>

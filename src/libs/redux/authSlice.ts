@@ -11,7 +11,7 @@ export type AuthUser = {
     avatarUrl: string | null;
 };
 
-export type AuthStatus = "idle" | "loading" | "succeeded" | "failed";
+export type AuthStatus = "idle" | "loading" | "succeeded" | "failed" | "loggedOut";
 
 export type AuthState = {
     user: AuthUser | null;
@@ -19,6 +19,7 @@ export type AuthState = {
     status: AuthStatus;
     error: string | null;
     lastUpdatedAt: string | null;
+    currentRequestId: string | null;
 };
 
 const initialState: AuthState = {
@@ -27,6 +28,7 @@ const initialState: AuthState = {
     status: "idle",
     error: null,
     lastUpdatedAt: null,
+    currentRequestId: null,
 };
 
 function mapMeToUser(data: AuthMeData): AuthUser {
@@ -98,18 +100,23 @@ const authSlice = createSlice({
         clearAuth(state) {
             state.user = null;
             state.isAuthenticated = false;
-            state.status = "idle";
+            state.status = "loggedOut";
             state.error = null;
+            state.currentRequestId = null;
             state.lastUpdatedAt = new Date().toISOString();
         },
     },
     extraReducers: (builder) => {
         builder
-            .addCase(fetchAuthMe.pending, (state) => {
+            .addCase(fetchAuthMe.pending, (state, action) => {
+                if (state.status === "loggedOut") return;
                 state.status = "loading";
+                state.currentRequestId = action.meta.requestId;
                 state.error = null;
             })
             .addCase(fetchAuthMe.fulfilled, (state, action) => {
+                if (state.status === "loggedOut") return;
+                if (action.meta.requestId !== state.currentRequestId) return;
                 state.user = action.payload;
                 state.isAuthenticated = true;
                 state.status = "succeeded";
@@ -117,6 +124,8 @@ const authSlice = createSlice({
                 state.lastUpdatedAt = new Date().toISOString();
             })
             .addCase(fetchAuthMe.rejected, (state, action) => {
+                if (state.status === "loggedOut") return;
+                if (action.meta.requestId !== state.currentRequestId) return;
                 state.user = null;
                 state.isAuthenticated = false;
                 state.status = "failed";

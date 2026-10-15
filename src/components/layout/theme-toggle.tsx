@@ -15,12 +15,12 @@ function applyTheme(theme: Theme) {
     document.cookie = `${themeCookieName}=${theme}; path=/; max-age=${themeCookieMaxAge}; samesite=lax`
 }
 
-export function ThemeToggle({ theme }: { theme: Theme }) {
-    const [currentTheme, setCurrentTheme] = useState<Theme>(theme)
+export function ThemeToggle() {
+    const [currentTheme, setCurrentTheme] = useState<Theme>("light")
 
     useEffect(() => {
-        applyTheme(currentTheme)
-    }, [currentTheme])
+        setCurrentTheme(document.documentElement.classList.contains("dark") ? "dark" : "light")
+    }, [])
 
     return (
         <Button
@@ -30,7 +30,11 @@ export function ThemeToggle({ theme }: { theme: Theme }) {
             aria-label={currentTheme === "dark" ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
             aria-pressed={currentTheme === "dark"}
             className="rounded-full border border-border/60 bg-background/80 shadow-sm backdrop-blur transition-transform hover:scale-105"
-            onClick={() => setCurrentTheme(currentTheme === "dark" ? "light" : "dark")}
+            onClick={() => {
+                const next = currentTheme === "dark" ? "light" : "dark"
+                applyTheme(next)
+                setCurrentTheme(next)
+            }}
         >
             {currentTheme === "dark" ? <SunMedium /> : <MoonStar />}
         </Button>

@@ -7,6 +7,7 @@ export interface JwtPayload extends JWTPayload {
     phoneNumber: string | null;
     fullName?: string | null;
     avatarUrl?: string | null;
+    tokenVersion?: number;
 }
 
 const secret = new TextEncoder().encode(EnvsConfig.JWT_SECRET!);
@@ -18,11 +19,12 @@ export async function generateJwtToken(payload: JwtPayload): Promise<string> {
         phoneNumber: payload.phoneNumber ?? null,
         fullName: payload.fullName ?? null,
         avatarUrl: payload.avatarUrl ?? null,
+        tokenVersion: payload.tokenVersion ?? 0,
     };
     return await new SignJWT(cleanPayload)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
-        .setExpirationTime("365d")
+        .setExpirationTime("30d")
         .sign(secret);
 }
 
@@ -46,5 +48,6 @@ export async function getUserInfoFromToken(token: string): Promise<JwtPayload | 
         phoneNumber: payload.phoneNumber,
         fullName: payload.fullName || null,
         avatarUrl: payload.avatarUrl || null,
+        tokenVersion: payload.tokenVersion ?? 0,
     };
 }

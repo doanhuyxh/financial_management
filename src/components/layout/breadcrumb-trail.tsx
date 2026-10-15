@@ -102,7 +102,7 @@ export function BreadcrumbTrail() {
                         {index > 0 ? <BreadcrumbSeparator className="hidden md:block" /> : null}
                         <BreadcrumbItem className={index === items.length - 1 ? "" : "hidden md:block"}>
                             {item.isCurrentPage || !item.href ? (
-                                <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                                <BreadcrumbPage className="max-w-[50vw] truncate">{item.label}</BreadcrumbPage>
                             ) : (
                                 <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
                             )}

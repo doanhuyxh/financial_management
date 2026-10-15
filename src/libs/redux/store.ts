@@ -1,14 +1,16 @@
-import { configureStore } from "@reduxjs/toolkit"
+import { configureStore } from "@reduxjs/toolkit";
 
-import authReducer from "@/libs/redux/authSlice"
-import navigationReducer from "@/libs/redux/navigationSlice"
+import authReducer from "@/libs/redux/authSlice";
+import navigationReducer from "@/libs/redux/navigationSlice";
 
-export const store = configureStore({
-    reducer: {
-        auth: authReducer,
-        navigation: navigationReducer,
-    },
-})
+export const makeStore = () =>
+    configureStore({
+        reducer: {
+            auth: authReducer,
+            navigation: navigationReducer,
+        },
+    });
 
-export type RootState = ReturnType<typeof store.getState>
-export type AppDispatch = typeof store.dispatch
+export type AppStore = ReturnType<typeof makeStore>;
+export type RootState = ReturnType<AppStore["getState"]>;
+export type AppDispatch = AppStore["dispatch"];

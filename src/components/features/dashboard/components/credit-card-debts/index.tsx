@@ -2,17 +2,14 @@
 
 import { Empty, Progress, Spin, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import MobileRecordList from "@/components/common/mobile-record-list";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import type {
     CreditDueStatus,
     ICreditCardDebtItem,
 } from "@/components/features/dashboard/utils";
-
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-});
+import { useIsMobile } from "@/libs/hooks/use-mobile";
+import { formatMoney } from "@/libs/utils/formatMoney";
 
 const STATUS_COLORS: Record<CreditDueStatus, string> = {
     today: "red",
@@ -50,7 +47,7 @@ const columns: ColumnsType<ICreditCardDebtItem> = [
         align: "right",
         render: (value: number) => (
             <span className="font-medium text-red-500">
-                {currencyFormatter.format(value)}
+                {formatMoney(value)}
             </span>
         ),
     },
@@ -70,7 +67,7 @@ const columns: ColumnsType<ICreditCardDebtItem> = [
                         status={percent >= 90 ? "exception" : "normal"}
                     />
                     <p className="text-xs text-muted-foreground">
-                        Còn lại {currencyFormatter.format(item.availableCredit)}
+                        Còn lại {formatMoney(item.availableCredit)}
                     </p>
                 </div>
             );
@@ -97,6 +94,7 @@ const columns: ColumnsType<ICreditCardDebtItem> = [
 export default function CreditCardDebts() {
     const { creditCardDebts, totalCreditDebt, isCreditCardsLoading } =
         useDashboardContext();
+    const isMobile = useIsMobile();
 
     return (
         <div className="rounded-xl border border-border bg-background p-4">
@@ -111,7 +109,7 @@ export default function CreditCardDebts() {
                     <p className="text-sm text-muted-foreground">
                         Tổng dư nợ:{" "}
                         <span className="font-medium text-red-500">
-                            {currencyFormatter.format(totalCreditDebt)}
+                            {formatMoney(totalCreditDebt)}
                         </span>
                     </p>
                 ) : null}
@@ -125,6 +123,39 @@ export default function CreditCardDebts() {
                 <div className="flex h-32 items-center justify-center">
                     <Empty description="Không có thẻ tín dụng nào đang dư nợ" />
                 </div>
+            ) : isMobile ? (
+                    <MobileRecordList
+                        items={creditCardDebts}
+                        rowKey={(item) => item._id}
+                        renderItem={(item) => {
+                            const percent = item.creditLimit
+                                ? Math.round((item.currentDebt / item.creditLimit) * 100)
+                                : 0;
+                            return (
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <span className="font-semibold">{item.name}</span>
+                                        <span className="font-semibold text-red-500">
+                                            {formatMoney(item.currentDebt)}
+                                        </span>
+                                    </div>
+                                    <Progress
+                                        percent={percent}
+                                        size="small"
+                                        status={percent >= 90 ? "exception" : "normal"}
+                                    />
+                                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                                        <span>
+                                            {item.nextDueDate?.format("DD/MM/YYYY") ?? "Chưa có hạn"}
+                                        </span>
+                                        <Tag color={STATUS_COLORS[item.status]} className="m-0">
+                                            {getStatusLabel(item)}
+                                        </Tag>
+                                    </div>
+                                </div>
+                            );
+                        }}
+                    />
             ) : (
                 <Table<ICreditCardDebtItem>
                     rowKey="_id"

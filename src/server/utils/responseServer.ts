@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import type ApiResponse from "@/libs/interfaces/ApiResponseData";
+import { AUTH_SESSION_MAX_AGE_SECONDS } from "@/libs/constants/configKey";
+
+export function noStore<T extends NextResponse>(response: T): T {
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+}
 
 export function successResponse<T>(data: T, message = "") {
     const response: ApiResponse<T> = {
@@ -61,11 +67,11 @@ export function successResponseWithSetCookie(
     };
     const { name, value, options } = cookieOptions;
     const headers = new Headers();
-    const ONE_YEAR = 60 * 60 * 24 * 365;
     headers.append(
         "Set-Cookie",
-        `${name}=${value}; Path=/; HttpOnly; ${options?.secure ? "Secure;" : ""} ${options?.sameSite ? `SameSite=${options.sameSite};` : ""} Max-Age=${ONE_YEAR};`,
+        `${name}=${value}; Path=/; HttpOnly; ${options?.secure ? "Secure;" : ""} ${options?.sameSite ? `SameSite=${options.sameSite};` : ""} Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS};`,
     );
+    headers.set("Cache-Control", "no-store");
     return NextResponse.json(response, { status: 200, headers });
 }
 
@@ -81,7 +87,7 @@ export function successResponseSetCookieRedirect(request: Request, url: string, 
         path: "/",
         secure: options?.secure ?? false,
         sameSite: options?.sameSite ?? "lax",
-        maxAge: 60 * 60 * 24 * 365,
+        maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
     });
 
     return response;

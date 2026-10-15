@@ -1,6 +1,6 @@
 # Nghiệp vụ — Money Manager (financial_management)
 
-> Tài liệu tóm tắt nghiệp vụ đang chạy, đọc trước khi sửa code. Cập nhật lần cuối: 2026-10-12.
+> Tài liệu tóm tắt nghiệp vụ đang chạy, đọc trước khi sửa code. Cập nhật lần cuối: 2026-10-15.
 > Nguồn sự thật là `src/server/services/*.service.ts` — nếu code khác tài liệu, tin code và sửa lại tài liệu.
 
 ## 1. Tổng quan
@@ -16,7 +16,7 @@
 
 | Model | Collection | Trường chính |
 |---|---|---|
-| User | `user` | fullName, email, password (**plain text**), phoneNumber, avatarUrl |
+| User | `user` | fullName, email, password (**bcrypt**), phoneNumber, avatarUrl, tokenVersion |
 | Category | `categories` | userId, name, sortOrder |
 | SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate}, metadata; virtual `availableCreditLimit = max(0, limit − debt)` |
 | Expense | `expenses` | userId, categoryId, sourceOfMoneyId, amount (>0), note, spentAt, skipBalanceAdjust |
@@ -111,11 +111,16 @@ Nút "Thêm chi tiêu" trên dashboard điều hướng tới `/expenses?action=
 
 ## 7. Xác thực
 
-- `POST /api/auth/login` với `{ email, password }`: so sánh password **dạng plain text**. Thành công thì set cookie `access_token` (HttpOnly, Secure, SameSite=Strict, sống 1 năm). JWT là HS256, `exp` 365 ngày, payload gồm `userId, email, phoneNumber, fullName, avatarUrl`.
-- `GET /api/auth/me` trả thông tin lấy từ token. `GET /api/auth/logout` xóa mọi cookie.
-- Không có đăng ký. User được tạo thẳng trong DB.
-- `src/proxy.ts`: chặn mọi route trừ `/` và `/api/auth/*`. Nếu không có token hoặc token sai: request API nhận 401, request trang bị redirect về `/?returnUrl=...`. Proxy dùng `jwtUtil.edge.ts` (WebCrypto); service dùng `jwtUtil.ts` (`jose`). Service tự đọc lại cookie qua `getCurrentUser()`.
-- Client: `AuthBootstrap` gọi `fetchAuthMe` một lần và lưu vào Redux `authSlice`.
+- `POST /api/auth/login` với `{ email, password }`: so sánh password bằng **bcrypt**. Mật khẩu plain text cũ được hash lại ngay khi đăng nhập đúng. Sai 5 lần (theo IP + email) thì khóa 15 phút. Thành công thì set cookie `access_token` (HttpOnly, Secure, SameSite=Strict, sống 30 ngày). Response có `Cache-Control: no-store`. JWT là HS256, `exp` 30 ngày, payload gồm `userId, email, phoneNumber, fullName, avatarUrl, tokenVersion`.
+- `GET /api/auth/me` trả thông tin khi JWT còn hạn và `tokenVersion` khớp user trong DB. Response có `Cache-Control: no-store`.
+- `POST /api/auth/logout` chỉ xóa cookie `access_token` (giữ cookie `theme`) và tăng `tokenVersion` để thu hồi mọi thiết bị. Response có `Cache-Control: no-store`.
+- Không có đăng ký. User được tạo thẳng trong DB. Script một lần: `bun scripts/hash-passwords.ts`.
+- `src/proxy.ts`: chặn mọi route trừ `/api/auth/*` và file tĩnh. `/` khi đã có token hợp lệ thì chuyển `/dashboard`. Nếu không có token hoặc token sai: request API nhận 401, request trang bị redirect về `/?returnUrl=...`. Proxy và service cùng verify JWT bằng `jose` (`jwtUtil.ts`). Service đọc lại cookie qua `getCurrentUser()` và đối chiếu `tokenVersion`.
+- Client: đổi phiên luôn reset state bằng hard navigation (`window.location.replace`). `AuthBootstrap` chỉ gọi `fetchAuthMe` khi status là `idle`. Logout đặt status `loggedOut` để không tự gọi lại `/auth/me`. Request API 401 (ngoài trang login) chuyển về `/?returnUrl=...`.
+
+## 7.1 Phiên đăng nhập
+
+Đổi tài khoản luôn reset state client (Redux, React Query) bằng hard navigation. Logout là POST và chỉ xóa `access_token`. Cache danh sách không giữ `placeholderData` toàn cục; chỉ list phân trang dùng `keepPreviousData`.
 
 ## 8. Trang (UI) và menu
 
@@ -135,7 +140,7 @@ Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm
 - expense → `EXPENSES`, `SOURCES_OF_MONEY`, `DASHBOARD_EXPENSES_SUMMARY`
 - income → `INCOMES`, `SOURCES_OF_MONEY`
 - transfer → `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`
-- Mặc định (`tanstack-provider.tsx`): staleTime 60 giây, gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần. Dữ liệu chỉ đổi qua mutation của chính app nên dựa vào invalidate ở trên.
+- Mặc định (`tanstack-provider.tsx`): staleTime 30 giây, gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần, không giữ dữ liệu query trước đó ở mức global. Danh mục và nguồn tiền stale 5 phút. Dữ liệu chỉ đổi qua mutation của chính app nên dựa vào invalidate ở trên.
 
 ## 9. Điểm cần lưu ý / nợ kỹ thuật đã biết
 
@@ -143,10 +148,10 @@ Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm
 2. Sửa fee expense (có `skipBalanceAdjust`) trong trang Chi tiêu **không đồng bộ** với transfer gốc (feeAmount của transfer giữ nguyên). Nếu xóa fee expense riêng lẻ, transfer vẫn giữ `feeExpenseId` cũ.
 3. Xóa Category hoặc SourceOfMoney không kiểm tra giao dịch đang tham chiếu.
 4. Sửa trực tiếp số dư/dư nợ trên form nguồn tiền sẽ ghi đè và không để lại lịch sử. Sau đó, revert một giao dịch cũ có thể bị chặn (ví dụ số dư không đủ để xóa income).
-5. Password lưu plain text; token sống 1 năm, không có refresh hay revoke.
+5. Password lưu bcrypt. Token sống 30 ngày. Logout tăng `tokenVersion` nên thu hồi mọi thiết bị.
 6. Chuyển tiền không sửa được, chỉ xóa rồi tạo lại.
 7. Bộ lọc `to` dùng `setHours(23,59,59)` theo giờ server (PM2 đặt `TZ=Asia/Ho_Chi_Minh`).
-8. Các helper `formatMoney`, `getRefId`... đang bị lặp lại trong `features/{expenses,incomes,transfers}/utils.ts`.
+8. `formatMoney` dùng chung ở `src/libs/utils/formatMoney.ts`. `getRefId` vẫn nằm trong utils của từng feature.
 
 ## 10. Vận hành
 

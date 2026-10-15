@@ -37,13 +37,4 @@ export function getRefId(
     return value._id;
 }
 
-export const currencyFormatter = new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-});
-
-export function formatMoney(value?: number | null) {
-    if (value == null || Number.isNaN(value)) return "—";
-    return currencyFormatter.format(value);
-}
+export { currencyFormatter, formatMoney } from "@/libs/utils/formatMoney";

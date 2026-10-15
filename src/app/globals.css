@@ -246,20 +246,18 @@ html:not(.dark) [data-sidebar="menu-sub-button"][data-active="true"] {
     }
 }
 
-.html {
-    font-size: 14px;
-}
-
-@media screen and (max-width: 768px) {
-    .html {
-        font-size: 0.9vw;
+@media (max-width: 767px) {
+    input,
+    select,
+    textarea,
+    .ant-select-selection-search-input,
+    .ant-picker-input > input {
+        font-size: 16px !important;
     }
 }
 
-@media screen and (min-width: 1920px) {
-    .html {
-        font-size: 16px;
-    }
+.pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
 .lift-in {

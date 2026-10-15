@@ -12,7 +12,7 @@ export default function MiniStat({ icon, label, value }: IMiniStatProps) {
             </span>
             <div className="min-w-0 leading-tight">
                 <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="truncate text-sm font-semibold tabular-nums">{value}</p>
+                <p className="text-sm font-semibold break-words tabular-nums">{value}</p>
             </div>
         </div>
     );

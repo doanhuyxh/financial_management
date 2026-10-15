@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { Form, Input, Modal } from "antd";
+import { Form, Input } from "antd";
+import ResponsiveModal from "@/components/common/responsive-modal";
 import { useCategoryContext } from "@/components/features/categories/context";
 
 export default function CategoryFormModal() {
@@ -31,7 +32,7 @@ export default function CategoryFormModal() {
     };
 
     return (
-        <Modal
+        <ResponsiveModal
             title={isEdit ? "Sửa danh mục" : "Thêm danh mục"}
             open={modalOpen}
             onCancel={closeModal}
@@ -58,6 +59,6 @@ export default function CategoryFormModal() {
                     />
                 </Form.Item>
             </Form>
-        </Modal>
+        </ResponsiveModal>
     );
 }

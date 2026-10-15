@@ -63,6 +63,7 @@ const DebouncedNumberInput: React.FC<DebouncedNumberInputProps> = ({
 	return (
 		<InputNumber<string>
 			stringMode
+			inputMode="numeric"
 			controls={false}
 			min={String(min)}
 			className={cn("[&_.ant-input-number-input]:pr-10!", className)}

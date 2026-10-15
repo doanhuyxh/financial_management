@@ -5,7 +5,9 @@ import { Table } from "antd";
 import type { ColumnsType, TableProps } from "antd/es/table";
 import {
     DndContext,
+    KeyboardSensor,
     PointerSensor,
+    TouchSensor,
     closestCenter,
     useSensor,
     useSensors,
@@ -14,6 +16,7 @@ import {
 import {
     SortableContext,
     arrayMove,
+    sortableKeyboardCoordinates,
     useSortable,
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -64,10 +67,11 @@ function SortableRow({ children, ...props }: RowProps) {
                         <button
                             type="button"
                             ref={setActivatorNodeRef}
-                            className="inline-flex cursor-grab items-center justify-center rounded p-1 text-muted-foreground active:cursor-grabbing"
+                            aria-label="Kéo để sắp xếp"
+                            className="inline-flex size-9 cursor-grab touch-none items-center justify-center rounded text-muted-foreground active:cursor-grabbing md:size-8"
                             {...listeners}
                         >
-                            <GripVertical className="size-4" />
+                            <GripVertical className="size-5 md:size-4" />
                         </button>
                     ),
                 });
@@ -108,9 +112,9 @@ export default function SortableTable<T extends ISortableItem>({
     ...tableProps
 }: SortableTableProps<T>) {
     const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: { distance: 6 },
-        }),
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
     );
 
     const mergedColumns = useMemo(() => {
