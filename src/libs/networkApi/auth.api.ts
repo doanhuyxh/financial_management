@@ -31,6 +31,8 @@ export const authLogin = async (request: AuthLoginRequest) => {
 export const authMe = async () => {
     return fetcherBackEnd<ApiResponse<AuthMeData>>("/auth/me", {
         method: "GET",
+        // Thunk fetchAuthMe tự xử lý retry + redirect sau khi thất bại đủ số lần
+        skipAuthRedirect: true,
     });
 };
 

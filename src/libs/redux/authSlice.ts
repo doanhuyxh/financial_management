@@ -51,24 +51,52 @@ function mapLoginToUser(data: AuthLoginData): AuthUser {
     };
 }
 
+const AUTH_ME_MAX_ATTEMPTS = 3;
+const AUTH_ME_RETRY_DELAY_MS = 3000;
+const AUTH_ME_FALLBACK_ERROR = "Không lấy được thông tin người dùng";
+
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+function getErrorMessage(error: unknown) {
+    return error && typeof error === "object" && "message" in error
+        ? String((error as { message?: string }).message)
+        : AUTH_ME_FALLBACK_ERROR;
+}
+
+function redirectToLogin() {
+    if (typeof window === "undefined" || window.location.pathname === "/") return;
+    const returnUrl = encodeURIComponent(
+        window.location.pathname + window.location.search,
+    );
+    window.location.replace(`/?returnUrl=${returnUrl}`);
+}
+
 export const fetchAuthMe = createAsyncThunk<
     AuthUser,
     void,
     { rejectValue: string }
 >("auth/fetchMe", async (_, { rejectWithValue }) => {
-    try {
-        const response = await authMe();
-        if (!response?.status || !response.data) {
-            return rejectWithValue(response?.message || "Không lấy được thông tin người dùng");
+    let lastMessage = AUTH_ME_FALLBACK_ERROR;
+
+    // Thử tối đa 3 lần, mỗi lần retry cách nhau 3s. Thất bại hết -> đá về trang đăng nhập.
+    for (let attempt = 1; attempt <= AUTH_ME_MAX_ATTEMPTS; attempt++) {
+        try {
+            const response = await authMe();
+            if (response?.status && response.data) {
+                return mapMeToUser(response.data);
+            }
+            lastMessage = response?.message || AUTH_ME_FALLBACK_ERROR;
+        } catch (error: unknown) {
+            lastMessage = getErrorMessage(error);
         }
-        return mapMeToUser(response.data);
-    } catch (error: unknown) {
-        const message =
-            error && typeof error === "object" && "message" in error
-                ? String((error as { message?: string }).message)
-                : "Không lấy được thông tin người dùng";
-        return rejectWithValue(message);
+
+        if (attempt < AUTH_ME_MAX_ATTEMPTS) {
+            await delay(AUTH_ME_RETRY_DELAY_MS);
+        }
     }
+
+    redirectToLogin();
+    return rejectWithValue(lastMessage);
 });
 
 const authSlice = createSlice({

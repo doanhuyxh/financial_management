@@ -7,6 +7,8 @@ interface FetchOptions {
     body?: any;
     headers?: Record<string, string>;
     cache?: RequestCache;
+    /** Bỏ qua việc tự redirect về trang đăng nhập khi gặp 401 (để caller tự xử lý retry). */
+    skipAuthRedirect?: boolean;
 }
 
 export async function fetcherBackEnd<T = any>(endpoint: string, options: FetchOptions = {}): Promise<T> {
@@ -33,6 +35,7 @@ export async function fetcherBackEnd<T = any>(endpoint: string, options: FetchOp
         if (!res.ok) {
             if (
                 res.status === 401 &&
+                !options.skipAuthRedirect &&
                 typeof window !== "undefined" &&
                 window.location.pathname !== "/"
             ) {
