@@ -31,7 +31,7 @@ export default function TransactionFilterFields({
     onDateRange,
     layout,
 }: TransactionFilterFieldsProps) {
-    const selectClass = layout === "desktop" ? "w-full lg:w-48" : "w-full";
+    const selectClass = layout === "desktop" ? "w-full lg:w-fit lg:min-w-40" : "w-full";
 
     return (
         <>
@@ -41,6 +41,7 @@ export default function TransactionFilterFields({
                     onChange={onCategoryFilter}
                     options={categoryOptions}
                     className={selectClass}
+                    popupMatchSelectWidth={false}
                     showSearch
                     optionFilterProp="label"
                 />
@@ -51,6 +52,7 @@ export default function TransactionFilterFields({
                     onChange={onSourceFilter}
                     options={sourceOptions}
                     className={selectClass}
+                    popupMatchSelectWidth={false}
                     showSearch
                     optionFilterProp="label"
                 />

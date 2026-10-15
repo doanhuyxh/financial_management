@@ -21,7 +21,7 @@ export default function TransfersFilterDrawer({ layout }: { layout: "desktop" | 
     const { options } = useSourceOptions();
     const fromOptions = [{ value: "", label: "Từ nguồn: tất cả" }, ...options];
     const toOptions = [{ value: "", label: "Đến nguồn: tất cả" }, ...options];
-    const selectClass = layout === "desktop" ? "w-full lg:w-48" : "w-full";
+    const selectClass = layout === "desktop" ? "w-full lg:w-fit lg:min-w-40" : "w-full";
 
     return (
         <>
@@ -30,6 +30,7 @@ export default function TransfersFilterDrawer({ layout }: { layout: "desktop" | 
                 onChange={handleFromSourceFilter}
                 options={fromOptions}
                 className={selectClass}
+                popupMatchSelectWidth={false}
                 showSearch
                 optionFilterProp="label"
             />
@@ -38,6 +39,7 @@ export default function TransfersFilterDrawer({ layout }: { layout: "desktop" | 
                 onChange={handleToSourceFilter}
                 options={toOptions}
                 className={selectClass}
+                popupMatchSelectWidth={false}
                 showSearch
                 optionFilterProp="label"
             />

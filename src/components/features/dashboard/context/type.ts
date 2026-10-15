@@ -11,4 +11,5 @@ export interface IDashboardContextProps {
     isCreditCardsLoading: boolean;
     handleChangeMonth: (value: Dayjs | null) => void;
     handleCreateExpense: () => void;
+    handleViewDay: (day: number) => void;
 }

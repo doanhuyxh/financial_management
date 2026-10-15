@@ -56,6 +56,15 @@ export default function DashboardContextProvider({
         router.push(`${MENU_KEY.EXPENSES}?action=create`);
     }, [router]);
 
+    // Bấm vào một cột trong biểu đồ theo ngày -> mở trang Chi tiêu đã lọc đúng ngày đó
+    const handleViewDay = useCallback(
+        (day: number) => {
+            const date = monthValue.date(day).format("YYYY-MM-DD");
+            router.push(`${MENU_KEY.EXPENSES}?date=${date}`);
+        },
+        [monthValue, router],
+    );
+
     const value = useMemo<IDashboardContextProps>(
         () => ({
             monthValue,
@@ -68,6 +77,7 @@ export default function DashboardContextProvider({
             isCreditCardsLoading,
             handleChangeMonth,
             handleCreateExpense,
+            handleViewDay,
         }),
         [
             monthValue,
@@ -80,6 +90,7 @@ export default function DashboardContextProvider({
             isCreditCardsLoading,
             handleChangeMonth,
             handleCreateExpense,
+            handleViewDay,
         ],
     );
 

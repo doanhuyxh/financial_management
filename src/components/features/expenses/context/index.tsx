@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import type { Dayjs } from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import type { TablePaginationConfig } from "antd/es/table";
 import { useAntdApp } from "@/libs/hooks/useAntdApp";
 import {
@@ -42,8 +42,16 @@ export default function ExpensesContextProvider({
     const [search, setSearch] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
     const [sourceFilter, setSourceFilter] = useState("");
+    // Có thể mở từ biểu đồ dashboard qua `?date=YYYY-MM-DD` để lọc sẵn đúng ngày đó
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(
-        null,
+        () => {
+            const dateParam = searchParams.get("date");
+            if (!dateParam) return null;
+            const parsed = dayjs(dateParam);
+            return parsed.isValid()
+                ? [parsed.startOf("day"), parsed.endOf("day")]
+                : null;
+        },
     );
     // Opened from another screen (e.g. dashboard) via `?action=create`
     const [modalOpen, setModalOpen] = useState(
@@ -113,12 +121,14 @@ export default function ExpensesContextProvider({
         setModalOpen(true);
     }, []);
 
-    // Drop `?action=create` once consumed so a reload doesn't reopen the modal.
-    // Native history API syncs with the Next router without a server round-trip.
+    // Drop `?action=create` / `?date=...` once consumed so a reload doesn't
+    // reopen the modal or re-apply the filter. Native history API syncs with
+    // the Next router without a server round-trip.
     useEffect(() => {
-        if (searchParams.get("action") !== "create") return;
+        if (!searchParams.has("action") && !searchParams.has("date")) return;
         const params = new URLSearchParams(searchParams.toString());
         params.delete("action");
+        params.delete("date");
         const qs = params.toString();
         window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
     }, [searchParams]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Empty, Skeleton, Spin } from "antd";
 import { useDashboardContext } from "@/components/features/dashboard/context";
@@ -20,13 +20,33 @@ const formatTooltipTitle = (item: { label: string }) => `Ngày ${item.label}`;
 
 const EMPTY_DAYS: { day: number; label: string; total: number }[] = [];
 
+type DayDatum = { day: number; label: string; total: number };
+type G2EventTarget = {
+    on: (event: string, cb: (e: { data?: { data?: DayDatum } }) => void) => void;
+};
+
 export default function DailyBarChart() {
-    const { summary, isLoading, monthValue } = useDashboardContext();
+    const { summary, isLoading, monthValue, handleViewDay } = useDashboardContext();
     const isDark = useIsDarkMode();
     const isMobile = useIsMobile();
     const chartHeight = isMobile ? 240 : 320;
     const data = summary?.byDay ?? EMPTY_DAYS;
     const hasData = data.some((item) => item.total > 0);
+
+    // The chart binds listeners once on mount, so read the latest handler via ref.
+    const viewDayRef = useRef(handleViewDay);
+    useEffect(() => {
+        viewDayRef.current = handleViewDay;
+    }, [handleViewDay]);
+
+    // The plots wrapper re-emits G2 events by `e.type` ("click"), so `element:click`
+    // only exists on the inner G2 chart.
+    const handleChartReady = useCallback((plot: { chart?: G2EventTarget }) => {
+        plot.chart?.on("element:click", (event) => {
+            const day = event.data?.data?.day;
+            if (day) viewDayRef.current(day);
+        });
+    }, []);
 
     const config = useMemo(() => {
         const tickFill = isDark ? "#cbd5e1" : "#475569";
@@ -58,6 +78,7 @@ export default function DailyBarChart() {
             style: {
                 radiusTopLeft: 4,
                 radiusTopRight: 4,
+                cursor: "pointer",
             },
             tooltip: {
                 title: formatTooltipTitle,
@@ -94,12 +115,13 @@ export default function DailyBarChart() {
                 </div>
             ) : (
                 <div className="overflow-x-auto">
-                    <div className="min-w-[640px] md:min-w-0" style={{ height: chartHeight }}>
+                    <div className="min-w-160 md:min-w-0" style={{ height: chartHeight }}>
                         <Column
                             key={`${isDark ? "dark" : "light"}-${chartHeight}`}
                             {...config}
                             height={chartHeight}
                             autoFit
+                            onReady={handleChartReady}
                         />
                     </div>
                 </div>
