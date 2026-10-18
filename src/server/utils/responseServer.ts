@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type ApiResponse from "@/libs/interfaces/ApiResponseData";
-import { AUTH_SESSION_MAX_AGE_SECONDS } from "@/libs/constants/configKey";
+import { AUTH_SESSION_MAX_AGE_SECONDS, configCookieKey } from "@/libs/constants/configKey";
 
 export function noStore<T extends NextResponse>(response: T): T {
     response.headers.set("Cache-Control", "no-store");
@@ -102,5 +102,17 @@ export function unauthorizedResponse(
         data: null,
         statusCode: 401,
     };
-    return NextResponse.json(response, { status: 401 });
+    const res = NextResponse.json(response, { status: 401 });
+    // Proxy only checks the JWT signature; a revoked token (tokenVersion mismatch) must be
+    // dropped here, otherwise "/" redirects back to "/dashboard" and the client loops on 401.
+    res.cookies.set({
+        name: configCookieKey.ACCESS_TOKEN_KEY,
+        value: "",
+        path: "/",
+        maxAge: 0,
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+    });
+    return res;
 }

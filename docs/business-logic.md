@@ -115,7 +115,7 @@ Nút "Thêm chi tiêu" trên dashboard điều hướng tới `/expenses?action=
 - `GET /api/auth/me` trả thông tin khi JWT còn hạn và `tokenVersion` khớp user trong DB. Response có `Cache-Control: no-store`.
 - `POST /api/auth/logout` chỉ xóa cookie `access_token` (giữ cookie `theme`) và tăng `tokenVersion` để thu hồi mọi thiết bị. Response có `Cache-Control: no-store`.
 - Không có đăng ký. User được tạo thẳng trong DB. Script một lần: `bun scripts/hash-passwords.ts`.
-- `src/proxy.ts`: chặn mọi route trừ `/api/auth/*` và file tĩnh. `/` khi đã có token hợp lệ thì chuyển `/dashboard`. Nếu không có token hoặc token sai: request API nhận 401, request trang bị redirect về `/?returnUrl=...`. Proxy và service cùng verify JWT bằng `jose` (`jwtUtil.ts`). Service đọc lại cookie qua `getCurrentUser()` và đối chiếu `tokenVersion`.
+- `src/proxy.ts`: chặn mọi route trừ `/api/auth/*` và file tĩnh. `/` khi đã có token hợp lệ thì chuyển `/dashboard`. Nếu không có token hoặc token sai: request API nhận 401, request trang bị redirect về `/?returnUrl=...`. Proxy và service cùng verify JWT bằng `jose` (`jwtUtil.ts`). Service đọc lại cookie qua `getCurrentUser()` và đối chiếu `tokenVersion`. Mọi response 401 (`unauthorizedResponse`) đều xóa cookie `access_token`: proxy không kiểm tra `tokenVersion`, nên nếu giữ lại token đã bị thu hồi thì `/` sẽ chuyển về `/dashboard`, API lại trả 401 và client reload vô hạn.
 - Client: đổi phiên luôn reset state bằng hard navigation (`window.location.replace`). `AuthBootstrap` chỉ gọi `fetchAuthMe` khi status là `idle`. Logout đặt status `loggedOut` để không tự gọi lại `/auth/me`. Request API 401 (ngoài trang login) chuyển về `/?returnUrl=...`.
 
 ## 7.1 Phiên đăng nhập
