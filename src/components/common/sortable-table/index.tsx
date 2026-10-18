@@ -102,12 +102,15 @@ type SortableTableProps<T extends ISortableItem> = Omit<
 > & {
     items: T[];
     onReorder: (nextItems: T[]) => void | Promise<void>;
+    /** Hide drag handles, e.g. when `items` is a filtered subset of the full list. */
+    reorderDisabled?: boolean;
 };
 
 export default function SortableTable<T extends ISortableItem>({
     items,
     columns,
     onReorder,
+    reorderDisabled = false,
     pagination = false,
     ...tableProps
 }: SortableTableProps<T>) {
@@ -120,13 +123,13 @@ export default function SortableTable<T extends ISortableItem>({
     const mergedColumns = useMemo(() => {
         const sortColumn = createSortColumn<T>();
         const rest = (columns ?? []).filter((col) => col.key !== "sort");
-        return [sortColumn, ...rest];
-    }, [columns]);
+        return reorderDisabled ? rest : [sortColumn, ...rest];
+    }, [columns, reorderDisabled]);
 
     const itemIds = useMemo(() => items.map((item) => item._id), [items]);
 
     const onDragEnd = async ({ active, over }: DragEndEvent) => {
-        if (!over || active.id === over.id) return;
+        if (reorderDisabled || !over || active.id === over.id) return;
 
         const oldIndex = items.findIndex((item) => item._id === active.id);
         const newIndex = items.findIndex((item) => item._id === over.id);

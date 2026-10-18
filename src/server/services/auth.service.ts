@@ -14,19 +14,15 @@ import { configCookieKey } from "@/libs/constants/configKey";
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_MS = 15 * 60 * 1000;
 
-function authUserPayload(
-    user: {
-        _id: { toString(): string };
-        fullName?: string | null;
-        email?: string | null;
-    },
-    accessToken: string,
-) {
+function authUserPayload(user: {
+    _id: { toString(): string };
+    fullName?: string | null;
+    email?: string | null;
+}) {
     return {
         userId: user._id.toString(),
         fullName: user.fullName,
         email: user.email,
-        accessToken,
     };
 }
 
@@ -112,7 +108,7 @@ export async function login(email: string, password: string, ip: string) {
     });
 
     return successResponseWithSetCookie(
-        authUserPayload(user, token),
+        authUserPayload(user),
         "Đăng nhập thành công",
         {
             name: configCookieKey.ACCESS_TOKEN_KEY,

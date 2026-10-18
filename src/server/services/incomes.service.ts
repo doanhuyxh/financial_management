@@ -16,6 +16,7 @@ import {
 } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
+import { normalizePagination } from "../utils/pagination";
 
 function normalizePayload(data: IFromIncomesData) {
     const categoryId = data.categoryId?.trim();
@@ -145,14 +146,15 @@ export class IncomesService {
         if (!user?.userId) return unauthorizedResponse();
 
         const {
-            page = 1,
-            limit = 10,
+            page: rawPage,
+            limit: rawLimit,
             search = "",
             categoryId,
             sourceOfMoneyId,
             from,
             to,
         } = query;
+        const { page, limit } = normalizePagination(rawPage, rawLimit, 10);
 
         const filter: Record<string, unknown> = { userId: user.userId };
 
@@ -261,8 +263,13 @@ export class IncomesService {
 
             const oldSourceId = existing.sourceOfMoneyId.toString();
             const oldAmount = existing.amount;
+            const oldSourceExists = Boolean(
+                await SourcesOfMoneyModel.exists({ _id: oldSourceId, userId: user.userId }),
+            );
 
-            await adjustSourceBalance(user.userId, oldSourceId, oldAmount, "revert");
+            if (oldSourceExists) {
+                await adjustSourceBalance(user.userId, oldSourceId, oldAmount, "revert");
+            }
 
             try {
                 await adjustSourceBalance(
@@ -272,12 +279,14 @@ export class IncomesService {
                     "apply",
                 );
             } catch (applyError) {
-                await adjustSourceBalance(
-                    user.userId,
-                    oldSourceId,
-                    oldAmount,
-                    "apply",
-                );
+                if (oldSourceExists) {
+                    await adjustSourceBalance(
+                        user.userId,
+                        oldSourceId,
+                        oldAmount,
+                        "apply",
+                    );
+                }
                 throw applyError;
             }
 
@@ -309,12 +318,14 @@ export class IncomesService {
                     payload.amount,
                     "revert",
                 );
-                await adjustSourceBalance(
-                    user.userId,
-                    oldSourceId,
-                    oldAmount,
-                    "apply",
-                );
+                if (oldSourceExists) {
+                    await adjustSourceBalance(
+                        user.userId,
+                        oldSourceId,
+                        oldAmount,
+                        "apply",
+                    );
+                }
                 throw updateError;
             }
         } catch (error: unknown) {
@@ -338,12 +349,21 @@ export class IncomesService {
                 return errorResponseWithStatusCode("Không tìm thấy thu nhập", 404);
             }
 
-            await adjustSourceBalance(
-                user.userId,
-                existing.sourceOfMoneyId.toString(),
-                existing.amount,
-                "revert",
+            const sourceExists = Boolean(
+                await SourcesOfMoneyModel.exists({
+                    _id: existing.sourceOfMoneyId,
+                    userId: user.userId,
+                }),
             );
+
+            if (sourceExists) {
+                await adjustSourceBalance(
+                    user.userId,
+                    existing.sourceOfMoneyId.toString(),
+                    existing.amount,
+                    "revert",
+                );
+            }
 
             try {
                 await IncomesModel.findOneAndDelete({
@@ -351,12 +371,14 @@ export class IncomesService {
                     userId: user.userId,
                 });
             } catch (deleteError) {
-                await adjustSourceBalance(
-                    user.userId,
-                    existing.sourceOfMoneyId.toString(),
-                    existing.amount,
-                    "apply",
-                );
+                if (sourceExists) {
+                    await adjustSourceBalance(
+                        user.userId,
+                        existing.sourceOfMoneyId.toString(),
+                        existing.amount,
+                        "apply",
+                    );
+                }
                 throw deleteError;
             }
 

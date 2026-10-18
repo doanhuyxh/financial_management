@@ -17,6 +17,7 @@ import {
 } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
+import { normalizePagination } from "../utils/pagination";
 
 type SourceDoc = {
     _id: mongoose.Types.ObjectId;
@@ -321,14 +322,15 @@ export class TransfersService {
         if (!user?.userId) return unauthorizedResponse();
 
         const {
-            page = 1,
-            limit = 10,
+            page: rawPage,
+            limit: rawLimit,
             search = "",
             fromSourceId,
             toSourceId,
             from,
             to,
         } = query;
+        const { page, limit } = normalizePagination(rawPage, rawLimit, 10);
 
         const filter: Record<string, unknown> = { userId: user.userId };
 
@@ -482,21 +484,27 @@ export class TransfersService {
                 );
             }
 
-            const { fromSource, toSource } = await loadOwnedSources(
-                user.userId,
-                existing.fromSourceId.toString(),
-                existing.toSourceId.toString(),
-            );
+            // A side whose source was deleted has nothing left to reverse.
+            const [fromSource, toSource] = (await Promise.all([
+                SourcesOfMoneyModel.findOne({ _id: existing.fromSourceId, userId: user.userId }),
+                SourcesOfMoneyModel.findOne({ _id: existing.toSourceId, userId: user.userId }),
+            ])) as [SourceDoc | null, SourceDoc | null];
 
             const receiveAmount = existing.amount - (existing.feeAmount || 0);
 
             // Reverse: take back from destination, restore from source
-            await debitBackCredit(user.userId, toSource, receiveAmount);
+            if (toSource) {
+                await debitBackCredit(user.userId, toSource, receiveAmount);
+            }
 
             try {
-                await creditBackDebit(user.userId, fromSource, existing.amount);
+                if (fromSource) {
+                    await creditBackDebit(user.userId, fromSource, existing.amount);
+                }
             } catch (restoreError) {
-                await creditSource(user.userId, toSource, receiveAmount);
+                if (toSource) {
+                    await creditSource(user.userId, toSource, receiveAmount);
+                }
                 throw restoreError;
             }
 
@@ -514,8 +522,12 @@ export class TransfersService {
                     userId: user.userId,
                 });
             } catch (deleteError) {
-                await debitSource(user.userId, fromSource, existing.amount);
-                await creditSource(user.userId, toSource, receiveAmount);
+                if (fromSource) {
+                    await debitSource(user.userId, fromSource, existing.amount);
+                }
+                if (toSource) {
+                    await creditSource(user.userId, toSource, receiveAmount);
+                }
                 throw deleteError;
             }
 

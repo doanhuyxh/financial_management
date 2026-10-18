@@ -1,5 +1,8 @@
 import dbConnect from "@/server/connectDb";
 import SourcesOfMoneyModel from "@/server/models/sources-of-money.model";
+import ExpensesModel from "@/server/models/expenses.model";
+import IncomesModel from "@/server/models/incomes.model";
+import TransfersModel from "@/server/models/transfers.model";
 import {
     IFromSourcesOfMoneyData,
     IPaginatedSourcesOfMoneyQuery,
@@ -14,6 +17,7 @@ import {
 } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
+import { normalizePagination } from "../utils/pagination";
 
 function normalizePayload(data: IFromSourcesOfMoneyData) {
     const name = data.name?.trim();
@@ -76,6 +80,18 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
     };
 }
 
+async function hasTransactions(userId: string, sourceId: string) {
+    const [expense, income, transfer] = await Promise.all([
+        ExpensesModel.exists({ userId, sourceOfMoneyId: sourceId }),
+        IncomesModel.exists({ userId, sourceOfMoneyId: sourceId }),
+        TransfersModel.exists({
+            userId,
+            $or: [{ fromSourceId: sourceId }, { toSourceId: sourceId }],
+        }),
+    ]);
+    return Boolean(expense || income || transfer);
+}
+
 export class SourcesOfMoneyService {
     static async getSourcesOfMoney(query: IPaginatedSourcesOfMoneyQuery) {
         await dbConnect();
@@ -84,7 +100,8 @@ export class SourcesOfMoneyService {
             return unauthorizedResponse();
         }
 
-        const { page = 1, limit = 100, search = "", type } = query;
+        const { search = "", type } = query;
+        const { page, limit } = normalizePagination(query.page, query.limit, 100);
         const filter: Record<string, unknown> = { userId: user.userId };
 
         if (search) {
@@ -162,6 +179,24 @@ export class SourcesOfMoneyService {
 
         try {
             const payload = normalizePayload(data);
+
+            const existing = await SourcesOfMoneyModel.findOne({ _id: id, userId: user.userId })
+                .select("type")
+                .lean<{ type: SourcesOfMoneyType }>();
+            if (!existing) {
+                return errorResponseWithStatusCode("Không tìm thấy nguồn tiền", 404);
+            }
+
+            // Balance reversal logic depends on CC vs non-CC, so history must not cross that line.
+            const wasCreditCard = existing.type === SourcesOfMoneyType.CREDIT_CARD;
+            const isCreditCard = payload.type === SourcesOfMoneyType.CREDIT_CARD;
+            if (wasCreditCard !== isCreditCard && (await hasTransactions(user.userId, id))) {
+                return errorResponseWithStatusCode(
+                    "Không thể đổi giữa thẻ tín dụng và loại khác khi nguồn tiền đã có giao dịch",
+                    400,
+                );
+            }
+
             const updateQuery =
                 payload.type === SourcesOfMoneyType.CREDIT_CARD
                     ? { $set: payload }
@@ -205,14 +240,23 @@ export class SourcesOfMoneyService {
             return errorResponseWithStatusCode("Danh sách thứ tự không hợp lệ", 400);
         }
 
-        const owned = await SourcesOfMoneyModel.find({
-            userId: user.userId,
-            _id: { $in: orderedIds },
-        }).select("_id");
+        const [owned, totalOwned] = await Promise.all([
+            SourcesOfMoneyModel.find({
+                userId: user.userId,
+                _id: { $in: orderedIds },
+            }).select("_id"),
+            SourcesOfMoneyModel.countDocuments({ userId: user.userId }),
+        ]);
 
         if (owned.length !== orderedIds.length) {
             return errorResponseWithStatusCode(
                 "Một số nguồn tiền không tồn tại hoặc không thuộc về bạn",
+                400,
+            );
+        }
+        if (orderedIds.length !== totalOwned) {
+            return errorResponseWithStatusCode(
+                "Cần gửi đầy đủ danh sách nguồn tiền để sắp xếp",
                 400,
             );
         }

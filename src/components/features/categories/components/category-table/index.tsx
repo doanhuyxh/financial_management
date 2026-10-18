@@ -14,6 +14,7 @@ export default function CategoryTable() {
         items,
         isLoading,
         isReordering,
+        canReorder,
         handleReorder,
         openEditModal,
         handleDelete,
@@ -74,6 +75,7 @@ export default function CategoryTable() {
             size={isMobile ? "small" : "middle"}
             loading={isLoading || isReordering}
             onReorder={handleReorder}
+            reorderDisabled={!canReorder}
             scroll={{ x: "max-content" }}
         />
     );

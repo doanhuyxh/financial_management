@@ -13,6 +13,7 @@ import {
 } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
+import { normalizePagination } from "../utils/pagination";
 
 export class CategoriesService {
     static async getCategories(query: IPaginatedCategoriesQuery) {
@@ -22,7 +23,8 @@ export class CategoriesService {
             return unauthorizedResponse();
         }
 
-        const { page = 1, limit = 100, search = "" } = query;
+        const { search = "" } = query;
+        const { page, limit } = normalizePagination(query.page, query.limit, 100);
         const filter: Record<string, unknown> = { userId: user.userId };
         if (search) {
             filter.name = { $regex: escapeRegex(search), $options: "i" };
@@ -113,14 +115,23 @@ export class CategoriesService {
             return errorResponseWithStatusCode("Danh sách thứ tự không hợp lệ", 400);
         }
 
-        const owned = await CategoriesModel.find({
-            userId: user.userId,
-            _id: { $in: orderedIds },
-        }).select("_id");
+        const [owned, totalOwned] = await Promise.all([
+            CategoriesModel.find({
+                userId: user.userId,
+                _id: { $in: orderedIds },
+            }).select("_id"),
+            CategoriesModel.countDocuments({ userId: user.userId }),
+        ]);
 
         if (owned.length !== orderedIds.length) {
             return errorResponseWithStatusCode(
                 "Một số danh mục không tồn tại hoặc không thuộc về bạn",
+                400,
+            );
+        }
+        if (orderedIds.length !== totalOwned) {
+            return errorResponseWithStatusCode(
+                "Cần gửi đầy đủ danh sách danh mục để sắp xếp",
                 400,
             );
         }

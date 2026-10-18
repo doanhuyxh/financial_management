@@ -1,6 +1,6 @@
 # Nghiệp vụ — Money Manager (financial_management)
 
-> Tài liệu tóm tắt nghiệp vụ đang chạy, đọc trước khi sửa code. Cập nhật lần cuối: 2026-10-15.
+> Tài liệu tóm tắt nghiệp vụ đang chạy, đọc trước khi sửa code. Cập nhật lần cuối: 2026-10-18.
 > Nguồn sự thật là `src/server/services/*.service.ts` — nếu code khác tài liệu, tin code và sửa lại tài liệu.
 
 ## 1. Tổng quan
@@ -9,7 +9,8 @@
 
 - **Stack:** Next.js 16 (App Router, `src/proxy.ts` thay cho middleware) + React 19, MongoDB/Mongoose, React Query, Redux Toolkit (chỉ cho auth/navigation), Ant Design + shadcn, `@ant-design/plots` cho biểu đồ.
 - **Kiến trúc:** Frontend và API chung một app Next.js. API ở `src/app/api/**/route.ts`, route chỉ parse request rồi gọi `XxxService` trong `src/server/services/`. Client gọi API qua `src/libs/networkApi/*.api.ts`, sau đó đến hook React Query trong `src/libs/hooks/customHooks/`, rồi context của từng feature.
-- **Response chuẩn:** `{ status, message, data, statusCode }`. Danh sách có phân trang trả `data: { items, pagination: { total, page, limit, totalPages } }` (xem `src/server/utils/responseServer.ts`).
+- **Response chuẩn:** `{ status, message, data, statusCode }`. Danh sách có phân trang trả `data: { items, pagination: { total, page, limit, totalPages } }` (xem `src/server/utils/responseServer.ts`). `page`/`limit` được chuẩn hóa qua `normalizePagination` (`src/server/utils/pagination.ts`): page ≥ 1, 1 ≤ limit ≤ 100, giá trị sai thì dùng mặc định.
+- **Cập nhật số dư thẻ tín dụng** luôn đặt điều kiện hạn mức/dư nợ ngay trong filter của `findOneAndUpdate` (không chỉ kiểm tra trên bản đọc trước), để request đồng thời không vượt hạn mức hoặc làm dư nợ âm.
 - **Múi giờ:** Asia/Ho_Chi_Minh (+07:00). Dashboard tính theo múi này; PM2 cũng đặt `TZ`.
 
 ## 2. Thực thể (Mongo collections)
@@ -38,8 +39,9 @@ Quy tắc CRUD:
 
 - Khi tạo/sửa, người dùng **nhập trực tiếp** số dư hoặc dư nợ. Đây là cách duy nhất để "điều chỉnh" số dư thủ công; việc này không sinh giao dịch nào.
 - Khi đổi từ thẻ tín dụng sang loại khác, hệ thống `$unset creditDetails`.
-- Có sắp xếp kéo-thả (`sortOrder`, API `/reorder`). Bản ghi mới nhận `sortOrder = max + 1`. Nếu dữ liệu cũ thiếu `sortOrder`, hệ thống tự backfill khi GET.
-- **Xóa nguồn tiền không kiểm tra ràng buộc.** Expense/Income/Transfer đang trỏ tới nguồn đó sẽ mồ côi; UI hiển thị "—".
+- **Không cho đổi giữa thẻ tín dụng và loại thường** (theo cả hai chiều) khi nguồn đã có Expense/Income/Transfer, vì logic hoàn số dư phụ thuộc loại hiện tại. Đổi giữa các loại thường (BANK/CASH/E_WALLET/OTHER) vẫn được.
+- Có sắp xếp kéo-thả (`sortOrder`, API `/reorder`). API yêu cầu `orderedIds` gồm **toàn bộ** nguồn tiền của user; UI ẩn tay kéo khi đang tìm kiếm hoặc lọc loại. Bản ghi mới nhận `sortOrder = max + 1`. Nếu dữ liệu cũ thiếu `sortOrder`, hệ thống tự backfill khi GET.
+- **Xóa nguồn tiền không kiểm tra ràng buộc.** Expense/Income/Transfer đang trỏ tới nguồn đó sẽ mồ côi; UI hiển thị "—". Giao dịch mồ côi vẫn sửa/xóa được: phía nguồn đã bị xóa được bỏ qua (không hoàn số dư), phía còn tồn tại vẫn được điều chỉnh bình thường.
 
 ## 4. Quy tắc biến động số dư (cốt lõi)
 
@@ -90,7 +92,7 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 
 ## 5. Danh mục (Categories)
 
-- CRUD theo tên, kéo-thả sắp xếp (`/api/categories/reorder`, body `{ orderedIds }`; mọi ID phải thuộc user).
+- CRUD theo tên, kéo-thả sắp xếp (`/api/categories/reorder`, body `{ orderedIds }`; mọi ID phải thuộc user và phải gửi đủ toàn bộ danh mục). UI ẩn tay kéo khi đang tìm kiếm.
 - **Xóa không kiểm tra ràng buộc.** Expense/Income đang dùng danh mục sẽ mồ côi, và dashboard gom chúng vào "Không xác định".
 
 ## 6. Dashboard — `dashboard.service.ts`
@@ -111,7 +113,7 @@ Nút "Thêm chi tiêu" trên dashboard điều hướng tới `/expenses?action=
 
 ## 7. Xác thực
 
-- `POST /api/auth/login` với `{ email, password }`: so sánh password bằng **bcrypt**. Mật khẩu plain text cũ được hash lại ngay khi đăng nhập đúng. Sai 5 lần (theo IP + email) thì khóa 15 phút. Thành công thì set cookie `access_token` (HttpOnly, Secure, SameSite=Strict, sống 30 ngày). Response có `Cache-Control: no-store`. JWT là HS256, `exp` 30 ngày, payload gồm `userId, email, phoneNumber, fullName, avatarUrl, tokenVersion`.
+- `POST /api/auth/login` với `{ email, password }`: so sánh password bằng **bcrypt**. Mật khẩu plain text cũ được hash lại ngay khi đăng nhập đúng. Sai 5 lần (theo IP + email) thì khóa 15 phút. Thành công thì set cookie `access_token` (HttpOnly, Secure, SameSite=Strict, sống 30 ngày); body chỉ trả `userId, fullName, email`, **không** trả token. `email`/`password` phải là string. Response có `Cache-Control: no-store`. JWT là HS256, `exp` 30 ngày, payload gồm `userId, email, phoneNumber, fullName, avatarUrl, tokenVersion`.
 - `GET /api/auth/me` trả thông tin khi JWT còn hạn và `tokenVersion` khớp user trong DB. Response có `Cache-Control: no-store`.
 - `POST /api/auth/logout` chỉ xóa cookie `access_token` (giữ cookie `theme`) và tăng `tokenVersion` để thu hồi mọi thiết bị. Response có `Cache-Control: no-store`.
 - Không có đăng ký. User được tạo thẳng trong DB. Script một lần: `bun scripts/hash-passwords.ts`.
@@ -146,7 +148,7 @@ Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm
 
 1. Không dùng Mongo transaction. Rollback thủ công có thể để lại dữ liệu lệch nếu chính bước rollback cũng lỗi, hoặc nếu có request đồng thời.
 2. Sửa fee expense (có `skipBalanceAdjust`) trong trang Chi tiêu **không đồng bộ** với transfer gốc (feeAmount của transfer giữ nguyên). Nếu xóa fee expense riêng lẻ, transfer vẫn giữ `feeExpenseId` cũ.
-3. Xóa Category hoặc SourceOfMoney không kiểm tra giao dịch đang tham chiếu.
+3. Xóa Category hoặc SourceOfMoney không kiểm tra giao dịch đang tham chiếu (giao dịch mồ côi vẫn sửa/xóa được, xem mục 3).
 4. Sửa trực tiếp số dư/dư nợ trên form nguồn tiền sẽ ghi đè và không để lại lịch sử. Sau đó, revert một giao dịch cũ có thể bị chặn (ví dụ số dư không đủ để xóa income).
 5. Password lưu bcrypt. Token sống 30 ngày. Logout tăng `tokenVersion` nên thu hồi mọi thiết bị.
 6. Chuyển tiền không sửa được, chỉ xóa rồi tạo lại.

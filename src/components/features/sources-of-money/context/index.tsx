@@ -194,6 +194,7 @@ export default function SourcesOfMoneyContextProvider({
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
             isReordering,
+            canReorder: !query.search && !query.type,
             modalOpen,
             editingItem,
             isSubmitting: isCreating || isUpdating,
@@ -214,6 +215,7 @@ export default function SourcesOfMoneyContextProvider({
         [
             search,
             typeFilter,
+            query,
             localItems,
             isLoading,
             isFetching,

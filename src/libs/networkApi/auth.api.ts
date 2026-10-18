@@ -18,7 +18,6 @@ export interface AuthLoginData {
     userId: string;
     fullName?: string | null;
     email?: string | null;
-    accessToken?: string;
 }
 
 export const authLogin = async (request: AuthLoginRequest) => {

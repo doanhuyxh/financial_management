@@ -27,6 +27,7 @@ export default function SourcesOfMoneyTable() {
         items,
         isLoading,
         isReordering,
+        canReorder,
         handleReorder,
         openEditModal,
         handleDelete,
@@ -120,6 +121,7 @@ export default function SourcesOfMoneyTable() {
             size={isMobile ? "small" : "middle"}
             loading={isLoading || isReordering}
             onReorder={handleReorder}
+            reorderDisabled={!canReorder}
             scroll={{ x: "max-content" }}
         />
     );

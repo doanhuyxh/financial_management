@@ -12,6 +12,8 @@ export interface ISourcesOfMoneyContextProps {
     items: ISourcesOfMoneyData[];
     isLoading: boolean;
     isReordering: boolean;
+    /** False while search/type filter is active (list is only a subset). */
+    canReorder: boolean;
     modalOpen: boolean;
     editingItem: ISourcesOfMoneyData | null;
     isSubmitting: boolean;

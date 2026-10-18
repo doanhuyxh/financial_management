@@ -12,7 +12,7 @@ function clientIp(request: Request) {
 export async function POST(request: Request) {
     try {
         const { email, password } = await request.json();
-        if (!email || !password) {
+        if (typeof email !== "string" || typeof password !== "string" || !email || !password) {
             return noStore(errorResponseWithStatusCode("Email và mật khẩu là bắt buộc", 400));
         }
         return await login(email, password, clientIp(request));

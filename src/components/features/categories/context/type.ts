@@ -6,6 +6,8 @@ export interface ICategoryContextProps {
     items: ICategoriesData[];
     isLoading: boolean;
     isReordering: boolean;
+    /** False while search is active (list is only a subset). */
+    canReorder: boolean;
     modalOpen: boolean;
     editingCategory: ICategoriesData | null;
     isSubmitting: boolean;

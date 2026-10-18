@@ -145,6 +145,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
             isReordering,
+            canReorder: !query.search,
             modalOpen,
             editingCategory,
             isSubmitting: isCreating || isUpdating,
@@ -158,6 +159,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         }),
         [
             search,
+            query,
             localItems,
             isLoading,
             isFetching,
