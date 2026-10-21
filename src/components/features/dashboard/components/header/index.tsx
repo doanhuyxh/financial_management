@@ -60,7 +60,7 @@ export default function DashboardHeader() {
                                 Tổng chi tiêu tháng {monthValue.format("MM/YYYY")}
                             </p>
                             {summary ? (
-                                <p className="text-xl font-bold tracking-tight break-words tabular-nums sm:text-3xl">
+                                <p className="text-xl font-bold tracking-tight wrap-break-word text-primary tabular-nums sm:text-3xl">
                                     {formatMoney(summary.totalAmount)}
                                 </p>
                             ) : (
@@ -80,12 +80,12 @@ export default function DashboardHeader() {
                         </span>
                         <div className="min-w-0">
                             <p className="text-sm text-muted-foreground">
-                                Tổng dư nợ thẻ tín dụng
+                                Tổng dư nợ thẻ tín dụng hiện tại
                             </p>
                             {isSourcesLoading ? (
                                 <Skeleton.Input active size="large" className="mt-1" />
                             ) : (
-                                <p className="text-xl font-bold tracking-tight break-words text-red-500 tabular-nums sm:text-3xl">
+                                <p className="text-xl font-bold tracking-tight wrap-break-word text-red-500 tabular-nums sm:text-3xl">
                                     {formatMoney(totalCreditDebt)}
                                 </p>
                             )}
