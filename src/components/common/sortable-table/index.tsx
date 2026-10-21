@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useId, useMemo } from "react";
 import { Table } from "antd";
 import type { ColumnsType, TableProps } from "antd/es/table";
 import {
@@ -114,6 +114,9 @@ export default function SortableTable<T extends ISortableItem>({
     pagination = false,
     ...tableProps
 }: SortableTableProps<T>) {
+    // Stable id: dnd-kit's global counter differs between SSR and client, causing a
+    // hydration mismatch on the rows' `aria-describedby`.
+    const dndContextId = useId();
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
@@ -144,7 +147,7 @@ export default function SortableTable<T extends ISortableItem>({
     };
 
     return (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <DndContext id={dndContextId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext
                 items={itemIds}
                 strategy={verticalListSortingStrategy}

@@ -19,7 +19,7 @@ export default function DonutLegend({ items }: IDonutLegendProps) {
                         className="mt-1.5 size-2.5 shrink-0 rounded-sm"
                         style={{ backgroundColor: item.color }}
                     />
-                    <span className="break-words">{item.name}</span>
+                    <span className="wrap-break-word">{item.name}</span>
                 </li>
             ))}
         </ul>
