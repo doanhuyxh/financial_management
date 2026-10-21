@@ -14,7 +14,7 @@ export default function DashboardHeader() {
         summary,
         isLoading,
         totalCreditDebt,
-        isCreditCardsLoading,
+        isSourcesLoading,
         handleChangeMonth,
         handleCreateExpense,
     } = useDashboardContext();
@@ -82,7 +82,7 @@ export default function DashboardHeader() {
                             <p className="text-sm text-muted-foreground">
                                 Tổng dư nợ thẻ tín dụng
                             </p>
-                            {isCreditCardsLoading ? (
+                            {isSourcesLoading ? (
                                 <Skeleton.Input active size="large" className="mt-1" />
                             ) : (
                                 <p className="text-xl font-bold tracking-tight break-words text-red-500 tabular-nums sm:text-3xl">

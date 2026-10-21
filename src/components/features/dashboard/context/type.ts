@@ -1,6 +1,9 @@
 import type { Dayjs } from "dayjs";
 import type { IDashboardExpensesSummary } from "@/libs/interfaces/dashboardData";
-import type { ICreditCardDebtItem } from "@/components/features/dashboard/utils";
+import type {
+    IAssetsSummary,
+    ICreditCardDebtItem,
+} from "@/components/features/dashboard/utils";
 
 export interface IDashboardContextProps {
     monthValue: Dayjs;
@@ -8,7 +11,8 @@ export interface IDashboardContextProps {
     isLoading: boolean;
     creditCardDebts: ICreditCardDebtItem[];
     totalCreditDebt: number;
-    isCreditCardsLoading: boolean;
+    assets: IAssetsSummary;
+    isSourcesLoading: boolean;
     handleChangeMonth: (value: Dayjs | null) => void;
     handleCreateExpense: () => void;
     handleViewDay: (day: number) => void;

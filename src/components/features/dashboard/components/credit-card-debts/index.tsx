@@ -92,7 +92,7 @@ const columns: ColumnsType<ICreditCardDebtItem> = [
 ];
 
 export default function CreditCardDebts() {
-    const { creditCardDebts, totalCreditDebt, isCreditCardsLoading } =
+    const { creditCardDebts, totalCreditDebt, isSourcesLoading } =
         useDashboardContext();
     const isMobile = useIsMobile();
 
@@ -115,7 +115,7 @@ export default function CreditCardDebts() {
                 ) : null}
             </div>
 
-            {isCreditCardsLoading ? (
+            {isSourcesLoading ? (
                 <div className="flex h-32 items-center justify-center">
                     <Spin />
                 </div>

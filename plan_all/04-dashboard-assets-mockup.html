@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup Tài sản</title>
+<style>
+:root{
+  --bg:#09090b;--card:#0f0f12;--card2:#141418;--border:#26262b;--fg:#f4f4f5;--muted:#9a9aa3;
+  --primary:#BC4800;--primary-soft:rgba(188,72,0,.15);--red:#ef4444;--green:#22c55e;--blue:#3b82f6;--amber:#f59e0b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:16px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.red{color:var(--red)}.green{color:var(--green)}.blue{color:var(--blue)}
+.toolbar{max-width:1280px;margin:0 auto 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toolbar h1{font-size:16px;margin-right:auto}
+.tab{background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:6px 12px;border-radius:8px;cursor:pointer;font:inherit}
+.tab.on{background:var(--primary);border-color:var(--primary)}
+.note{max-width:1280px;margin:0 auto 16px;padding:10px 14px;border:1px dashed var(--border);border-radius:10px;color:var(--muted)}
+.note b{color:var(--fg)}
+.frame{max-width:1280px;margin:0 auto;transition:max-width .25s}
+.frame.mobile{max-width:390px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.card h3{font-size:15px}.card .sub{font-size:12px;color:var(--muted)}
+.ghost{opacity:.35;pointer-events:none}
+.ghost .ph{height:110px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+
+/* header (giống hiện tại) */
+.hdr{position:relative;border:1px solid rgba(188,72,0,.3);border-radius:12px;padding:18px;background:linear-gradient(135deg,rgba(188,72,0,.16),rgba(188,72,0,.04) 50%,transparent)}
+.hdr-top{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-start}
+.kpis{display:flex;flex-wrap:wrap;gap:24px;align-items:center}
+.kpi{display:flex;gap:12px;align-items:center;min-width:0}
+.ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ico svg{width:22px;height:22px}
+.kpi .lbl{font-size:13px;color:var(--muted)}
+.kpi .val{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.vsep{width:1px;height:40px;background:rgba(188,72,0,.3)}
+.ctrls{display:flex;gap:8px}
+.input{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--fg);width:110px}
+.btn{background:var(--primary);border:0;border-radius:6px;padding:6px 12px;color:#fff;font:inherit}
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(188,72,0,.18)}
+.mini{display:flex;gap:8px;align-items:center;min-width:0}
+.mini .i{width:28px;height:28px;border-radius:6px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mini .i svg{width:15px;height:15px}
+.mini .l{font-size:11px;color:var(--muted)}.mini .v{font-size:13px;font-weight:600}
+.new{outline:2px dashed var(--amber);outline-offset:4px;border-radius:12px;position:relative}
+.new::after{content:"MỚI";position:absolute;top:-10px;right:10px;background:var(--amber);color:#000;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px}
+
+/* bar */
+.bar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--card2)}
+.bar span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+
+/* B */
+.b-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:flex-end;margin:14px 0}
+.b-total{font-size:30px;font-weight:700;letter-spacing:-.02em}
+.b-net{text-align:right}
+.b-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.panel{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.panel-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.panel-h .t{display:flex;gap:8px;align-items:center;font-weight:600}
+.panel-h .t svg{width:16px;height:16px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--border);font-size:13px}
+.row:first-of-type{border-top:0}
+.row .n{display:flex;flex-direction:column;min-width:0}
+.row .n small{color:var(--muted);font-size:11px}
+.tag{font-size:10px;padding:1px 6px;border-radius:4px;background:#ffffff12;color:var(--muted);margin-left:6px}
+.prog{height:4px;background:#ffffff14;border-radius:9px;margin-top:4px;width:120px}
+.prog span{display:block;height:100%;border-radius:9px;background:var(--blue)}
+
+/* C */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tile{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.tile .top{display:flex;justify-content:space-between;align-items:center}
+.tile .top .l{font-size:12px;color:var(--muted)}
+.tile .top svg{width:18px;height:18px}
+.tile .v{font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.02em}
+.tile .s{font-size:11px;color:var(--muted);margin-top:2px}
+.tile.hl{border-color:rgba(188,72,0,.45);background:linear-gradient(135deg,rgba(188,72,0,.18),transparent)}
+.collapse-h{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+th{background:var(--primary);color:#fff;font-weight:600;text-align:left;padding:8px 10px}
+th:first-child{border-radius:6px 0 0 0}th:last-child{border-radius:0 6px 0 0}
+td{padding:9px 10px;border-bottom:1px solid var(--border)}
+td.r,th.r{text-align:right}
+tr.grp td{background:var(--card2);font-weight:600;font-size:12px;color:var(--muted)}
+
+/* mobile */
+.frame.mobile .kpis{flex-direction:column;align-items:flex-start;gap:14px}
+.frame.mobile .vsep{display:none}
+.frame.mobile .kpi .val{font-size:21px}
+.frame.mobile .ctrls{width:100%;flex-direction:column}.frame.mobile .input,.frame.mobile .btn{width:100%}
+.frame.mobile .minis{grid-template-columns:1fr 1fr}
+.frame.mobile .b-cols{grid-template-columns:1fr}
+.frame.mobile .b-net{text-align:left}
+.frame.mobile .tiles{grid-template-columns:1fr 1fr}
+.frame.mobile .tile .v{font-size:17px}
+.frame.mobile .hide-m{display:none}
+@media (max-width:760px){.frame{max-width:390px}.b-cols{grid-template-columns:1fr}.tiles{grid-template-columns:1fr 1fr}.minis{grid-template-columns:1fr 1fr}}
+.variant{display:none}.variant.on{display:block}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+  <symbol id="card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></symbol>
+  <symbol id="piggy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/></symbol>
+  <symbol id="banknote" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></symbol>
+  <symbol id="landmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></symbol>
+  <symbol id="scale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></symbol>
+  <symbol id="trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+</svg>
+
+<div class="toolbar">
+  <h1>Mockup — Dashboard · Tài sản</h1>
+  <button class="tab on" data-v="A">A · Gắn vào header</button>
+  <button class="tab" data-v="B">B · Card tài sản riêng</button>
+  <button class="tab" data-v="C">C · KPI tiles + chi tiết</button>
+  <button class="tab" id="mob">📱 Xem khổ mobile</button>
+</div>
+<div class="note" id="note"></div>
+
+<div class="frame" id="frame">
+
+<!-- ================= A ================= -->
+<div class="variant on" id="vA"><div class="stack">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="kpis">
+        <div class="kpi"><span class="ico" style="background:var(--primary);color:#fff"><svg><use href="#wallet"/></svg></span>
+          <div><div class="lbl">Tổng chi tiêu tháng 10/2026</div><div class="val num">9.659.240 đ</div></div></div>
+        <span class="vsep"></span>
+        <div class="kpi"><span class="ico" style="background:rgba(239,68,68,.15);color:var(--red)"><svg><use href="#card"/></svg></span>
+          <div><div class="lbl">Tổng dư nợ thẻ tín dụng</div><div class="val num red">3.336.804 đ</div></div></div>
+        <span class="vsep"></span>
+        <div class="kpi new"><span class="ico" style="background:rgba(34,197,94,.15);color:var(--green)"><svg><use href="#piggy"/></svg></span>
+          <div><div class="lbl">Tổng tài sản</div><div class="val num green">89.303.196 đ</div></div></div>
+      </div>
+      <div class="ctrls"><span class="input">10/2026</span><button class="btn">+ Thêm chi tiêu</button></div>
+    </div>
+    <div class="minis" style="grid-template-columns:repeat(5,1fr)">
+      <div class="mini"><span class="i"><svg><use href="#trend"/></svg></span><div><div class="l">Trung bình / ngày</div><div class="v num">459.964 đ</div></div></div>
+      <div class="mini"><span class="i"><svg><use href="#wallet"/></svg></span><div><div class="l">Ngày chi nhiều nhất</div><div class="v num">5/10 · 2.480.000 đ</div></div></div>
+      <div class="mini"><span class="i"><svg><use href="#landmark"/></svg></span><div><div class="l">Số danh mục đã chi</div><div class="v num">15</div></div></div>
+      <div class="mini new"><span class="i" style="background:rgba(34,197,94,.15);color:var(--green)"><svg><use href="#banknote"/></svg></span><div><div class="l">Tiền mặt</div><div class="v num green">19.640.000 đ</div></div></div>
+      <div class="mini new"><span class="i" style="background:rgba(59,130,246,.15);color:var(--blue)"><svg><use href="#card"/></svg></span><div><div class="l">Tín dụng có thể dùng</div><div class="v num blue">69.663.196 đ</div></div></div>
+    </div>
+  </div>
+  <div class="card ghost"><div class="ph">Dư nợ thẻ tín dụng (giữ nguyên)</div></div>
+  <div class="card ghost"><div class="ph">Biểu đồ danh mục · nguồn tiền · theo ngày (giữ nguyên)</div></div>
+</div></div>
+
+<!-- ================= B ================= -->
+<div class="variant" id="vB"><div class="stack">
+  <div class="hdr ghost" style="opacity:.45">
+    <div class="hdr-top"><div class="kpis">
+      <div class="kpi"><span class="ico" style="background:var(--primary);color:#fff"><svg><use href="#wallet"/></svg></span><div><div class="lbl">Tổng chi tiêu tháng 10/2026</div><div class="val num">9.659.240 đ</div></div></div>
+      <span class="vsep"></span>
+      <div class="kpi"><span class="ico" style="background:rgba(239,68,68,.15);color:var(--red)"><svg><use href="#card"/></svg></span><div><div class="lbl">Tổng dư nợ thẻ tín dụng</div><div class="val num red">3.336.804 đ</div></div></div>
+    </div><div class="ctrls"><span class="input">10/2026</span><button class="btn">+ Thêm chi tiêu</button></div></div>
+  </div>
+
+  <div class="card new">
+    <h3>Tài sản</h3><div class="sub">Số liệu hiện tại · không phụ thuộc tháng đang chọn</div>
+    <div class="b-top">
+      <div><div class="muted" style="font-size:13px">Tổng tài sản</div><div class="b-total num">89.303.196 đ</div></div>
+      <div class="b-net"><div class="muted" style="font-size:12px">Tài sản ròng (tiền mặt − dư nợ)</div><div class="num" style="font-size:18px;font-weight:700">16.303.196 đ</div></div>
+    </div>
+    <div class="bar"><span style="width:22%;background:var(--green)"></span><span style="width:78%;background:var(--blue)"></span></div>
+    <div class="legend"><span><i class="dot" style="background:var(--green)"></i>Tiền mặt 22%</span><span><i class="dot" style="background:var(--blue)"></i>Tín dụng có thể dùng 78%</span></div>
+
+    <div class="b-cols">
+      <div class="panel">
+        <div class="panel-h"><span class="t green"><svg><use href="#banknote"/></svg>Tiền mặt</span><b class="num green">19.640.000 đ</b></div>
+        <div class="row"><span class="n">TechcomBank<small>Ngân hàng</small></span><span class="num">12.450.000 đ</span></div>
+        <div class="row"><span class="n">VP Bank<small>Ngân hàng</small></span><span class="num">3.200.000 đ</span></div>
+        <div class="row"><span class="n">Cake<small>Ngân hàng</small></span><span class="num">1.850.000 đ</span></div>
+        <div class="row"><span class="n">Tiền mặt<small>Tiền mặt</small></span><span class="num">1.500.000 đ</span></div>
+        <div class="row"><span class="n">MoMo<small>Ví điện tử</small></span><span class="num">640.000 đ</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><span class="t blue"><svg><use href="#card"/></svg>Tín dụng có thể dùng</span><b class="num blue">69.663.196 đ</b></div>
+        <div class="row"><span class="n">Home Credit<small>Hạn mức 46.000.000 đ</small></span><span class="num">45.469.340 đ</span></div>
+        <div class="row"><span class="n">Shopee Pay<small>Hạn mức 17.000.000 đ</small></span><span class="num">16.284.699 đ</span></div>
+        <div class="row"><span class="n">VPBANK MASTERCARD<small>Hạn mức 10.000.000 đ</small></span><span class="num">7.909.157 đ</span></div>
+        <div class="row"><span class="n" style="color:var(--muted)">Đã dùng 3.336.804 / 73.000.000 đ</span><span class="num muted">5%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card ghost"><div class="ph">Dư nợ thẻ tín dụng (giữ nguyên)</div></div>
+  <div class="card ghost"><div class="ph">Biểu đồ (giữ nguyên)</div></div>
+</div></div>
+
+<!-- ================= C ================= -->
+<div class="variant" id="vC"><div class="stack">
+  <div class="hdr ghost" style="opacity:.45">
+    <div class="hdr-top"><div class="kpis">
+      <div class="kpi"><span class="ico" style="background:var(--primary);color:#fff"><svg><use href="#wallet"/></svg></span><div><div class="lbl">Tổng chi tiêu tháng 10/2026</div><div class="val num">9.659.240 đ</div></div></div>
+      <span class="vsep"></span>
+      <div class="kpi"><span class="ico" style="background:rgba(239,68,68,.15);color:var(--red)"><svg><use href="#card"/></svg></span><div><div class="lbl">Tổng dư nợ thẻ tín dụng</div><div class="val num red">3.336.804 đ</div></div></div>
+    </div><div class="ctrls"><span class="input">10/2026</span><button class="btn">+ Thêm chi tiêu</button></div></div>
+  </div>
+
+  <div class="new" style="border-radius:12px">
+    <div class="tiles">
+      <div class="tile hl"><div class="top"><span class="l">Tổng tài sản</span><svg style="color:var(--primary)"><use href="#piggy"/></svg></div>
+        <div class="v num">89.303.196 đ</div><div class="s">Tiền mặt + tín dụng có thể dùng</div></div>
+      <div class="tile"><div class="top"><span class="l">Tiền mặt</span><svg class="green"><use href="#banknote"/></svg></div>
+        <div class="v num green">19.640.000 đ</div><div class="s">5 nguồn · ngân hàng, ví, tiền mặt</div></div>
+      <div class="tile"><div class="top"><span class="l">Tín dụng có thể dùng</span><svg class="blue"><use href="#card"/></svg></div>
+        <div class="v num blue">69.663.196 đ</div>
+        <div class="prog" style="width:100%"><span style="width:95%"></span></div>
+        <div class="s">Còn 95% của 73.000.000 đ</div></div>
+      <div class="tile"><div class="top"><span class="l">Tài sản ròng</span><svg><use href="#scale"/></svg></div>
+        <div class="v num">16.303.196 đ</div><div class="s">Tiền mặt − dư nợ thẻ</div></div>
+    </div>
+  </div>
+
+  <div class="card new">
+    <div class="collapse-h"><div><h3>Chi tiết tài sản theo nguồn</h3><div class="sub">Bấm để thu gọn / mở rộng (antd Collapse)</div></div><svg style="width:18px;height:18px"><use href="#chev"/></svg></div>
+    <table>
+      <thead><tr><th>Nguồn</th><th class="hide-m">Loại</th><th class="r">Có thể dùng</th><th class="r hide-m">Tỷ trọng</th></tr></thead>
+      <tbody>
+        <tr class="grp"><td colspan="4">Tiền mặt · <span class="green num">19.640.000 đ</span></td></tr>
+        <tr><td>TechcomBank</td><td class="hide-m muted">Ngân hàng</td><td class="r num">12.450.000 đ</td><td class="r num hide-m">13,9%</td></tr>
+        <tr><td>VP Bank</td><td class="hide-m muted">Ngân hàng</td><td class="r num">3.200.000 đ</td><td class="r num hide-m">3,6%</td></tr>
+        <tr><td>Cake</td><td class="hide-m muted">Ngân hàng</td><td class="r num">1.850.000 đ</td><td class="r num hide-m">2,1%</td></tr>
+        <tr><td>Tiền mặt</td><td class="hide-m muted">Tiền mặt</td><td class="r num">1.500.000 đ</td><td class="r num hide-m">1,7%</td></tr>
+        <tr><td>MoMo</td><td class="hide-m muted">Ví điện tử</td><td class="r num">640.000 đ</td><td class="r num hide-m">0,7%</td></tr>
+        <tr class="grp"><td colspan="4">Tín dụng có thể dùng · <span class="blue num">69.663.196 đ</span></td></tr>
+        <tr><td>Home Credit</td><td class="hide-m muted">Thẻ tín dụng</td><td class="r num">45.469.340 đ</td><td class="r num hide-m">50,9%</td></tr>
+        <tr><td>Shopee Pay</td><td class="hide-m muted">Thẻ tín dụng</td><td class="r num">16.284.699 đ</td><td class="r num hide-m">18,2%</td></tr>
+        <tr><td>VPBANK MASTERCARD</td><td class="hide-m muted">Thẻ tín dụng</td><td class="r num">7.909.157 đ</td><td class="r num hide-m">8,9%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card ghost"><div class="ph">Dư nợ thẻ tín dụng (giữ nguyên)</div></div>
+  <div class="card ghost"><div class="ph">Biểu đồ (giữ nguyên)</div></div>
+</div></div>
+
+</div>
+
+<script>
+const notes={
+  A:'<b>A · Gắn vào header</b> — thay đổi ít nhất. Thêm khối "Tổng tài sản" cạnh tổng chi tiêu / dư nợ, và 2 mini-stat Tiền mặt + Tín dụng có thể dùng. Không có chi tiết theo nguồn. ~0.5 ngày.',
+  B:'<b>B · Card tài sản riêng</b> — card mới nằm giữa header và bảng dư nợ: tổng tài sản, tài sản ròng, thanh tỉ lệ, 2 cột liệt kê từng nguồn. Cân bằng giữa gọn và chi tiết. ~1 ngày.',
+  C:'<b>C · KPI tiles + bảng chi tiết</b> — 4 ô KPI (Tổng tài sản, Tiền mặt, Tín dụng có thể dùng, Tài sản ròng) và bảng chi tiết gom nhóm, có thể thu gọn. Chi tiết nhất, chiếm nhiều chỗ nhất. ~1.5 ngày.'
+};
+const note=document.getElementById('note');
+document.querySelectorAll('.tab[data-v]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab[data-v]').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.variant').forEach(v=>v.classList.toggle('on',v.id==='v'+b.dataset.v));
+  note.innerHTML=notes[b.dataset.v]+' <span style="color:var(--amber)">Khung vàng = phần mới.</span> Số liệu thẻ lấy từ ảnh dashboard; số dư tiền mặt là dữ liệu giả.';
+});
+document.getElementById('mob').onclick=e=>{document.getElementById('frame').classList.toggle('mobile');e.currentTarget.classList.toggle('on')};
+document.querySelector('.tab[data-v="A"]').click();
+</script>
+</body>
+</html>

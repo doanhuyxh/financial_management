@@ -9,6 +9,7 @@ Ngày lập: 2026-10-15 · Nhánh gốc: `main` (commit `20027ab`)
 | 1 | Đăng xuất rồi đăng nhập tài khoản mới vẫn hiện thông tin/dữ liệu tài khoản cũ | **Cao** (lộ dữ liệu giữa các tài khoản trên cùng trình duyệt) | [01-fix-auth-session.md](01-fix-auth-session.md) |
 | 2 | Giao diện chưa tối ưu cho mobile | Trung bình | [02-mobile-ui.md](02-mobile-ui.md) |
 | 3 | Tối ưu web chung (hiệu năng, bảo mật, SEO/a11y cơ bản) | Trung bình / Thấp | [03-web-optimization.md](03-web-optimization.md) |
+| 4 | Dashboard hiển thị "Tài sản" (tiền mặt + tín dụng khả dụng) — đã duyệt phương án C, đã triển khai | Tính năng mới | [04-dashboard-assets.md](04-dashboard-assets.md) · [mockup](04-dashboard-assets-mockup.html) |
 
 ## Thứ tự thực hiện đề xuất
 

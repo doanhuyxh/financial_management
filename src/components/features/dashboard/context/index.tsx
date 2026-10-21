@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import dayjs, { type Dayjs } from "dayjs";
 import { useGetDashboardExpensesSummary } from "@/libs/hooks/customHooks/useDashboard";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
-import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
 import { MENU_KEY } from "@/libs/constants/menuKey";
-import { buildCreditCardDebts } from "@/components/features/dashboard/utils";
+import { buildAssetsSummary, buildCreditCardDebts } from "@/components/features/dashboard/utils";
 import type { IDashboardContextProps } from "./type";
 
 interface IDashboardContextProviderProps {
@@ -32,17 +31,15 @@ export default function DashboardContextProvider({
 
     const { data, isLoading, isFetching, isPlaceholderData } =
         useGetDashboardExpensesSummary(query);
-    const { data: creditCardsData, isLoading: isCreditCardsLoading } =
-        useGetSourcesOfMoney({
-            page: 1,
-            limit: 100,
-            type: SourcesOfMoneyType.CREDIT_CARD,
-        });
+    // Toàn bộ nguồn tiền: dùng cho cả bảng dư nợ thẻ và phần Tài sản
+    const { data: sourcesData, isLoading: isSourcesLoading } = useGetSourcesOfMoney({
+        page: 1,
+        limit: 100,
+    });
+    const sources = sourcesData?.data?.items;
 
-    const creditCardDebts = useMemo(
-        () => buildCreditCardDebts(creditCardsData?.data?.items ?? []),
-        [creditCardsData?.data?.items],
-    );
+    const creditCardDebts = useMemo(() => buildCreditCardDebts(sources ?? []), [sources]);
+    const assets = useMemo(() => buildAssetsSummary(sources ?? []), [sources]);
     const totalCreditDebt = useMemo(
         () => creditCardDebts.reduce((sum, item) => sum + item.currentDebt, 0),
         [creditCardDebts],
@@ -74,7 +71,8 @@ export default function DashboardContextProvider({
             isLoading: isLoading || (isFetching && isPlaceholderData),
             creditCardDebts,
             totalCreditDebt,
-            isCreditCardsLoading,
+            assets,
+            isSourcesLoading,
             handleChangeMonth,
             handleCreateExpense,
             handleViewDay,
@@ -87,7 +85,8 @@ export default function DashboardContextProvider({
             isPlaceholderData,
             creditCardDebts,
             totalCreditDebt,
-            isCreditCardsLoading,
+            assets,
+            isSourcesLoading,
             handleChangeMonth,
             handleCreateExpense,
             handleViewDay,
