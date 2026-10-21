@@ -10,6 +10,7 @@ import {
     createTransfer,
     deleteTransfer,
     getTransfers,
+    getTransferSuggestions,
 } from "@/libs/networkApi/transfers.api";
 
 function invalidateTransferRelated(
@@ -27,6 +28,16 @@ export const useGetTransfers = (query: IPaginatedTransfersQuery = {}) => {
         queryFn: () => getTransfers(query),
         placeholderData: keepPreviousData,
         staleTime: QUERY_STALE_TIME.TRANSACTION,
+    });
+};
+
+/** Key nằm dưới [TRANSFERS] nên các mutation hiện có tự invalidate. */
+export const useGetTransferSuggestions = (enabled = true) => {
+    return useQuery({
+        queryKey: [configQueryKey.TRANSFERS, "suggestions"],
+        queryFn: () => getTransferSuggestions(),
+        staleTime: QUERY_STALE_TIME.REFERENCE,
+        enabled,
     });
 };
 

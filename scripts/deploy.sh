@@ -47,18 +47,26 @@ echo "==> Dừng service..."
 pm2 stop ecosystem.config.js
 
 echo "==> Xóa lock files..."
-rm -rf package-lock.json
-rm -rf bun.lockb
+if [ -f "package-lock.json" ]; then
+  rm -rf package-lock.json
+fi
+if [ -f "bun.lockb" ]; then
+  rm -rf bun.lockb
+fi
 
 echo "==> Lấy mới nhất code..."
 git pull --rebase --autostash
 
 echo "==> Cài đặt dependencies..."
-rm -rf node_modules
+if [ -d "node_modules" ]; then
+  rm -rf node_modules
+fi
 bun i
 
 echo "==> Build dự án..."
-rm -rf .next
+if [ -d ".next" ]; then
+  rm -rf .next
+fi
 bun run build
 
 echo "==> Khởi động lại service..."

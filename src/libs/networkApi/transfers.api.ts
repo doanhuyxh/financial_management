@@ -1,6 +1,7 @@
 import { fetcherBackEnd } from "@/libs/fetchFromBackEnd";
 import type ApiResponse from "@/libs/interfaces/ApiResponseData";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
+import type { ITransferSuggestions } from "@/libs/interfaces/suggestionsData";
 import type {
     IFromTransfersData,
     IPaginatedTransfersQuery,
@@ -25,6 +26,12 @@ export const getTransfers = async (query: IPaginatedTransfersQuery = {}) => {
         `/transfers${buildTransfersQuery(query)}`,
         { method: "GET" },
     );
+};
+
+export const getTransferSuggestions = async () => {
+    return fetcherBackEnd<ApiResponse<ITransferSuggestions>>("/transfers/suggestions", {
+        method: "GET",
+    });
 };
 
 export const createTransfer = async (body: IFromTransfersData) => {

@@ -1,6 +1,7 @@
 import { fetcherBackEnd } from "@/libs/fetchFromBackEnd";
 import type ApiResponse from "@/libs/interfaces/ApiResponseData";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
+import type { ITransactionSuggestions } from "@/libs/interfaces/suggestionsData";
 import type {
     IFromIncomesData,
     IIncomesData,
@@ -25,6 +26,12 @@ export const getIncomes = async (query: IPaginatedIncomesQuery = {}) => {
         `/incomes${buildIncomesQuery(query)}`,
         { method: "GET" },
     );
+};
+
+export const getIncomeSuggestions = async () => {
+    return fetcherBackEnd<ApiResponse<ITransactionSuggestions>>("/incomes/suggestions", {
+        method: "GET",
+    });
 };
 
 export const createIncome = async (body: IFromIncomesData) => {

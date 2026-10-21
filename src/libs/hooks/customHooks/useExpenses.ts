@@ -10,6 +10,7 @@ import {
     createExpense,
     deleteExpense,
     getExpenses,
+    getExpenseSuggestions,
     updateExpense,
 } from "@/libs/networkApi/expenses.api";
 
@@ -25,6 +26,16 @@ export const useGetExpenses = (query: IPaginatedExpensesQuery = {}) => {
         queryFn: () => getExpenses(query),
         placeholderData: keepPreviousData,
         staleTime: QUERY_STALE_TIME.TRANSACTION,
+    });
+};
+
+/** Key nằm dưới [EXPENSES] nên các mutation hiện có tự invalidate. */
+export const useGetExpenseSuggestions = (enabled = true) => {
+    return useQuery({
+        queryKey: [configQueryKey.EXPENSES, "suggestions"],
+        queryFn: () => getExpenseSuggestions(),
+        staleTime: QUERY_STALE_TIME.REFERENCE,
+        enabled,
     });
 };
 

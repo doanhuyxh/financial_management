@@ -5,15 +5,20 @@ import { DatePicker, Form, Input, Select, Switch } from "antd";
 import ResponsiveModal from "@/components/common/responsive-modal";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
+import TransferPairSuggestions from "@/components/features/transfers/components/transfer-pair-suggestions";
 import { formatMoney } from "@/components/features/transfers/utils";
 import { useGetCategories } from "@/libs/hooks/customHooks/useCategories";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
+import { useGetTransferSuggestions } from "@/libs/hooks/customHooks/useTransfers";
 import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
+import type { ITransferPairSuggestion } from "@/libs/interfaces/suggestionsData";
 import {
     SOURCES_OF_MONEY_TYPE_LABELS,
     SourcesOfMoneyType,
     type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import { groupSuggestedOptions } from "@/libs/utils/suggestionOptions";
 
 type FormValues = {
     fromSourceId: string;
@@ -83,6 +88,8 @@ export default function TransferFormModalContent({
         page: 1,
         limit: 100,
     });
+    const { data: suggestionsData } = useGetTransferSuggestions(open);
+    const suggestions = suggestionsData?.data;
 
     const sources = sourcesData?.data?.items ?? [];
 
@@ -119,7 +126,44 @@ export default function TransferFormModalContent({
         label: `${item.name} (${SOURCES_OF_MONEY_TYPE_LABELS[item.type]})`,
     }));
 
-    const toOptions = sourceOptions.filter((opt) => {
+    const fromOptions = groupSuggestedOptions(sourceOptions, suggestions?.fromSourceIds);
+
+    const pairsFromSelected = (suggestions?.pairs ?? []).filter(
+        (pair) => pair.fromSourceId === fromSourceId,
+    );
+    const selectedPair = pairsFromSelected.find((pair) => pair.toSourceId === toSourceId);
+
+    // Chưa chọn nguồn thì gợi ý số tiền chung; đã chọn đúng cặp quen thì gợi ý theo cặp
+    const amountSuggestions = selectedPair
+        ? selectedPair.amounts
+        : !fromSourceId
+          ? suggestions?.topAmounts
+          : undefined;
+
+    const handleFromChange = (nextFromId?: string) => {
+        if (!nextFromId || form.getFieldValue("toSourceId")) return;
+        const suggestedPair = suggestions?.pairs.find(
+            (pair) =>
+                pair.fromSourceId === nextFromId &&
+                sources.some((item) => item._id === pair.toSourceId),
+        );
+        if (suggestedPair) {
+            form.setFieldValue("toSourceId", suggestedPair.toSourceId);
+        }
+    };
+
+    const handlePairSelect = (pair: ITransferPairSuggestion) => {
+        form.setFields([
+            { name: "fromSourceId", value: pair.fromSourceId, errors: [] },
+            { name: "toSourceId", value: pair.toSourceId, errors: [] },
+        ]);
+    };
+
+    const handleAmountSuggestion = (value: number) => {
+        form.setFields([{ name: "amount", value: String(value), errors: [] }]);
+    };
+
+    const toOptionsFlat = sourceOptions.filter((opt) => {
         if (opt.value === fromSourceId) return false;
         // Disallow CC → CC
         if (fromIsCredit) {
@@ -128,6 +172,10 @@ export default function TransferFormModalContent({
         }
         return true;
     });
+    const toOptions = groupSuggestedOptions(
+        toOptionsFlat,
+        pairsFromSelected.map((pair) => pair.toSourceId),
+    );
 
     useEffect(() => {
         if (!open) {
@@ -280,6 +328,14 @@ export default function TransferFormModalContent({
             )}
         >
             <Form form={form} layout="vertical" className="mt-4">
+                <TransferPairSuggestions
+                    pairs={suggestions?.pairs}
+                    sources={sources}
+                    fromSourceId={fromSourceId}
+                    toSourceId={toSourceId}
+                    onSelect={handlePairSelect}
+                />
+
                 <Form.Item
                     name="transferredAt"
                     label="Ngày chuyển"
@@ -305,7 +361,8 @@ export default function TransferFormModalContent({
                         optionFilterProp="label"
                         placeholder="Chọn nguồn chuyển"
                         loading={sourcesLoading}
-                        options={sourceOptions}
+                        options={fromOptions}
+                        onChange={handleFromChange}
                     />
                 </Form.Item>
 
@@ -334,7 +391,18 @@ export default function TransferFormModalContent({
                     name="amount"
                     label="Số tiền"
                     rules={[{ required: true, message: "Số tiền là bắt buộc" }]}
-                    extra={amountExtra}
+                    extra={
+                        amountExtra || amountSuggestions?.length ? (
+                            <>
+                                {amountExtra}
+                                <AmountSuggestionChips
+                                    amounts={amountSuggestions}
+                                    value={amountWatch}
+                                    onSelect={handleAmountSuggestion}
+                                />
+                            </>
+                        ) : undefined
+                    }
                 >
                     <DebouncedNumberInput min={0} placeholder="0" delay={300} />
                 </Form.Item>

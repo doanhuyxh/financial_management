@@ -1,6 +1,7 @@
 import { fetcherBackEnd } from "@/libs/fetchFromBackEnd";
 import type ApiResponse from "@/libs/interfaces/ApiResponseData";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
+import type { ITransactionSuggestions } from "@/libs/interfaces/suggestionsData";
 import type {
     IExpensesData,
     IFromExpensesData,
@@ -25,6 +26,12 @@ export const getExpenses = async (query: IPaginatedExpensesQuery = {}) => {
         `/expenses${buildExpensesQuery(query)}`,
         { method: "GET" },
     );
+};
+
+export const getExpenseSuggestions = async () => {
+    return fetcherBackEnd<ApiResponse<ITransactionSuggestions>>("/expenses/suggestions", {
+        method: "GET",
+    });
 };
 
 export const createExpense = async (body: IFromExpensesData) => {

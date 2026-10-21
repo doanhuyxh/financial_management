@@ -10,6 +10,7 @@ import {
     createIncome,
     deleteIncome,
     getIncomes,
+    getIncomeSuggestions,
     updateIncome,
 } from "@/libs/networkApi/incomes.api";
 
@@ -24,6 +25,16 @@ export const useGetIncomes = (query: IPaginatedIncomesQuery = {}) => {
         queryFn: () => getIncomes(query),
         placeholderData: keepPreviousData,
         staleTime: QUERY_STALE_TIME.TRANSACTION,
+    });
+};
+
+/** Key nằm dưới [INCOMES] nên các mutation hiện có tự invalidate. */
+export const useGetIncomeSuggestions = (enabled = true) => {
+    return useQuery({
+        queryKey: [configQueryKey.INCOMES, "suggestions"],
+        queryFn: () => getIncomeSuggestions(),
+        staleTime: QUERY_STALE_TIME.REFERENCE,
+        enabled,
     });
 };
 

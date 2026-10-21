@@ -5,9 +5,11 @@ import { DatePicker, Form, Input, Select, Switch } from "antd";
 import ResponsiveModal from "@/components/common/responsive-modal";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
 import { useIncomesContext } from "@/components/features/incomes/context";
 import { formatMoney, getRefId } from "@/components/features/incomes/utils";
 import { useGetCategories } from "@/libs/hooks/customHooks/useCategories";
+import { useGetIncomeSuggestions } from "@/libs/hooks/customHooks/useIncomes";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import type { IFromIncomesData } from "@/libs/interfaces/incomesData";
 import {
@@ -15,6 +17,7 @@ import {
     SourcesOfMoneyType,
     type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import { groupSuggestedOptions } from "@/libs/utils/suggestionOptions";
 
 type FormValues = {
     categoryId: string;
@@ -48,6 +51,8 @@ export default function IncomesFormModal() {
     const [form] = Form.useForm<FormValues>();
     const [keepCreating, setKeepCreating] = useState(false);
     const selectedSourceId = Form.useWatch("sourceOfMoneyId", form);
+    const selectedCategoryId = Form.useWatch("categoryId", form);
+    const amountWatch = Form.useWatch("amount", form);
     const isEdit = Boolean(editingItem?._id);
 
     const { data: categoriesData, isLoading: categoriesLoading } = useGetCategories({
@@ -58,6 +63,8 @@ export default function IncomesFormModal() {
         page: 1,
         limit: 100,
     });
+    const { data: suggestionsData } = useGetIncomeSuggestions(modalOpen);
+    const suggestions = suggestionsData?.data;
 
     const sources = sourcesData?.data?.items ?? [];
     const selectedSource = useMemo(
@@ -83,15 +90,38 @@ export default function IncomesFormModal() {
         return base;
     }, [selectedSource, editingItem, selectedSourceId]);
 
-    const categoryOptions = (categoriesData?.data?.items ?? []).map((item) => ({
-        value: item._id,
-        label: item.name,
-    }));
+    const categoryOptions = groupSuggestedOptions(
+        (categoriesData?.data?.items ?? []).map((item) => ({
+            value: item._id,
+            label: item.name,
+        })),
+        suggestions?.categoryIds,
+    );
 
-    const sourceOptions = sources.map((item) => ({
-        value: item._id,
-        label: `${item.name} (${SOURCES_OF_MONEY_TYPE_LABELS[item.type]})`,
-    }));
+    const sourceOptions = groupSuggestedOptions(
+        sources.map((item) => ({
+            value: item._id,
+            label: `${item.name} (${SOURCES_OF_MONEY_TYPE_LABELS[item.type]})`,
+        })),
+        suggestions?.sourceIds,
+    );
+
+    // Đã chọn danh mục thì chỉ gợi ý số tiền của danh mục đó
+    const amountSuggestions = selectedCategoryId
+        ? suggestions?.byCategory[selectedCategoryId]?.amounts
+        : suggestions?.topAmounts;
+
+    const handleCategoryChange = (categoryId?: string) => {
+        if (isEdit || !categoryId || form.getFieldValue("sourceOfMoneyId")) return;
+        const suggestedSourceId = suggestions?.byCategory[categoryId]?.sourceId;
+        if (suggestedSourceId && sources.some((item) => item._id === suggestedSourceId)) {
+            form.setFieldValue("sourceOfMoneyId", suggestedSourceId);
+        }
+    };
+
+    const handleAmountSuggestion = (amount: number) => {
+        form.setFields([{ name: "amount", value: String(amount), errors: [] }]);
+    };
 
     useEffect(() => {
         if (!modalOpen) {
@@ -205,6 +235,7 @@ export default function IncomesFormModal() {
                         placeholder="Chọn danh mục"
                         loading={categoriesLoading}
                         options={categoryOptions}
+                        onChange={handleCategoryChange}
                     />
                 </Form.Item>
 
@@ -233,6 +264,13 @@ export default function IncomesFormModal() {
                     name="amount"
                     label="Số tiền"
                     rules={[{ required: true, message: "Số tiền là bắt buộc" }]}
+                    extra={
+                        <AmountSuggestionChips
+                            amounts={amountSuggestions}
+                            value={amountWatch}
+                            onSelect={handleAmountSuggestion}
+                        />
+                    }
                 >
                     <DebouncedNumberInput min={0} placeholder="0" delay={300} />
                 </Form.Item>
