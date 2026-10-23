@@ -19,7 +19,6 @@ function invalidateExpenseRelated(queryClient: ReturnType<typeof useQueryClient>
     queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_EXPENSES_SUMMARY] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_CASHFLOW] });
-    queryClient.invalidateQueries({ queryKey: [configQueryKey.BUDGETS] });
 }
 
 export const useGetExpenses = (query: IPaginatedExpensesQuery = {}) => {

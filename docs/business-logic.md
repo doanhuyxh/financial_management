@@ -23,7 +23,6 @@
 | Expense | `expenses` | userId, categoryId, sourceOfMoneyId, amount (>0), note, spentAt, skipBalanceAdjust |
 | Income | `incomes` | userId, categoryId, sourceOfMoneyId, amount (>0), note, receivedAt |
 | BalanceAdjustment | `balanceAdjustments` | userId, sourceOfMoneyId, field (`BALANCE`/`CREDIT_DEBT`), previousValue, newValue, delta, note, adjustedAt |
-| Budget | `budgets` | userId, categoryId (null = ngân sách tổng), amount; unique (userId, categoryId) |
 | Transfer | `transfers` | userId, fromSourceId, toSourceId, amount, feePercent, feeAmount, feeCategoryId, feeExpenseId, note, transferredAt |
 
 **Category** có `kind`: `EXPENSE` (dùng cho chi tiêu và phí chuyển tiền) hoặc `INCOME` (dùng cho thu nhập). Xem mục 5.
@@ -112,15 +111,6 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 - CRUD theo tên, kéo-thả sắp xếp (`/api/categories/reorder`, body `{ orderedIds }`; mọi ID phải thuộc user và phải gửi đủ toàn bộ danh mục). UI ẩn tay kéo khi đang tìm kiếm.
 - **Xóa (xóa mềm):** danh mục chưa có Expense/Income/Transfer (phí) thì xóa hẳn; đã có thì đặt `archivedAt`. Danh mục lưu trữ bị ẩn khỏi danh sách, reorder, gợi ý và ô chọn; không dùng được cho giao dịch mới, nhưng giao dịch cũ được giữ nguyên danh mục khi sửa. Lịch sử và dashboard vẫn hiện đúng tên. Dữ liệu cũ đã bị xóa hẳn trước đây vẫn gom vào "Không xác định".
 
-## 5.1 Ngân sách (Budgets) — `budgets.service.ts`
-
-- Mỗi ngân sách là **hạn mức chi tiêu mỗi tháng**, áp dụng cho mọi tháng (không lưu riêng từng tháng). `categoryId = null` là **ngân sách tổng** cho mọi chi tiêu. Mỗi danh mục (và ngân sách tổng) chỉ có một ngân sách (unique index; trùng thì báo "Danh mục này đã có ngân sách" hoặc "Đã có ngân sách tổng").
-- Chỉ đặt cho danh mục `EXPENSE` còn hoạt động. Sửa chỉ đổi `amount` (làm tròn, > 0); muốn đổi danh mục thì xóa rồi tạo lại. Xóa là xóa hẳn.
-- `GET /api/budgets?year=&month=`: với mỗi ngân sách trả `spent` (tổng Expense trong tháng theo giờ VN, **gồm phí chuyển tiền**; ngân sách tổng = toàn bộ chi tiêu tháng), `remaining = amount − spent` (âm khi vượt), `ratio = spent / amount`. Ngân sách của danh mục đã lưu trữ hoặc đã xóa bị ẩn. Sắp xếp: ngân sách tổng trước, sau đó theo `sortOrder` của danh mục.
-- Trạng thái (`getBudgetStatus` trong `components/common/budget-progress`): `ratio ≥ 0.8` (`BUDGET_WARNING_RATIO`) là cam "sắp vượt", `> 1` là đỏ "vượt", còn lại xanh.
-- UI: trang `/budgets` (chọn tháng, thêm/sửa/xóa; ô chọn chỉ hiện danh mục chi tiêu chưa có ngân sách). Widget "Ngân sách" trên dashboard hiện ngân sách tổng và tối đa 5 ngân sách danh mục có `ratio ≥ 0.8` (giảm dần).
-- Query key `BUDGETS`, được invalidate bởi mutation budget, expense, transfer (phí), và sửa/xóa category.
-
 ## 6. Dashboard — `dashboard.service.ts`
 
 `GET /api/dashboard/expenses-summary?year=&month=` chỉ thống kê **chi tiêu**. Thu nhập và dòng tiền nằm ở endpoint `cashflow` (bên dưới). Chuyển tiền không phải thu/chi nên không thống kê (phí chuyển tiền tính là chi tiêu).
@@ -187,21 +177,19 @@ Cách form dùng:
 | URL | Feature folder | Nội dung |
 |---|---|---|
 | `/` | `auth-login` | Đăng nhập |
-| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; header hiện tổng chi tiêu tháng và tổng dư nợ thẻ tín dụng hiện tại; phần Tài sản (4 ô: tổng tài sản, tiền mặt, tín dụng có thể dùng, tài sản ròng + bảng chi tiết theo nguồn); khối Dòng tiền (thu nhập, chi tiêu, dòng tiền ròng, tỷ lệ tiết kiệm + biểu đồ cột thu/chi 6 tháng); widget Ngân sách; donut thu nhập theo danh mục; bảng dư nợ thẻ tín dụng và hạn thanh toán; donut chart theo danh mục và theo nguồn tiền (số tiền + %), bar chart theo ngày |
+| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; header hiện tổng chi tiêu tháng và tổng dư nợ thẻ tín dụng hiện tại; phần Tài sản (4 ô: tổng tài sản, tiền mặt, tín dụng có thể dùng, tài sản ròng + bảng chi tiết theo nguồn); khối Dòng tiền (thu nhập, chi tiêu, dòng tiền ròng, tỷ lệ tiết kiệm + biểu đồ cột thu/chi 6 tháng); donut thu nhập theo danh mục; bảng dư nợ thẻ tín dụng và hạn thanh toán; donut chart theo danh mục và theo nguồn tiền (số tiền + %), bar chart theo ngày |
 | `/expenses` | `expenses` | Bảng và form chi tiêu (có tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal |
 | `/incomes` | `incomes` | Bảng và form thu nhập (có tùy chọn "tiếp tục tạo") |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
 | `/sources-of-money` | `sources-of-money` | Quản lý nguồn tiền, kéo-thả sắp xếp, chuyển tiền nhanh |
 | `/categories` | `categories` | Quản lý danh mục, kéo-thả sắp xếp |
-| `/budgets` | `budgets` | Ngân sách theo tháng: chọn tháng, thanh tiến độ, thêm/sửa/xóa |
 
-Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục, Ngân sách). Route key ở `src/libs/constants/menuKey.ts`.
+Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục). Route key ở `src/libs/constants/menuKey.ts`.
 
 **Cache React Query** (key ở `configQueryKey`), các mutation invalidate như sau:
-- expense → `EXPENSES`, `SOURCES_OF_MONEY`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW`, `BUDGETS`
+- expense → `EXPENSES`, `SOURCES_OF_MONEY`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW`
 - income → `INCOMES`, `SOURCES_OF_MONEY`, `DASHBOARD_CASHFLOW`
-- transfer → `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW`, `BUDGETS`
-- category update/delete → `CATEGORIES`, `BUDGETS`
+- transfer → `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW`
 - Mặc định (`tanstack-provider.tsx`): staleTime 30 giây, gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần, không giữ dữ liệu query trước đó ở mức global. Danh mục và nguồn tiền stale 5 phút. Dữ liệu chỉ đổi qua mutation của chính app nên dựa vào invalidate ở trên.
 
 ## 9. Điểm cần lưu ý / nợ kỹ thuật đã biết

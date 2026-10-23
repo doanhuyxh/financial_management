@@ -8,17 +8,13 @@ import {
     useGetDashboardExpensesSummary,
 } from "@/libs/hooks/customHooks/useDashboard";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
-import { useGetBudgets } from "@/libs/hooks/customHooks/useBudgets";
 import { MENU_KEY } from "@/libs/constants/menuKey";
 import { buildAssetsSummary, buildCreditCardDebts } from "@/components/features/dashboard/utils";
-import type { IBudgetData } from "@/libs/interfaces/budgetsData";
 import type { IDashboardContextProps } from "./type";
 
 interface IDashboardContextProviderProps {
     children: React.ReactNode;
 }
-
-const EMPTY_BUDGETS: IBudgetData[] = [];
 
 const DashboardContext = createContext<IDashboardContextProps | undefined>(undefined);
 
@@ -44,12 +40,6 @@ export default function DashboardContextProvider({
         isFetching: isCashflowFetching,
         isPlaceholderData: isCashflowPlaceholder,
     } = useGetDashboardCashflow(query);
-    const {
-        data: budgetsData,
-        isLoading: isBudgetsInitialLoading,
-        isFetching: isBudgetsFetching,
-        isPlaceholderData: isBudgetsPlaceholder,
-    } = useGetBudgets(query);
     // Toàn bộ nguồn tiền: dùng cho cả bảng dư nợ thẻ và phần Tài sản
     const { data: sourcesData, isLoading: isSourcesLoading } = useGetSourcesOfMoney({
         page: 1,
@@ -72,10 +62,6 @@ export default function DashboardContextProvider({
         router.push(`${MENU_KEY.EXPENSES}?action=create`);
     }, [router]);
 
-    const handleOpenBudgets = useCallback(() => {
-        router.push(MENU_KEY.BUDGETS);
-    }, [router]);
-
     // Bấm vào một cột trong biểu đồ theo ngày -> mở trang Chi tiêu đã lọc đúng ngày đó
     const handleViewDay = useCallback(
         (day: number) => {
@@ -95,16 +81,12 @@ export default function DashboardContextProvider({
             cashflow: cashflowData?.data,
             isCashflowLoading:
                 isCashflowInitialLoading || (isCashflowFetching && isCashflowPlaceholder),
-            budgets: budgetsData?.data?.items ?? EMPTY_BUDGETS,
-            isBudgetsLoading:
-                isBudgetsInitialLoading || (isBudgetsFetching && isBudgetsPlaceholder),
             creditCardDebts,
             totalCreditDebt,
             assets,
             isSourcesLoading,
             handleChangeMonth,
             handleCreateExpense,
-            handleOpenBudgets,
             handleViewDay,
         }),
         [
@@ -117,17 +99,12 @@ export default function DashboardContextProvider({
             isCashflowInitialLoading,
             isCashflowFetching,
             isCashflowPlaceholder,
-            budgetsData?.data?.items,
-            isBudgetsInitialLoading,
-            isBudgetsFetching,
-            isBudgetsPlaceholder,
             creditCardDebts,
             totalCreditDebt,
             assets,
             isSourcesLoading,
             handleChangeMonth,
             handleCreateExpense,
-            handleOpenBudgets,
             handleViewDay,
         ],
     );

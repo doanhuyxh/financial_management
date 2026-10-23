@@ -9,7 +9,6 @@ import SourcePieChart from "@/components/features/dashboard/components/source-pi
 import DailyBarChart from "@/components/features/dashboard/components/daily-bar-chart";
 import CashflowOverview from "@/components/features/dashboard/components/cashflow-overview";
 import IncomePieChart from "@/components/features/dashboard/components/income-pie-chart";
-import BudgetWatch from "@/components/features/dashboard/components/budget-watch";
 
 export default function DashboardComponent() {
     return (
@@ -19,7 +18,6 @@ export default function DashboardComponent() {
                 <div className="flex flex-col gap-4">
                     <AssetsOverview />
                     <CashflowOverview />
-                    <BudgetWatch />
                     <CreditCardDebts />
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                         <CategoryPieChart />
