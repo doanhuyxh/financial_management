@@ -11,10 +11,13 @@ export interface ISourcesOfMoneyContextProps {
     // values
     search: string;
     typeFilter: SourcesOfMoneyType | "";
+    /** Ẩn nguồn trống: nguồn thường số dư = 0, thẻ tín dụng dư nợ = 0. */
+    hideEmpty: boolean;
+    hiddenCount: number;
     items: ISourcesOfMoneyData[];
     isLoading: boolean;
     isReordering: boolean;
-    /** False while search/type filter is active (list is only a subset). */
+    /** False while search/type filter/hide empty is active (list is only a subset). */
     canReorder: boolean;
     modalOpen: boolean;
     editingItem: ISourcesOfMoneyData | null;
@@ -30,6 +33,7 @@ export interface ISourcesOfMoneyContextProps {
     // handlers
     handleSearch: (value: string) => void;
     handleTypeFilter: (value: SourcesOfMoneyType | "") => void;
+    handleHideEmpty: (value: boolean) => void;
     handleReorder: (orderedItems: ISourcesOfMoneyData[]) => Promise<void>;
     openCreateModal: () => void;
     openEditModal: (record: ISourcesOfMoneyData) => void;

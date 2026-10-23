@@ -9,8 +9,16 @@ import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money
 import { useDebounce } from "@/libs/hooks/useDebounce";
 
 export default function SourcesOfMoneyHeader() {
-    const { search, typeFilter, handleSearch, handleTypeFilter, openCreateModal, openTransferModal } =
-        useSourcesOfMoneyContext();
+    const {
+        search,
+        typeFilter,
+        hideEmpty,
+        handleSearch,
+        handleTypeFilter,
+        handleHideEmpty,
+        openCreateModal,
+        openTransferModal,
+    } = useSourcesOfMoneyContext();
 
     const [localSearch, setLocalSearch] = useState(search ?? "");
     const debouncedSearch = useDebounce(localSearch, 500);
@@ -24,10 +32,13 @@ export default function SourcesOfMoneyHeader() {
             searchValue={localSearch}
             onSearchChange={setLocalSearch}
             searchPlaceholder="Tìm kiếm nguồn tiền..."
-            activeFilterCount={typeFilter ? 1 : 0}
+            activeFilterCount={(typeFilter ? 1 : 0) + (hideEmpty ? 1 : 0)}
             desktopFilters={<SourcesFilterDrawer layout="desktop" />}
             drawerFilters={<SourcesFilterDrawer layout="drawer" />}
-            onClearFilters={() => handleTypeFilter("")}
+            onClearFilters={() => {
+                handleTypeFilter("");
+                handleHideEmpty(false);
+            }}
             createLabel="Thêm nguồn tiền"
             onCreate={openCreateModal}
             extraActions={

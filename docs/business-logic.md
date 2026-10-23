@@ -47,7 +47,8 @@ Quy tắc CRUD:
   - Xem lịch sử: `GET /api/sources-of-money/[id]/adjustments?page=&limit=` (xem được cả nguồn đã lưu trữ); UI là nút "Lịch sử điều chỉnh" trên bảng nguồn tiền. Query key nằm dưới `SOURCES_OF_MONEY`.
 - Khi đổi từ thẻ tín dụng sang loại khác, hệ thống `$unset creditDetails`.
 - **Không cho đổi giữa thẻ tín dụng và loại thường** (theo cả hai chiều) khi nguồn đã có Expense/Income/Transfer, vì logic hoàn số dư phụ thuộc loại hiện tại. Đổi giữa các loại thường (BANK/CASH/E_WALLET/OTHER) vẫn được.
-- Có sắp xếp kéo-thả (`sortOrder`, API `/reorder`). API yêu cầu `orderedIds` gồm **toàn bộ** nguồn tiền của user; UI ẩn tay kéo khi đang tìm kiếm hoặc lọc loại. Bản ghi mới nhận `sortOrder = max + 1`. Nếu dữ liệu cũ thiếu `sortOrder`, hệ thống tự backfill khi GET.
+- Có sắp xếp kéo-thả (`sortOrder`, API `/reorder`). API yêu cầu `orderedIds` gồm **toàn bộ** nguồn tiền của user; UI ẩn tay kéo khi đang tìm kiếm, lọc loại hoặc bật "Ẩn nguồn trống".
+- Công tắc **"Ẩn nguồn trống"** (lọc phía client, nhớ trong localStorage `sources-of-money-hide-empty`): ẩn nguồn thường có số dư = 0 và thẻ tín dụng có dư nợ = 0 (`getTrackedAmount(source) === 0`). Chỉ ảnh hưởng trang Nguồn tiền, không ảnh hưởng ô chọn nguồn ở các form hay dashboard. Bản ghi mới nhận `sortOrder = max + 1`. Nếu dữ liệu cũ thiếu `sortOrder`, hệ thống tự backfill khi GET.
 - **Xóa nguồn tiền (xóa mềm):**
   - Nguồn **chưa có** Expense/Income/Transfer thì xóa hẳn.
   - Nguồn **đã có** giao dịch thì chỉ đặt `archivedAt` (lưu trữ). Yêu cầu số dư = 0 (nguồn thường) hoặc dư nợ = 0 (thẻ); điều kiện này nằm trong filter của `findOneAndUpdate`. Nếu không thỏa thì báo "Nguồn tiền còn số dư hoặc dư nợ...".

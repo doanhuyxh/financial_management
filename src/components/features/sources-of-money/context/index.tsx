@@ -2,6 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAntdApp } from "@/libs/hooks/useAntdApp";
+import useLocalStorage from "@/libs/hooks/useLocalStorage";
+import { configLocalStorageKey } from "@/libs/constants/configKey";
+import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 import {
     useCreateSourcesOfMoney,
     useDeleteSourcesOfMoney,
@@ -50,6 +53,10 @@ export default function SourcesOfMoneyContextProvider({
 
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState<SourcesOfMoneyType | "">("");
+    const [hideEmpty, setHideEmpty] = useLocalStorage(
+        configLocalStorageKey.SOURCES_HIDE_EMPTY,
+        false,
+    );
     const [localItems, setLocalItems] = useState<ISourcesOfMoneyData[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ISourcesOfMoneyData | null>(null);
@@ -96,6 +103,18 @@ export default function SourcesOfMoneyContextProvider({
     const handleTypeFilter = useCallback((value: SourcesOfMoneyType | "") => {
         setTypeFilter(value);
     }, []);
+
+    const handleHideEmpty = useCallback(
+        (value: boolean) => setHideEmpty(value),
+        // setHideEmpty from useLocalStorage is not memoized; keep the handler stable
+        [],
+    );
+
+    // Lọc phía client: nguồn thường số dư = 0, thẻ tín dụng dư nợ = 0
+    const visibleItems = useMemo(
+        () => (hideEmpty ? localItems.filter((item) => getTrackedAmount(item) !== 0) : localItems),
+        [hideEmpty, localItems],
+    );
 
     const openCreateModal = useCallback(() => {
         setEditingItem(null);
@@ -233,12 +252,14 @@ export default function SourcesOfMoneyContextProvider({
         () => ({
             search,
             typeFilter,
-            items: localItems,
+            hideEmpty,
+            hiddenCount: localItems.length - visibleItems.length,
+            items: visibleItems,
             // Only show loading for first load or a changed query (page/filter);
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
             isReordering,
-            canReorder: !query.search && !query.type,
+            canReorder: !query.search && !query.type && !hideEmpty,
             modalOpen,
             editingItem,
             isSubmitting: isCreating || isUpdating,
@@ -251,6 +272,7 @@ export default function SourcesOfMoneyContextProvider({
                 isHistoryInitialLoading || (isHistoryFetching && isHistoryPlaceholder),
             handleSearch,
             handleTypeFilter,
+            handleHideEmpty,
             handleReorder,
             openCreateModal,
             openEditModal,
@@ -267,8 +289,10 @@ export default function SourcesOfMoneyContextProvider({
         [
             search,
             typeFilter,
+            hideEmpty,
             query,
             localItems,
+            visibleItems,
             isLoading,
             isFetching,
             isPlaceholderData,
@@ -286,6 +310,7 @@ export default function SourcesOfMoneyContextProvider({
             isHistoryPlaceholder,
             handleSearch,
             handleTypeFilter,
+            handleHideEmpty,
             handleReorder,
             openCreateModal,
             openEditModal,

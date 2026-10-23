@@ -27,7 +27,7 @@ export const configSessionKey = {
 }
 
 export const configLocalStorageKey = {
-	
+	SOURCES_HIDE_EMPTY: "sources-of-money-hide-empty",
 }
 
 export const configCookieKey = {
