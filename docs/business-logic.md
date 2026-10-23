@@ -22,6 +22,7 @@
 | SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate}, metadata, archivedAt; virtual `availableCreditLimit = max(0, limit − debt)` |
 | Expense | `expenses` | userId, categoryId, sourceOfMoneyId, amount (>0), note, spentAt, skipBalanceAdjust |
 | Income | `incomes` | userId, categoryId, sourceOfMoneyId, amount (>0), note, receivedAt |
+| BalanceAdjustment | `balanceAdjustments` | userId, sourceOfMoneyId, field (`BALANCE`/`CREDIT_DEBT`), previousValue, newValue, delta, note, adjustedAt |
 | Transfer | `transfers` | userId, fromSourceId, toSourceId, amount, feePercent, feeAmount, feeCategoryId, feeExpenseId, note, transferredAt |
 
 **Category** có `kind`: `EXPENSE` (dùng cho chi tiêu và phí chuyển tiền) hoặc `INCOME` (dùng cho thu nhập). Xem mục 5.
@@ -37,7 +38,13 @@ Có hai cách theo dõi tiền:
 
 Quy tắc CRUD:
 
-- Khi tạo/sửa, người dùng **nhập trực tiếp** số dư hoặc dư nợ. Đây là cách duy nhất để "điều chỉnh" số dư thủ công; việc này không sinh giao dịch nào.
+- Khi tạo/sửa, người dùng **nhập trực tiếp** số dư hoặc dư nợ. Đây là cách duy nhất để "điều chỉnh" số dư thủ công. Mỗi lần điều chỉnh sinh một bản ghi **BalanceAdjustment** (không phải giao dịch, không tính vào thống kê):
+  - Tạo nguồn với số dư/dư nợ ≠ 0 thì ghi bản ghi "Số dư ban đầu" (0 → giá trị).
+  - Khi sửa, client gửi `expectedAmount` = số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form. Nếu giá trị mới **bằng** `expectedAmount` (người dùng không sửa số) thì server **giữ nguyên** số trong DB, kể cả khi giao dịch khác đã làm nó đổi. Với thẻ thì khi đó thêm điều kiện hạn mức mới ≥ dư nợ hiện tại ("Hạn mức mới không được thấp hơn dư nợ hiện tại").
+  - Nếu giá trị mới **khác**, server chỉ ghi đè khi DB vẫn bằng `expectedAmount` (điều kiện nằm trong filter). Ngược lại trả 409 "Số dư/Dư nợ vừa thay đổi do giao dịch khác..."; client luôn invalidate để tải số mới. Ghi đè thành công thì ghi BalanceAdjustment kèm `adjustmentNote` (tối đa 200 ký tự). Nếu ghi lịch sử lỗi thì hoàn số cũ.
+  - Đổi giữa thẻ và loại thường (chỉ được khi chưa có giao dịch) là thiết lập lại, không ghi điều chỉnh.
+  - Thẻ tín dụng cập nhật theo từng trường (`creditDetails.creditLimit`, ...), nên sửa tên/hạn mức không ghi đè dư nợ.
+  - Xem lịch sử: `GET /api/sources-of-money/[id]/adjustments?page=&limit=` (xem được cả nguồn đã lưu trữ); UI là nút "Lịch sử điều chỉnh" trên bảng nguồn tiền. Query key nằm dưới `SOURCES_OF_MONEY`.
 - Khi đổi từ thẻ tín dụng sang loại khác, hệ thống `$unset creditDetails`.
 - **Không cho đổi giữa thẻ tín dụng và loại thường** (theo cả hai chiều) khi nguồn đã có Expense/Income/Transfer, vì logic hoàn số dư phụ thuộc loại hiện tại. Đổi giữa các loại thường (BANK/CASH/E_WALLET/OTHER) vẫn được.
 - Có sắp xếp kéo-thả (`sortOrder`, API `/reorder`). API yêu cầu `orderedIds` gồm **toàn bộ** nguồn tiền của user; UI ẩn tay kéo khi đang tìm kiếm hoặc lọc loại. Bản ghi mới nhận `sortOrder = max + 1`. Nếu dữ liệu cũ thiếu `sortOrder`, hệ thống tự backfill khi GET.
@@ -183,7 +190,7 @@ Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm
 1. Không dùng Mongo transaction. Rollback thủ công có thể để lại dữ liệu lệch nếu chính bước rollback cũng lỗi, hoặc nếu có request đồng thời.
 2. Fee expense (có `skipBalanceAdjust`) bị khóa sửa/xóa ở trang Chi tiêu để luôn khớp với `feeAmount`/`feeExpenseId` của transfer gốc.
 3. Category/SourceOfMoney đã có giao dịch chỉ được lưu trữ (xóa mềm, `archivedAt`), xem mục 3 và 5. Dữ liệu mồ côi từ trước khi có xóa mềm vẫn sửa/xóa được.
-4. Sửa trực tiếp số dư/dư nợ trên form nguồn tiền sẽ ghi đè và không để lại lịch sử. Sau đó, revert một giao dịch cũ có thể bị chặn (ví dụ số dư không đủ để xóa income).
+4. Sửa trực tiếp số dư/dư nợ trên form nguồn tiền được ghi vào lịch sử điều chỉnh (BalanceAdjustment), nhưng vẫn có thể khiến revert một giao dịch cũ bị chặn (ví dụ số dư không đủ để xóa income).
 5. Password lưu bcrypt. Token sống 30 ngày. Logout tăng `tokenVersion` nên thu hồi mọi thiết bị.
 6. Chuyển tiền không sửa được, chỉ xóa rồi tạo lại.
 7. Bộ lọc `to` dùng `setHours(23,59,59)` theo giờ server (PM2 đặt `TZ=Asia/Ho_Chi_Minh`).

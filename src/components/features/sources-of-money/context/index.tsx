@@ -5,6 +5,7 @@ import { useAntdApp } from "@/libs/hooks/useAntdApp";
 import {
     useCreateSourcesOfMoney,
     useDeleteSourcesOfMoney,
+    useGetBalanceAdjustments,
     useGetSourcesOfMoney,
     useReorderSourcesOfMoney,
     useUpdateSourcesOfMoney,
@@ -46,6 +47,8 @@ export default function SourcesOfMoneyContextProvider({
     const [modalOpen, setModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<ISourcesOfMoneyData | null>(null);
     const [transferModalOpen, setTransferModalOpen] = useState(false);
+    const [historySource, setHistorySource] = useState<ISourcesOfMoneyData | null>(null);
+    const [historyPage, setHistoryPage] = useState(1);
 
     const query = useMemo(
         () => ({
@@ -65,6 +68,12 @@ export default function SourcesOfMoneyContextProvider({
         useReorderSourcesOfMoney();
     const { mutateAsync: createTransfer, isPending: isTransferSubmitting } =
         useCreateTransfer();
+    const {
+        data: historyData,
+        isLoading: isHistoryInitialLoading,
+        isFetching: isHistoryFetching,
+        isPlaceholderData: isHistoryPlaceholder,
+    } = useGetBalanceAdjustments(historySource?._id ?? null, historyPage);
 
     useEffect(() => {
         setTimeout(() => {
@@ -93,6 +102,19 @@ export default function SourcesOfMoneyContextProvider({
     const closeModal = useCallback(() => {
         setModalOpen(false);
         setEditingItem(null);
+    }, []);
+
+    const openHistory = useCallback((record: ISourcesOfMoneyData) => {
+        setHistoryPage(1);
+        setHistorySource(record);
+    }, []);
+
+    const closeHistory = useCallback(() => {
+        setHistorySource(null);
+    }, []);
+
+    const handleHistoryPageChange = useCallback((page: number) => {
+        setHistoryPage(page);
     }, []);
 
     const openTransferModal = useCallback(() => {
@@ -200,6 +222,11 @@ export default function SourcesOfMoneyContextProvider({
             isSubmitting: isCreating || isUpdating,
             transferModalOpen,
             isTransferSubmitting,
+            historySource,
+            historyItems: historyData?.data?.items ?? [],
+            historyPagination: historyData?.data?.pagination,
+            isHistoryLoading:
+                isHistoryInitialLoading || (isHistoryFetching && isHistoryPlaceholder),
             handleSearch,
             handleTypeFilter,
             handleReorder,
@@ -208,6 +235,9 @@ export default function SourcesOfMoneyContextProvider({
             closeModal,
             handleSubmit,
             handleDelete,
+            openHistory,
+            closeHistory,
+            handleHistoryPageChange,
             openTransferModal,
             closeTransferModal,
             handleTransferSubmit,
@@ -227,6 +257,11 @@ export default function SourcesOfMoneyContextProvider({
             isUpdating,
             transferModalOpen,
             isTransferSubmitting,
+            historySource,
+            historyData,
+            isHistoryInitialLoading,
+            isHistoryFetching,
+            isHistoryPlaceholder,
             handleSearch,
             handleTypeFilter,
             handleReorder,
@@ -235,6 +270,9 @@ export default function SourcesOfMoneyContextProvider({
             closeModal,
             handleSubmit,
             handleDelete,
+            openHistory,
+            closeHistory,
+            handleHistoryPageChange,
             openTransferModal,
             closeTransferModal,
             handleTransferSubmit,

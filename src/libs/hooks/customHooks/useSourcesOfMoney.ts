@@ -9,6 +9,7 @@ import type {
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import {
     createSourcesOfMoney,
+    getBalanceAdjustments,
     deleteSourcesOfMoney,
     getSourcesOfMoney,
     reorderSourcesOfMoney,
@@ -22,6 +23,16 @@ export const useGetSourcesOfMoney = (query: IPaginatedSourcesOfMoneyQuery = {}) 
         queryFn: () => getSourcesOfMoney(query),
         placeholderData: keepPreviousData,
         staleTime: QUERY_STALE_TIME.REFERENCE,
+    });
+};
+
+/** Key nằm dưới SOURCES_OF_MONEY nên mọi invalidate nguồn tiền cũng làm mới lịch sử. */
+export const useGetBalanceAdjustments = (sourceId: string | null, page: number, limit = 10) => {
+    return useQuery({
+        queryKey: [configQueryKey.SOURCES_OF_MONEY, "adjustments", sourceId, page, limit],
+        queryFn: () => getBalanceAdjustments(sourceId as string, { page, limit }),
+        enabled: Boolean(sourceId),
+        placeholderData: keepPreviousData,
     });
 };
 
@@ -42,7 +53,8 @@ export const useUpdateSourcesOfMoney = () => {
     return useMutation({
         mutationFn: ({ id, body }: { id: string; body: IFromSourcesOfMoneyData }) =>
             updateSourcesOfMoney(id, body),
-        onSuccess: () => {
+        // Cả khi lỗi (vd. 409 số dư vừa đổi) cũng tải lại để form/bảng thấy số mới nhất
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
         },
     });

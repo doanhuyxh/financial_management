@@ -4,6 +4,8 @@ import type {
     SourcesOfMoneyType,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
+import type { IBalanceAdjustmentData } from "@/libs/interfaces/balanceAdjustmentsData";
+import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 
 export interface ISourcesOfMoneyContextProps {
     // values
@@ -19,6 +21,11 @@ export interface ISourcesOfMoneyContextProps {
     isSubmitting: boolean;
     transferModalOpen: boolean;
     isTransferSubmitting: boolean;
+    /** Nguồn đang xem lịch sử điều chỉnh số dư/dư nợ (null = đóng). */
+    historySource: ISourcesOfMoneyData | null;
+    historyItems: IBalanceAdjustmentData[];
+    historyPagination?: PaginatedResponse<IBalanceAdjustmentData>["pagination"];
+    isHistoryLoading: boolean;
 
     // handlers
     handleSearch: (value: string) => void;
@@ -29,6 +36,9 @@ export interface ISourcesOfMoneyContextProps {
     closeModal: () => void;
     handleSubmit: (values: IFromSourcesOfMoneyData) => Promise<void>;
     handleDelete: (record: ISourcesOfMoneyData) => void;
+    openHistory: (record: ISourcesOfMoneyData) => void;
+    closeHistory: () => void;
+    handleHistoryPageChange: (page: number) => void;
     openTransferModal: () => void;
     closeTransferModal: () => void;
     handleTransferSubmit: (
