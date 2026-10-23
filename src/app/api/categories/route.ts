@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { errorResponseWithStatusCode } from "@/server/utils/responseServer";
 import { CategoriesService } from "@/server/services/categories.service";
+import type { CategoryKind } from "@/libs/interfaces/categoriesData";
 
 export async function GET(req: NextRequest) {
     try {
@@ -8,7 +9,8 @@ export async function GET(req: NextRequest) {
         const page = parseInt(searchParams.get("page") || "1", 10);
         const limit = parseInt(searchParams.get("limit") || "100", 10);
         const search = searchParams.get("search") || "";
-        return await CategoriesService.getCategories({ page, limit, search });
+        const kind = (searchParams.get("kind") || "") as CategoryKind | "";
+        return await CategoriesService.getCategories({ page, limit, search, kind });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Something went wrong";
         return errorResponseWithStatusCode(message);

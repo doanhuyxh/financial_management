@@ -29,4 +29,6 @@ export interface IReorderCategoriesData {
     orderedIds: string[];
 }
 
-export interface IPaginatedCategoriesQuery extends IDefaultQuery {}
+export interface IPaginatedCategoriesQuery extends IDefaultQuery {
+    kind?: CategoryKind | "";
+}

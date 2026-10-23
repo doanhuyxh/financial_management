@@ -12,6 +12,7 @@ function buildCategoriesQuery(query: IPaginatedCategoriesQuery = {}) {
     if (query.page) params.set("page", String(query.page));
     if (query.limit) params.set("limit", String(query.limit));
     if (query.search) params.set("search", query.search);
+    if (query.kind) params.set("kind", query.kind);
     const qs = params.toString();
     return qs ? `?${qs}` : "";
 }

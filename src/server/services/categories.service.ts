@@ -71,11 +71,14 @@ export class CategoriesService {
             return unauthorizedResponse();
         }
 
-        const { search = "" } = query;
+        const { search = "", kind } = query;
         const { page, limit } = normalizePagination(query.page, query.limit, 100);
         const filter: Record<string, unknown> = { userId: user.userId, ...NOT_ARCHIVED };
         if (search) {
             filter.name = { $regex: escapeRegex(search), $options: "i" };
+        }
+        if (kind && isCategoryKind(kind)) {
+            filter.kind = kind;
         }
 
         // Backfill sortOrder for legacy documents
