@@ -1,31 +1,15 @@
-# Nghiệp vụ — Money Manager (financial_management)
+# Business logic — Money Manager
 
-> Tài liệu tóm tắt nghiệp vụ đang chạy, đọc trước khi sửa code. Cập nhật lần cuối: 2026-10-23.
+> Nghiệp vụ đang chạy, đọc trước khi sửa services, số dư, chuyển tiền hoặc dashboard. Cập nhật lần cuối: 2026-10-23.
 > Nguồn sự thật là `src/server/services/*.service.ts` — nếu code khác tài liệu, tin code và sửa lại tài liệu.
+> Stack, luồng dữ liệu, cache: [architecture.md](architecture.md). Schema và quy tắc ghi DB: [database.md](database.md).
 
-## 1. Tổng quan
+## 1–2. Nguyên tắc chung (thực thể: xem database.md)
 
-Ứng dụng quản lý tài chính cá nhân (tiếng Việt, đơn vị VND). Mỗi user chỉ thấy dữ liệu của chính mình (mọi query đều lọc theo `userId` lấy từ JWT).
-
-- **Stack:** Next.js 16 (App Router, `src/proxy.ts` thay cho middleware) + React 19, MongoDB/Mongoose, React Query, Redux Toolkit (chỉ cho auth/navigation), Ant Design + shadcn, `@ant-design/plots` cho biểu đồ.
-- **Kiến trúc:** Frontend và API chung một app Next.js. API ở `src/app/api/**/route.ts`, route chỉ parse request rồi gọi `XxxService` trong `src/server/services/`. Client gọi API qua `src/libs/networkApi/*.api.ts`, sau đó đến hook React Query trong `src/libs/hooks/customHooks/`, rồi context của từng feature.
-- **Response chuẩn:** `{ status, message, data, statusCode }`. Danh sách có phân trang trả `data: { items, pagination: { total, page, limit, totalPages } }` (xem `src/server/utils/responseServer.ts`). `page`/`limit` được chuẩn hóa qua `normalizePagination` (`src/server/utils/pagination.ts`): page ≥ 1, 1 ≤ limit ≤ 100, giá trị sai thì dùng mặc định.
-- **Cập nhật số dư thẻ tín dụng** luôn đặt điều kiện hạn mức/dư nợ ngay trong filter của `findOneAndUpdate` (không chỉ kiểm tra trên bản đọc trước), để request đồng thời không vượt hạn mức hoặc làm dư nợ âm.
+- Mỗi user chỉ thấy dữ liệu của chính mình (mọi query lọc theo `userId` từ JWT).
+- **Cập nhật số dư thẻ tín dụng** luôn đặt điều kiện hạn mức/dư nợ ngay trong filter của `findOneAndUpdate`, để request đồng thời không vượt hạn mức hoặc làm dư nợ âm.
 - **Múi giờ:** Asia/Ho_Chi_Minh (+07:00). Dashboard tính theo múi này; PM2 cũng đặt `TZ`.
-
-## 2. Thực thể (Mongo collections)
-
-| Model | Collection | Trường chính |
-|---|---|---|
-| User | `user` | fullName, email, password (**bcrypt**), phoneNumber, avatarUrl, tokenVersion |
-| Category | `categories` | userId, name, kind (`EXPENSE`/`INCOME`), sortOrder, archivedAt |
-| SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate}, metadata, archivedAt; virtual `availableCreditLimit = max(0, limit − debt)` |
-| Expense | `expenses` | userId, categoryId, sourceOfMoneyId, amount (>0), note, spentAt, skipBalanceAdjust |
-| Income | `incomes` | userId, categoryId, sourceOfMoneyId, amount (>0), note, receivedAt |
-| BalanceAdjustment | `balanceAdjustments` | userId, sourceOfMoneyId, field (`BALANCE`/`CREDIT_DEBT`), previousValue, newValue, delta, note, adjustedAt |
-| Transfer | `transfers` | userId, fromSourceId, toSourceId, amount, feePercent, feeAmount, feeCategoryId, feeExpenseId, note, transferredAt |
-
-**Category** có `kind`: `EXPENSE` (dùng cho chi tiêu và phí chuyển tiền) hoặc `INCOME` (dùng cho thu nhập). Xem mục 5.
+- **Category** có `kind`: `EXPENSE` (chi tiêu và phí chuyển tiền) hoặc `INCOME` (thu nhập). Xem mục 5.
 
 ## 3. Nguồn tiền (Sources of Money)
 
@@ -147,7 +131,7 @@ Nút "Thêm chi tiêu" trên dashboard điều hướng tới `/expenses?action=
 - `POST /api/auth/login` với `{ email, password }`: so sánh password bằng **bcrypt**. Mật khẩu plain text cũ được hash lại ngay khi đăng nhập đúng. Sai 5 lần (theo IP + email) thì khóa 15 phút. Thành công thì set cookie `access_token` (HttpOnly, Secure, SameSite=Strict, sống 30 ngày); body chỉ trả `userId, fullName, email`, **không** trả token. `email`/`password` phải là string. Response có `Cache-Control: no-store`. JWT là HS256, `exp` 30 ngày, payload gồm `userId, email, phoneNumber, fullName, avatarUrl, tokenVersion`.
 - `GET /api/auth/me` trả thông tin khi JWT còn hạn và `tokenVersion` khớp user trong DB. Response có `Cache-Control: no-store`.
 - `POST /api/auth/logout` chỉ xóa cookie `access_token` (giữ cookie `theme`) và tăng `tokenVersion` để thu hồi mọi thiết bị. Response có `Cache-Control: no-store`.
-- Không có đăng ký. User được tạo thẳng trong DB. Script một lần: `bun scripts/hash-passwords.ts`.
+- Không có đăng ký. User được tạo thẳng trong DB.
 - `src/proxy.ts`: chặn mọi route trừ `/api/auth/*` và file tĩnh. `/` khi đã có token hợp lệ thì chuyển `/dashboard`. Nếu không có token hoặc token sai: request API nhận 401, request trang bị redirect về `/?returnUrl=...`. Proxy và service cùng verify JWT bằng `jose` (`jwtUtil.ts`). Service đọc lại cookie qua `getCurrentUser()` và đối chiếu `tokenVersion`. Mọi response 401 (`unauthorizedResponse`) đều xóa cookie `access_token`: proxy không kiểm tra `tokenVersion`, nên nếu giữ lại token đã bị thu hồi thì `/` sẽ chuyển về `/dashboard`, API lại trả 401 và client reload vô hạn.
 - Client: đổi phiên luôn reset state bằng hard navigation (`window.location.replace`). `AuthBootstrap` chỉ gọi `fetchAuthMe` khi status là `idle`. Logout đặt status `loggedOut` để không tự gọi lại `/auth/me`. Request API 401 (ngoài trang login) chuyển về `/?returnUrl=...`.
 
@@ -173,7 +157,7 @@ Cách form dùng:
 - Form chuyển tiền có dòng "Hay chuyển": bấm vào là điền cả nguồn chuyển và nguồn nhận. Chọn nguồn chuyển khi ô "đến" đang trống thì tự điền nguồn nhận của cặp quen. Chip số tiền hiện theo cặp đang chọn, hoặc `topAmounts` khi chưa chọn nguồn.
 - Query key nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`, nên các invalidate sẵn có tự làm mới gợi ý. Chỉ fetch khi modal mở; stale 5 phút.
 
-## 8. Trang (UI) và menu
+## 8. Trang (UI)
 
 | URL | Feature folder | Nội dung |
 |---|---|---|
@@ -185,13 +169,7 @@ Cách form dùng:
 | `/sources-of-money` | `sources-of-money` | Quản lý nguồn tiền, kéo-thả sắp xếp, chuyển tiền nhanh |
 | `/categories` | `categories` | Quản lý danh mục, kéo-thả sắp xếp |
 
-Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục). Route key ở `src/libs/constants/menuKey.ts`.
-
-**Cache React Query** (key ở `configQueryKey`), các mutation invalidate như sau:
-- expense → `EXPENSES`, `SOURCES_OF_MONEY`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW`
-- income → `INCOMES`, `SOURCES_OF_MONEY`, `DASHBOARD_CASHFLOW`
-- transfer → `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW`
-- Mặc định (`tanstack-provider.tsx`): staleTime 30 giây, gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần, không giữ dữ liệu query trước đó ở mức global. Danh mục và nguồn tiền stale 5 phút. Dữ liệu chỉ đổi qua mutation của chính app nên dựa vào invalidate ở trên.
+Menu, cache React Query và invalidate: xem [architecture.md](architecture.md#cache-react-query).
 
 ## 9. Điểm cần lưu ý / nợ kỹ thuật đã biết
 
@@ -203,9 +181,3 @@ Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm
 6. Chuyển tiền không sửa được, chỉ xóa rồi tạo lại.
 7. Bộ lọc `to` dùng `setHours(23,59,59)` theo giờ server (PM2 đặt `TZ=Asia/Ho_Chi_Minh`).
 8. `formatMoney` dùng chung ở `src/libs/utils/formatMoney.ts`. `getRefId` vẫn nằm trong utils của từng feature.
-
-## 10. Vận hành
-
-- Dev: `bun dev`. Build: `bun run build`. Package manager là **bun** (đã bỏ `package-lock.json`).
-- ENV: `MONGODB_URI`, `DATABASE_NAME`, `JWT_SECRET`, `NEXT_PUBLIC_API_BASE_URL` (base URL của API, ví dụ `.../api`, dùng trong `fetcherBackEnd`), `NEXT_PUBLIC_CLIENT_BASE_URL`.
-- Deploy: `scripts/deploy.sh` trên server (`/home/rocky/financial_management`) thực hiện git pull, `bun i`, build, rồi `pm2 restart ecosystem.config.js` (app `finance-management-web`, port 3004). Kết quả deploy được báo qua webhook Zalo.

@@ -185,4 +185,4 @@ Tìm mọi chỗ import `store` trực tiếp (`grep -rn "from \"@/libs/redux/st
 
 ## 6. Cập nhật tài liệu
 
-- Thêm mục "Phiên đăng nhập" vào `docs/business-logic.md`: đổi tài khoản luôn reset state client bằng hard navigation; logout là POST và chỉ xoá `access_token`.
+- Thêm mục "Phiên đăng nhập" vào `.agent/business-logic.md`: đổi tài khoản luôn reset state client bằng hard navigation; logout là POST và chỉ xoá `access_token`.

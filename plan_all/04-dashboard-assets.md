@@ -84,7 +84,7 @@ Không cần đổi invalidate: expense / income / transfer đều đã invalida
 
 ### 3.6 Tài liệu
 
-Cập nhật `docs/business-logic.md`:
+Cập nhật `.agent/business-logic.md`:
 - Mục 6 (Dashboard): thêm định nghĩa Tiền mặt / Tín dụng khả dụng / Tổng tài sản (và Tài sản ròng nếu duyệt).
 - Mục 8 (bảng trang): bổ sung "phần Tài sản" vào mô tả `/dashboard`.
 
@@ -94,7 +94,7 @@ Cập nhật `docs/business-logic.md`:
 2. `context`: đổi query lấy toàn bộ nguồn tiền, expose `assets`, đổi tên cờ loading.
 3. Component theo phương án được chọn (A / B / C).
 4. Responsive: kiểm tra 360px / 768px / ≥1280px.
-5. Cập nhật `docs/business-logic.md`.
+5. Cập nhật `.agent/business-logic.md`.
 6. `bun run lint` + `bun run build`.
 
 Ước lượng: A ~0.5 ngày · B ~1 ngày · C ~1.5 ngày.

@@ -9,7 +9,7 @@
  *   bun scripts/migrate-income-category-kind.ts --apply  # ghi vào DB
  *
  * Chi tiêu đang gắn danh mục này vẫn giữ nguyên: sửa giao dịch mà giữ danh mục cũ khác loại
- * vẫn được phép (xem docs/business-logic.md mục 5).
+ * vẫn được phép (xem .agent/business-logic.md mục 5).
  */
 import mongoose from "mongoose";
 import dbConnect from "@/server/connectDb";
