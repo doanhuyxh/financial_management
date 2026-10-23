@@ -10,6 +10,7 @@ import {
     type IFromSourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 
 type FormValues = {
     name: string;
@@ -77,11 +78,7 @@ export default function SourcesOfMoneyFormModal() {
 
     // Số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form; server dùng để phát hiện ghi đè
     const wasCreditCard = editingItem?.type === SourcesOfMoneyType.CREDIT_CARD;
-    const expectedAmount = editingItem
-        ? wasCreditCard
-            ? (editingItem.creditDetails?.currentDebt ?? 0)
-            : (editingItem.balance ?? 0)
-        : undefined;
+    const expectedAmount = editingItem ? getTrackedAmount(editingItem) : undefined;
     const sameKindAsOriginal = isEdit && wasCreditCard === isCreditCard;
     const enteredAmount = toNumber(isCreditCard ? currentDebtWatch : balanceWatch);
     const amountChanged =

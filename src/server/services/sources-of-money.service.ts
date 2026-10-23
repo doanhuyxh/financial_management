@@ -22,6 +22,7 @@ import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
+import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 
 function normalizePayload(data: IFromSourcesOfMoneyData) {
     const name = data.name?.trim();
@@ -103,13 +104,6 @@ type ExistingSource = {
     balance?: number;
     creditDetails?: { currentDebt?: number };
 };
-
-/** Số đang theo dõi: dư nợ với thẻ, số dư với nguồn thường. */
-function getTrackedAmount(source: ExistingSource) {
-    return source.type === SourcesOfMoneyType.CREDIT_CARD
-        ? (source.creditDetails?.currentDebt ?? 0)
-        : (source.balance ?? 0);
-}
 
 function getTrackedPath(type: SourcesOfMoneyType) {
     return type === SourcesOfMoneyType.CREDIT_CARD ? "creditDetails.currentDebt" : "balance";
@@ -288,7 +282,8 @@ export class SourcesOfMoneyService {
                 else $unset["creditDetails.dueDate"] = 1;
                 if (!amountChanged) {
                     // Giữ dư nợ hiện tại: hạn mức mới không được thấp hơn nó
-                    filter["creditDetails.currentDebt"] = { $lte: creditLimit };
+                    // `$not: $gt` cũng khớp thẻ cũ thiếu currentDebt (coi như 0)
+                    filter["creditDetails.currentDebt"] = { $not: { $gt: creditLimit } };
                 }
             } else {
                 $unset.creditDetails = 1;

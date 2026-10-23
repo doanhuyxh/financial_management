@@ -5,6 +5,7 @@ import { Button, Space, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Pencil, Trash2 } from "lucide-react";
 import MobileRecordList from "@/components/common/mobile-record-list";
+import FeeTag from "@/components/features/expenses/components/expenses-table/components/fee-tag";
 import { useExpensesContext } from "@/components/features/expenses/context";
 import {
     formatMoney,
@@ -19,14 +20,6 @@ import {
 } from "@/libs/interfaces/sourcesOfMoneyData";
 
 const FEE_LOCKED_HINT = "Phí chuyển tiền: xóa giao dịch chuyển tiền gốc để thay đổi";
-
-function FeeTag() {
-    return (
-        <Tag color="orange" className="w-fit">
-            Phí chuyển tiền
-        </Tag>
-    );
-}
 
 export default function ExpensesTable() {
     const {

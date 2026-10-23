@@ -40,8 +40,8 @@ Quy tắc CRUD:
 
 - Khi tạo/sửa, người dùng **nhập trực tiếp** số dư hoặc dư nợ. Đây là cách duy nhất để "điều chỉnh" số dư thủ công. Mỗi lần điều chỉnh sinh một bản ghi **BalanceAdjustment** (không phải giao dịch, không tính vào thống kê):
   - Tạo nguồn với số dư/dư nợ ≠ 0 thì ghi bản ghi "Số dư ban đầu" (0 → giá trị).
-  - Khi sửa, client gửi `expectedAmount` = số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form. Nếu giá trị mới **bằng** `expectedAmount` (người dùng không sửa số) thì server **giữ nguyên** số trong DB, kể cả khi giao dịch khác đã làm nó đổi. Với thẻ thì khi đó thêm điều kiện hạn mức mới ≥ dư nợ hiện tại ("Hạn mức mới không được thấp hơn dư nợ hiện tại").
-  - Nếu giá trị mới **khác**, server chỉ ghi đè khi DB vẫn bằng `expectedAmount` (điều kiện nằm trong filter). Ngược lại trả 409 "Số dư/Dư nợ vừa thay đổi do giao dịch khác..."; client luôn invalidate để tải số mới. Ghi đè thành công thì ghi BalanceAdjustment kèm `adjustmentNote` (tối đa 200 ký tự). Nếu ghi lịch sử lỗi thì hoàn số cũ.
+  - Khi sửa, client gửi `expectedAmount` = số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form. Nếu giá trị mới **bằng** `expectedAmount` (người dùng không sửa số) thì server **giữ nguyên** số trong DB, kể cả khi giao dịch khác đã làm nó đổi. Với thẻ thì khi đó thêm điều kiện hạn mức mới ≥ dư nợ hiện tại ("Hạn mức mới không được thấp hơn dư nợ hiện tại"); thẻ cũ thiếu `currentDebt` được coi là 0. Quy tắc "dư nợ với thẻ, số dư với nguồn thường" nằm ở `getTrackedAmount` (`src/libs/utils/trackedAmount.ts`), dùng chung cho server và form.
+  - Nếu giá trị mới **khác**, server chỉ ghi đè khi DB vẫn bằng `expectedAmount` (điều kiện nằm trong filter). Ngược lại trả 409 "Số dư/Dư nợ vừa thay đổi do giao dịch khác..."; client tải lại danh sách, cập nhật bản ghi đang sửa (form nhận số và `expectedAmount` mới) và báo người dùng kiểm tra rồi lưu lại. Ghi đè thành công thì ghi BalanceAdjustment kèm `adjustmentNote` (tối đa 200 ký tự). Nếu ghi lịch sử lỗi thì hoàn số cũ.
   - Đổi giữa thẻ và loại thường (chỉ được khi chưa có giao dịch) là thiết lập lại, không ghi điều chỉnh.
   - Thẻ tín dụng cập nhật theo từng trường (`creditDetails.creditLimit`, ...), nên sửa tên/hạn mức không ghi đè dư nợ.
   - Xem lịch sử: `GET /api/sources-of-money/[id]/adjustments?page=&limit=` (xem được cả nguồn đã lưu trữ); UI là nút "Lịch sử điều chỉnh" trên bảng nguồn tiền. Query key nằm dưới `SOURCES_OF_MONEY`.
@@ -104,8 +104,8 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 ## 5. Danh mục (Categories)
 
 - **Loại (`kind`)**: bắt buộc khi tạo (`EXPENSE` hoặc `INCOME`, UI mặc định Chi tiêu).
-  - Chỉ đổi được loại khi danh mục **chưa có** Expense/Income nào ("Danh mục đã có giao dịch, không thể đổi loại").
-  - Dữ liệu cũ thiếu `kind` được backfill khi GET danh sách: danh mục chỉ được dùng bởi Income thì thành `INCOME`, còn lại thành `EXPENSE`.
+  - Chỉ đổi được loại khi danh mục **chưa có** Expense/Income nào và chưa được Transfer nào dùng làm danh mục phí ("Danh mục đã có giao dịch, không thể đổi loại").
+  - Dữ liệu cũ thiếu `kind` được backfill khi GET danh sách: danh mục chỉ được dùng bởi Income thì thành `INCOME`, còn lại thành `EXPENSE`. Mỗi user chỉ backfill một lần trên mỗi tiến trình server (cache trong bộ nhớ).
   - Server kiểm tra loại khi tạo expense/income, khi đổi sang danh mục khác lúc sửa, và với danh mục phí chuyển tiền (phải là `EXPENSE`). Sửa giao dịch mà **giữ nguyên** danh mục cũ khác loại thì vẫn cho qua (dữ liệu cũ dùng chung danh mục).
   - Form và bộ lọc chỉ hiện danh mục đúng loại (`filterCategoriesByKind` trong `src/libs/utils/categoryKind.ts`). Khi sửa, form vẫn giữ danh mục hiện tại của bản ghi.
 - CRUD theo tên, kéo-thả sắp xếp (`/api/categories/reorder`, body `{ orderedIds }`; mọi ID phải thuộc user và phải gửi đủ toàn bộ danh mục). UI ẩn tay kéo khi đang tìm kiếm.
@@ -114,7 +114,7 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 ## 6. Dashboard — `dashboard.service.ts`
 
 `GET /api/dashboard/expenses-summary?year=&month=` chỉ thống kê **chi tiêu**. Thu nhập và dòng tiền nằm ở endpoint `cashflow` (bên dưới). Chuyển tiền không phải thu/chi nên không thống kê (phí chuyển tiền tính là chi tiêu).
-- Khoảng thời gian: ngày 1 00:00 đến ngày cuối tháng 23:59:59.999, theo +07:00.
+- Khoảng thời gian: ngày 1 00:00 đến ngày cuối tháng 23:59:59.999, theo +07:00 (`src/server/utils/monthRange.ts`). Năm hợp lệ: 1970–9999, ngoài khoảng trả 400.
 - `byCategory`: tổng theo danh mục (pie chart), sắp xếp theo tổng giảm dần.
 - `byDay`: tổng theo từng ngày trong tháng (bar chart), ngày không có chi tiêu vẫn có giá trị 0.
 - `bySource`: tổng theo nguồn tiền (`sourceId, sourceName, sourceType`; donut chart kèm tỷ lệ %), sắp xếp theo tổng giảm dần. Nguồn đã bị xóa gom vào "Không xác định" (`sourceType = null`). Tỷ lệ % tính phía client = total / tổng tháng.

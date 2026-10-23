@@ -24,13 +24,21 @@ function isCategoryKind(value: unknown): value is CategoryKind {
     return Object.values(CategoryKind).includes(value as CategoryKind);
 }
 
+/** User đã backfill xong trong tiến trình này (sau đó mọi danh mục mới đều có kind). */
+const kindBackfilledUsers = new Set<string>();
+
 /** Legacy: danh mục chỉ dùng cho thu nhập → INCOME, còn lại → EXPENSE. */
 async function backfillCategoryKind(userId: string) {
+    if (kindBackfilledUsers.has(userId)) return;
+
     const missing = await CategoriesModel.find({
         userId,
         $or: [{ kind: { $exists: false } }, { kind: null }],
     }).select("_id");
-    if (missing.length === 0) return;
+    if (missing.length === 0) {
+        kindBackfilledUsers.add(userId);
+        return;
+    }
 
     const ids = missing.map((doc) => doc._id);
     const [expenseCategoryIds, incomeCategoryIds] = await Promise.all([
@@ -52,6 +60,7 @@ async function backfillCategoryKind(userId: string) {
         { userId, _id: { $in: ids }, $or: [{ kind: { $exists: false } }, { kind: null }] },
         { $set: { kind: CategoryKind.EXPENSE } },
     );
+    kindBackfilledUsers.add(userId);
 }
 
 export class CategoriesService {
@@ -150,11 +159,12 @@ export class CategoriesService {
         const update: Record<string, unknown> = { name: category.name.trim() };
         if (category.kind && category.kind !== existing.kind) {
             // Đổi loại sẽ làm giao dịch cũ nằm sai loại danh mục
-            const [expenseCount, incomeCount] = await Promise.all([
-                ExpensesModel.countDocuments({ userId: user.userId, categoryId: id }),
-                IncomesModel.countDocuments({ userId: user.userId, categoryId: id }),
+            const [expense, income, feeTransfer] = await Promise.all([
+                ExpensesModel.exists({ userId: user.userId, categoryId: id }),
+                IncomesModel.exists({ userId: user.userId, categoryId: id }),
+                TransfersModel.exists({ userId: user.userId, feeCategoryId: id }),
             ]);
-            if (expenseCount + incomeCount > 0) {
+            if (expense || income || feeTransfer) {
                 return errorResponseWithStatusCode(
                     "Danh mục đã có giao dịch, không thể đổi loại",
                     400,

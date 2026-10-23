@@ -5,24 +5,13 @@ import { ArrowDownLeft, ArrowUpRight, PiggyBank, Scale } from "lucide-react";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import AssetTile from "@/components/features/dashboard/components/assets-overview/components/asset-tile";
 import CashflowTrendChart from "@/components/features/dashboard/components/cashflow-overview/components/cashflow-trend-chart";
+import ChangeText from "@/components/features/dashboard/components/cashflow-overview/components/change-text";
 import { formatMoney, formatPercent } from "@/libs/utils/formatMoney";
-import { cn } from "@/libs/shadcn/utils";
 
 /** % thay đổi so với tháng trước; null khi tháng trước bằng 0 (không so được). */
 function getChangeRatio(current: number, previous: number | undefined) {
     if (!previous) return null;
     return (current - previous) / Math.abs(previous);
-}
-
-function ChangeText({ ratio, higherIsBetter }: { ratio: number | null; higherIsBetter: boolean }) {
-    if (ratio === null) return <span>Tháng trước: chưa có số liệu</span>;
-    if (ratio === 0) return <span>Bằng tháng trước</span>;
-    const isGood = ratio > 0 === higherIsBetter;
-    return (
-        <span className={cn(isGood ? "text-green-600" : "text-red-500")}>
-            {ratio > 0 ? "▲" : "▼"} {formatPercent(Math.abs(ratio))} so với tháng trước
-        </span>
-    );
 }
 
 export default function CashflowOverview() {

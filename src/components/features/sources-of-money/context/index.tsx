@@ -36,6 +36,13 @@ function getErrorMessage(error: unknown, fallback: string) {
     return fallback;
 }
 
+function getErrorStatusCode(error: unknown) {
+    if (error && typeof error === "object" && "statusCode" in error) {
+        return Number((error as { statusCode?: number }).statusCode);
+    }
+    return undefined;
+}
+
 export default function SourcesOfMoneyContextProvider({
     children,
 }: ISourcesOfMoneyContextProviderProps) {
@@ -60,7 +67,8 @@ export default function SourcesOfMoneyContextProvider({
         [search, typeFilter],
     );
 
-    const { data, isLoading, isFetching, isPlaceholderData } = useGetSourcesOfMoney(query);
+    const { data, isLoading, isFetching, isPlaceholderData, refetch } =
+        useGetSourcesOfMoney(query);
     const { mutateAsync: createSource, isPending: isCreating } = useCreateSourcesOfMoney();
     const { mutateAsync: updateSource, isPending: isUpdating } = useUpdateSourcesOfMoney();
     const { mutateAsync: deleteSource } = useDeleteSourcesOfMoney();
@@ -140,12 +148,26 @@ export default function SourcesOfMoneyContextProvider({
                 }
                 closeModal();
             } catch (error: unknown) {
+                // 409: số dư/dư nợ vừa đổi do giao dịch khác. Nạp lại bản ghi để form có
+                // expectedAmount mới, nếu không lần lưu sau vẫn gửi số cũ và lại bị 409.
+                if (getErrorStatusCode(error) === 409 && editingItem?._id) {
+                    const { data: fresh } = await refetch();
+                    const latest = fresh?.data?.items.find((item) => item._id === editingItem._id);
+                    if (latest) {
+                        setEditingItem(latest);
+                        notification.warning({
+                            title: getErrorMessage(error, "Số dư vừa thay đổi"),
+                            description: "Form đã được cập nhật số mới nhất. Hãy kiểm tra rồi lưu lại.",
+                        });
+                        return;
+                    }
+                }
                 notification.error({
                     title: getErrorMessage(error, "Thao tác thất bại"),
                 });
             }
         },
-        [editingItem, updateSource, createSource, notification, closeModal],
+        [editingItem, updateSource, createSource, notification, closeModal, refetch],
     );
 
     const handleTransferSubmit = useCallback(
