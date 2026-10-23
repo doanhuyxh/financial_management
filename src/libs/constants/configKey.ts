@@ -20,6 +20,7 @@ export const configQueryKey = {
 	TRANSFERS: "transfers",
 	DASHBOARD_EXPENSES_SUMMARY: "dashboard-expenses-summary",
 	DASHBOARD_CASHFLOW: "dashboard-cashflow",
+	VIETQR_BANKS: "vietqr-banks",
 }
 
 export const configSessionKey = {

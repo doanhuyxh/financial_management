@@ -9,7 +9,7 @@ MongoDB qua Mongoose 9. Kết nối: `src/server/connectDb.ts` (cache trên `glo
 | User | `user` | fullName, email, password (**bcrypt**), phoneNumber, avatarUrl, tokenVersion | |
 | LoginAttempt | `loginAttempt` | key (IP + email, unique), failCount, lockedUntil | `key` unique |
 | Category | `categories` | userId, name, kind (`EXPENSE`/`INCOME`), sortOrder, archivedAt | `{userId, sortOrder}` |
-| SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate}, metadata, archivedAt; virtual `availableCreditLimit = max(0, limit − debt)` | `{userId, sortOrder}` |
+| SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate}, bankAccount{bin, bankName, accountNumber, accountName} (chỉ BANK), metadata, archivedAt; virtual `availableCreditLimit = max(0, limit − debt)` | `{userId, sortOrder}` |
 | Expense | `expenses` | userId, categoryId, sourceOfMoneyId, amount (>0), note, spentAt, skipBalanceAdjust | `{userId, spentAt: -1}` |
 | Income | `incomes` | userId, categoryId, sourceOfMoneyId, amount (>0), note, receivedAt | `{userId, receivedAt: -1}` |
 | BalanceAdjustment | `balanceAdjustments` | userId, sourceOfMoneyId, field (`BALANCE`/`CREDIT_DEBT`), previousValue, newValue, delta, note, adjustedAt | `{userId, sourceOfMoneyId, adjustedAt: -1}` |

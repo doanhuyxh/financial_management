@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { Form, Input, Select } from "antd";
+import { useEffect, useMemo } from "react";
+import { Avatar, Form, Input, Select } from "antd";
 import ResponsiveModal from "@/components/common/responsive-modal";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import { getTrackedAmount } from "@/libs/utils/trackedAmount";
+import { useVietQrBanks } from "@/libs/hooks/customHooks/useVietQrBanks";
 
 type FormValues = {
     name: string;
@@ -21,6 +22,9 @@ type FormValues = {
     statementDate?: string | number | null;
     dueDate?: string | number | null;
     adjustmentNote?: string;
+    bankBin?: string;
+    accountNumber?: string;
+    accountName?: string;
 };
 
 const typeOptions = Object.values(SourcesOfMoneyType).map((type) => ({
@@ -75,6 +79,36 @@ export default function SourcesOfMoneyFormModal() {
     const isCreditCard = selectedType === SourcesOfMoneyType.CREDIT_CARD;
     const balanceWatch = Form.useWatch("balance", form);
     const currentDebtWatch = Form.useWatch("currentDebt", form);
+    const isBank = selectedType === SourcesOfMoneyType.BANK;
+    const bankBinWatch = Form.useWatch("bankBin", form);
+    const accountNumberWatch = Form.useWatch("accountNumber", form);
+
+    const { data: banks = [], isLoading: isBanksLoading, isError: isBanksError } =
+        useVietQrBanks(modalOpen && isBank);
+    const bankOptions = useMemo(() => {
+        const options = banks.map((bank) => ({
+            value: bank.bin,
+            label: (
+                <span className="flex items-center gap-2">
+                    <Avatar src={bank.logo} size={20} shape="square" />
+                    {bank.shortName}
+                </span>
+            ),
+            bankName: bank.shortName,
+            searchText: `${bank.shortName} ${bank.code} ${bank.name}`,
+        }));
+        // Ngân hàng đã lưu vẫn hiện tên khi chưa tải được danh sách
+        const saved = editingItem?.bankAccount;
+        if (saved && !options.some((option) => option.value === saved.bin)) {
+            options.unshift({
+                value: saved.bin,
+                label: <span>{saved.bankName}</span>,
+                bankName: saved.bankName,
+                searchText: saved.bankName,
+            });
+        }
+        return options;
+    }, [banks, editingItem]);
 
     // Số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form; server dùng để phát hiện ghi đè
     const wasCreditCard = editingItem?.type === SourcesOfMoneyType.CREDIT_CARD;
@@ -96,6 +130,9 @@ export default function SourcesOfMoneyFormModal() {
                 currentDebt: editingItem.creditDetails?.currentDebt,
                 statementDate: editingItem.creditDetails?.statementDate,
                 dueDate: editingItem.creditDetails?.dueDate,
+                bankBin: editingItem.bankAccount?.bin,
+                accountNumber: editingItem.bankAccount?.accountNumber,
+                accountName: editingItem.bankAccount?.accountName,
             });
         } else {
             form.resetFields();
@@ -125,6 +162,19 @@ export default function SourcesOfMoneyFormModal() {
             payload.balance = 0;
         } else {
             payload.balance = toNumber(values.balance) ?? 0;
+        }
+
+        const accountNumber = values.accountNumber?.trim();
+        if (values.type === SourcesOfMoneyType.BANK && values.bankBin && accountNumber) {
+            payload.bankAccount = {
+                bin: values.bankBin,
+                bankName:
+                    bankOptions.find((option) => option.value === values.bankBin)?.bankName ?? "",
+                accountNumber,
+                accountName: values.accountName?.trim() || undefined,
+            };
+        } else {
+            payload.bankAccount = null;
         }
 
         if (sameKindAsOriginal) {
@@ -225,6 +275,67 @@ export default function SourcesOfMoneyFormModal() {
                         </div>
                     </div>
                 )}
+
+                {isBank ? (
+                    <>
+                        <div className="mb-2 text-sm font-medium">
+                            Tài khoản nhận tiền{" "}
+                            <span className="font-normal text-muted-foreground">
+                                (tùy chọn, để tạo mã VietQR)
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <Form.Item
+                                name="bankBin"
+                                label="Ngân hàng"
+                                rules={[
+                                    {
+                                        required: Boolean(accountNumberWatch?.trim()),
+                                        message: "Chọn ngân hàng của số tài khoản",
+                                    },
+                                ]}
+                                help={
+                                    isBanksError
+                                        ? "Không tải được danh sách ngân hàng từ VietQR"
+                                        : undefined
+                                }
+                            >
+                                <Select
+                                    showSearch
+                                    optionFilterProp="searchText"
+                                    allowClear
+                                    loading={isBanksLoading}
+                                    options={bankOptions}
+                                    placeholder="Chọn ngân hàng"
+                                />
+                            </Form.Item>
+                            <Form.Item
+                                name="accountNumber"
+                                label="Số tài khoản"
+                                rules={[
+                                    {
+                                        required: Boolean(bankBinWatch),
+                                        message: "Nhập số tài khoản",
+                                    },
+                                    {
+                                        pattern: /^[0-9A-Za-z]{1,19}$/,
+                                        message: "Chỉ gồm chữ/số, tối đa 19 ký tự",
+                                    },
+                                ]}
+                            >
+                                <Input placeholder="Ví dụ: 0123456789" maxLength={19} />
+                            </Form.Item>
+                        </div>
+                        <Form.Item
+                            name="accountName"
+                            label="Tên chủ tài khoản"
+                            extra="Lưu dạng in hoa, không dấu"
+                            rules={[{ max: 50, message: "Tối đa 50 ký tự" }]}
+                        >
+                            <Input placeholder="NGUYEN VAN A" maxLength={50} />
+                        </Form.Item>
+                    </>
+                ) : null}
 
                 {amountChanged ? (
                     <Form.Item

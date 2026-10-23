@@ -29,6 +29,8 @@ export interface ISourcesOfMoneyContextProps {
     historyItems: IBalanceAdjustmentData[];
     historyPagination?: PaginatedResponse<IBalanceAdjustmentData>["pagination"];
     isHistoryLoading: boolean;
+    /** Nguồn ngân hàng đang hiện mã VietQR (null = đóng). */
+    qrSource: ISourcesOfMoneyData | null;
 
     // handlers
     handleSearch: (value: string) => void;
@@ -43,6 +45,8 @@ export interface ISourcesOfMoneyContextProps {
     openHistory: (record: ISourcesOfMoneyData) => void;
     closeHistory: () => void;
     handleHistoryPageChange: (page: number) => void;
+    openQr: (record: ISourcesOfMoneyData) => void;
+    closeQr: () => void;
     openTransferModal: () => void;
     closeTransferModal: () => void;
     handleTransferSubmit: (
