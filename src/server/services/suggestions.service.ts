@@ -11,6 +11,7 @@ import type {
 } from "@/libs/interfaces/suggestionsData";
 import { successResponse, unauthorizedResponse } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
+import { NOT_ARCHIVED } from "../utils/archived";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Chỉ xét giao dịch trong khoảng này. */
@@ -84,8 +85,8 @@ function toId(value: ObjectIdLike) {
 
 async function getOwnedIds(userId: string) {
     const [categories, sources] = await Promise.all([
-        CategoriesModel.find({ userId }).select("_id").lean(),
-        SourcesOfMoneyModel.find({ userId }).select("_id").lean(),
+        CategoriesModel.find({ userId, ...NOT_ARCHIVED }).select("_id").lean(),
+        SourcesOfMoneyModel.find({ userId, ...NOT_ARCHIVED }).select("_id").lean(),
     ]);
     return {
         categoryIds: new Set(categories.map((item) => toId(item._id))),
@@ -93,7 +94,7 @@ async function getOwnedIds(userId: string) {
     };
 }
 
-/** Bỏ qua giao dịch có danh mục/nguồn đã bị xóa (mồ côi). */
+/** Bỏ qua giao dịch có danh mục/nguồn đã bị xóa hoặc lưu trữ. */
 function rankTransactions(
     records: TransactionRecord[],
     validCategoryIds: Set<string>,

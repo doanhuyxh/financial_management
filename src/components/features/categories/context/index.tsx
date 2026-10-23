@@ -101,7 +101,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         (record: ICategoriesData) => {
             modal.confirm({
                 title: "Xóa danh mục",
-                content: `Bạn có chắc muốn xóa "${record.name}"?`,
+                content: `Bạn có chắc muốn xóa "${record.name}"? Nếu danh mục đã có giao dịch, lịch sử vẫn giữ tên danh mục.`,
                 okText: "Xóa",
                 okType: "danger",
                 cancelText: "Hủy",

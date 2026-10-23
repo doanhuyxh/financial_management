@@ -4,11 +4,13 @@ import type { SourcesOfMoneyType } from "./sourcesOfMoneyData";
 export interface IExpenseCategoryRef {
     _id: string;
     name: string;
+    archivedAt?: string | null;
 }
 
 export interface IExpenseSourceRef {
     _id: string;
     name: string;
+    archivedAt?: string | null;
     type: SourcesOfMoneyType;
     balance?: number;
     availableCreditLimit?: number | null;

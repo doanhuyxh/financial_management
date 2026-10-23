@@ -18,6 +18,7 @@ import {
 import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
+import { NOT_ARCHIVED } from "../utils/archived";
 
 function normalizePayload(data: IFromSourcesOfMoneyData) {
     const name = data.name?.trim();
@@ -102,7 +103,7 @@ export class SourcesOfMoneyService {
 
         const { search = "", type } = query;
         const { page, limit } = normalizePagination(query.page, query.limit, 100);
-        const filter: Record<string, unknown> = { userId: user.userId };
+        const filter: Record<string, unknown> = { userId: user.userId, ...NOT_ARCHIVED };
 
         if (search) {
             filter.name = { $regex: escapeRegex(search), $options: "i" };
@@ -180,7 +181,11 @@ export class SourcesOfMoneyService {
         try {
             const payload = normalizePayload(data);
 
-            const existing = await SourcesOfMoneyModel.findOne({ _id: id, userId: user.userId })
+            const existing = await SourcesOfMoneyModel.findOne({
+                _id: id,
+                userId: user.userId,
+                ...NOT_ARCHIVED,
+            })
                 .select("type")
                 .lean<{ type: SourcesOfMoneyType }>();
             if (!existing) {
@@ -211,7 +216,7 @@ export class SourcesOfMoneyService {
                       };
 
             const updated = await SourcesOfMoneyModel.findOneAndUpdate(
-                { _id: id, userId: user.userId },
+                { _id: id, userId: user.userId, ...NOT_ARCHIVED },
                 updateQuery,
                 { returnDocument: "after" },
             );
@@ -244,8 +249,9 @@ export class SourcesOfMoneyService {
             SourcesOfMoneyModel.find({
                 userId: user.userId,
                 _id: { $in: orderedIds },
+                ...NOT_ARCHIVED,
             }).select("_id"),
-            SourcesOfMoneyModel.countDocuments({ userId: user.userId }),
+            SourcesOfMoneyModel.countDocuments({ userId: user.userId, ...NOT_ARCHIVED }),
         ]);
 
         if (owned.length !== orderedIds.length) {
@@ -280,11 +286,40 @@ export class SourcesOfMoneyService {
             return unauthorizedResponse();
         }
 
-        const deleted = await SourcesOfMoneyModel.findOneAndDelete({
-            _id: id,
-            userId: user.userId,
-        });
+        const filter = { _id: id, userId: user.userId, ...NOT_ARCHIVED };
 
+        // Đã có giao dịch thì chỉ lưu trữ để lịch sử vẫn hiển thị tên nguồn tiền
+        if (await hasTransactions(user.userId, id)) {
+            // Số dư/dư nợ phải về 0 (điều kiện nằm trong filter để tránh race),
+            // nếu không tài sản sẽ biến mất khỏi dashboard
+            const archived = await SourcesOfMoneyModel.findOneAndUpdate(
+                {
+                    ...filter,
+                    $or: [
+                        { type: { $ne: SourcesOfMoneyType.CREDIT_CARD }, balance: 0 },
+                        {
+                            type: SourcesOfMoneyType.CREDIT_CARD,
+                            "creditDetails.currentDebt": { $in: [0, null] },
+                        },
+                    ],
+                },
+                { $set: { archivedAt: new Date() } },
+            );
+            if (archived) {
+                return successResponse(null, "Đã xóa nguồn tiền (lịch sử giao dịch vẫn giữ tên)");
+            }
+
+            const exists = await SourcesOfMoneyModel.exists(filter);
+            if (!exists) {
+                return errorResponseWithStatusCode("Không tìm thấy nguồn tiền", 404);
+            }
+            return errorResponseWithStatusCode(
+                "Nguồn tiền còn số dư hoặc dư nợ. Hãy chuyển hết hoặc điều chỉnh về 0 trước khi xóa",
+                400,
+            );
+        }
+
+        const deleted = await SourcesOfMoneyModel.findOneAndDelete(filter);
         if (!deleted) {
             return errorResponseWithStatusCode("Không tìm thấy nguồn tiền", 404);
         }

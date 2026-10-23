@@ -4,6 +4,7 @@ import type {
     IIncomesData,
 } from "@/libs/interfaces/incomesData";
 import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
+import { withArchivedLabel } from "@/libs/utils/archivedRef";
 
 export function getIncomeCategory(
     record: IIncomesData,
@@ -12,7 +13,7 @@ export function getIncomeCategory(
     if (typeof record.categoryId === "string") {
         return { _id: record.categoryId, name: "—" };
     }
-    return record.categoryId;
+    return withArchivedLabel(record.categoryId);
 }
 
 export function getIncomeSource(record: IIncomesData): IIncomeSourceRef | null {
@@ -24,7 +25,7 @@ export function getIncomeSource(record: IIncomesData): IIncomeSourceRef | null {
             type: SourcesOfMoneyType.OTHER,
         };
     }
-    return record.sourceOfMoneyId;
+    return withArchivedLabel(record.sourceOfMoneyId);
 }
 
 export function getRefId(

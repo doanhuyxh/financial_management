@@ -18,8 +18,8 @@
 | Model | Collection | Trường chính |
 |---|---|---|
 | User | `user` | fullName, email, password (**bcrypt**), phoneNumber, avatarUrl, tokenVersion |
-| Category | `categories` | userId, name, kind (`EXPENSE`/`INCOME`), sortOrder |
-| SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate}, metadata; virtual `availableCreditLimit = max(0, limit − debt)` |
+| Category | `categories` | userId, name, kind (`EXPENSE`/`INCOME`), sortOrder, archivedAt |
+| SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate}, metadata, archivedAt; virtual `availableCreditLimit = max(0, limit − debt)` |
 | Expense | `expenses` | userId, categoryId, sourceOfMoneyId, amount (>0), note, spentAt, skipBalanceAdjust |
 | Income | `incomes` | userId, categoryId, sourceOfMoneyId, amount (>0), note, receivedAt |
 | Transfer | `transfers` | userId, fromSourceId, toSourceId, amount, feePercent, feeAmount, feeCategoryId, feeExpenseId, note, transferredAt |
@@ -41,7 +41,11 @@ Quy tắc CRUD:
 - Khi đổi từ thẻ tín dụng sang loại khác, hệ thống `$unset creditDetails`.
 - **Không cho đổi giữa thẻ tín dụng và loại thường** (theo cả hai chiều) khi nguồn đã có Expense/Income/Transfer, vì logic hoàn số dư phụ thuộc loại hiện tại. Đổi giữa các loại thường (BANK/CASH/E_WALLET/OTHER) vẫn được.
 - Có sắp xếp kéo-thả (`sortOrder`, API `/reorder`). API yêu cầu `orderedIds` gồm **toàn bộ** nguồn tiền của user; UI ẩn tay kéo khi đang tìm kiếm hoặc lọc loại. Bản ghi mới nhận `sortOrder = max + 1`. Nếu dữ liệu cũ thiếu `sortOrder`, hệ thống tự backfill khi GET.
-- **Xóa nguồn tiền không kiểm tra ràng buộc.** Expense/Income/Transfer đang trỏ tới nguồn đó sẽ mồ côi; UI hiển thị "—". Giao dịch mồ côi vẫn sửa/xóa được: phía nguồn đã bị xóa được bỏ qua (không hoàn số dư), phía còn tồn tại vẫn được điều chỉnh bình thường.
+- **Xóa nguồn tiền (xóa mềm):**
+  - Nguồn **chưa có** Expense/Income/Transfer thì xóa hẳn.
+  - Nguồn **đã có** giao dịch thì chỉ đặt `archivedAt` (lưu trữ). Yêu cầu số dư = 0 (nguồn thường) hoặc dư nợ = 0 (thẻ); điều kiện này nằm trong filter của `findOneAndUpdate`. Nếu không thỏa thì báo "Nguồn tiền còn số dư hoặc dư nợ...".
+  - Nguồn đã lưu trữ bị ẩn khỏi GET danh sách, reorder, gợi ý và ô chọn; không sửa được và không dùng được cho giao dịch mới. Lịch sử vẫn hiện tên kèm "(đã xóa)" (populate có `archivedAt`, xử lý ở `withArchivedLabel`).
+  - Giao dịch cũ trên nguồn đã lưu trữ hoặc đã xóa hẳn (dữ liệu cũ) vẫn sửa/xóa được: phía nguồn đó được bỏ qua (không điều chỉnh số dư), phía còn hoạt động vẫn điều chỉnh bình thường. Khi sửa, được **giữ nguyên** nguồn đã lưu trữ, nhưng không được chọn một nguồn đã lưu trữ khác.
 
 ## 4. Quy tắc biến động số dư (cốt lõi)
 
@@ -98,7 +102,7 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
   - Server kiểm tra loại khi tạo expense/income, khi đổi sang danh mục khác lúc sửa, và với danh mục phí chuyển tiền (phải là `EXPENSE`). Sửa giao dịch mà **giữ nguyên** danh mục cũ khác loại thì vẫn cho qua (dữ liệu cũ dùng chung danh mục).
   - Form và bộ lọc chỉ hiện danh mục đúng loại (`filterCategoriesByKind` trong `src/libs/utils/categoryKind.ts`). Khi sửa, form vẫn giữ danh mục hiện tại của bản ghi.
 - CRUD theo tên, kéo-thả sắp xếp (`/api/categories/reorder`, body `{ orderedIds }`; mọi ID phải thuộc user và phải gửi đủ toàn bộ danh mục). UI ẩn tay kéo khi đang tìm kiếm.
-- **Xóa không kiểm tra ràng buộc.** Expense/Income đang dùng danh mục sẽ mồ côi, và dashboard gom chúng vào "Không xác định".
+- **Xóa (xóa mềm):** danh mục chưa có Expense/Income/Transfer (phí) thì xóa hẳn; đã có thì đặt `archivedAt`. Danh mục lưu trữ bị ẩn khỏi danh sách, reorder, gợi ý và ô chọn; không dùng được cho giao dịch mới, nhưng giao dịch cũ được giữ nguyên danh mục khi sửa. Lịch sử và dashboard vẫn hiện đúng tên. Dữ liệu cũ đã bị xóa hẳn trước đây vẫn gom vào "Không xác định".
 
 ## 6. Dashboard — `dashboard.service.ts`
 
@@ -143,7 +147,7 @@ API: `GET /api/expenses/suggestions`, `/api/incomes/suggestions`, `/api/transfer
 - **Phạm vi:** giao dịch trong 90 ngày gần nhất của user. Expense phí chuyển tiền (`skipBalanceAdjust: true`) bị loại.
 - **Điểm:** mỗi giao dịch cộng `exp(−số_ngày_trước / 30)` (giao dịch đặt ngày tương lai tính như hôm nay). Xếp theo tổng điểm giảm dần.
 - **Ngưỡng:** phải xuất hiện ≥ 2 lần mới được gợi ý (riêng "nguồn hay dùng nhất của danh mục" chỉ cần 1 lần).
-- Danh mục hoặc nguồn tiền đã bị xóa không được gợi ý.
+- Danh mục hoặc nguồn tiền đã bị xóa hoặc lưu trữ không được gợi ý.
 - **Chi tiêu / thu nhập** trả về: `categoryIds` (top 5), `sourceIds` (top 3), `topAmounts` (top 4, sắp tăng dần), và `byCategory[id] = { amounts (top 4), sourceId }`.
 - **Chuyển tiền** trả về: `pairs` (top 3 cặp từ→đến, mỗi cặp kèm `amounts`), `fromSourceIds` (top 3), `topAmounts`.
 
@@ -178,7 +182,7 @@ Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm
 
 1. Không dùng Mongo transaction. Rollback thủ công có thể để lại dữ liệu lệch nếu chính bước rollback cũng lỗi, hoặc nếu có request đồng thời.
 2. Fee expense (có `skipBalanceAdjust`) bị khóa sửa/xóa ở trang Chi tiêu để luôn khớp với `feeAmount`/`feeExpenseId` của transfer gốc.
-3. Xóa Category hoặc SourceOfMoney không kiểm tra giao dịch đang tham chiếu (giao dịch mồ côi vẫn sửa/xóa được, xem mục 3).
+3. Category/SourceOfMoney đã có giao dịch chỉ được lưu trữ (xóa mềm, `archivedAt`), xem mục 3 và 5. Dữ liệu mồ côi từ trước khi có xóa mềm vẫn sửa/xóa được.
 4. Sửa trực tiếp số dư/dư nợ trên form nguồn tiền sẽ ghi đè và không để lại lịch sử. Sau đó, revert một giao dịch cũ có thể bị chặn (ví dụ số dư không đủ để xóa income).
 5. Password lưu bcrypt. Token sống 30 ngày. Logout tăng `tokenVersion` nên thu hồi mọi thiết bị.
 6. Chuyển tiền không sửa được, chỉ xóa rồi tạo lại.

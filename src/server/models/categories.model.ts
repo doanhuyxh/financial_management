@@ -25,6 +25,11 @@ const categoriesSchema = new Schema({
         default: 0,
         index: true,
     },
+    /** Xóa mềm: danh mục đã có giao dịch chỉ được lưu trữ để giữ lịch sử */
+    archivedAt: {
+        type: Date,
+        default: null,
+    },
 }, { timestamps: true });
 
 categoriesSchema.index({ userId: 1, sortOrder: 1 });

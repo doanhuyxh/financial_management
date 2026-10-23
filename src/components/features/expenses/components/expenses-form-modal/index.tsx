@@ -7,7 +7,13 @@ import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
 import { useExpensesContext } from "@/components/features/expenses/context";
-import { formatMoney, getRefId } from "@/components/features/expenses/utils";
+import {
+    formatMoney,
+    getExpenseCategory,
+    getExpenseSource,
+    getRefId,
+} from "@/components/features/expenses/utils";
+import { appendCurrentOption } from "@/libs/utils/archivedRef";
 import { useGetCategories } from "@/libs/hooks/customHooks/useCategories";
 import { CategoryKind } from "@/libs/interfaces/categoriesData";
 import { filterCategoriesByKind } from "@/libs/utils/categoryKind";
@@ -91,22 +97,28 @@ export default function ExpensesFormModal() {
 
 
     const categoryOptions = groupSuggestedOptions(
-        filterCategoriesByKind(
-            categoriesData?.data?.items ?? [],
-            CategoryKind.EXPENSE,
-            editingItem ? getRefId(editingItem.categoryId) : undefined,
-        ).map((item) => ({
-            value: item._id,
-            label: item.name,
-        })),
+        appendCurrentOption(
+            filterCategoriesByKind(
+                categoriesData?.data?.items ?? [],
+                CategoryKind.EXPENSE,
+                editingItem ? getRefId(editingItem.categoryId) : undefined,
+            ).map((item) => ({
+                value: item._id,
+                label: item.name,
+            })),
+            editingItem ? getExpenseCategory(editingItem) : null,
+        ),
         suggestions?.categoryIds,
     );
 
     const sourceOptions = groupSuggestedOptions(
-        sources.map((item) => ({
-            value: item._id,
-            label: `${item.name} (${SOURCES_OF_MONEY_TYPE_LABELS[item.type]})`,
-        })),
+        appendCurrentOption(
+            sources.map((item) => ({
+                value: item._id,
+                label: `${item.name} (${SOURCES_OF_MONEY_TYPE_LABELS[item.type]})`,
+            })),
+            editingItem ? getExpenseSource(editingItem) : null,
+        ),
         suggestions?.sourceIds,
     );
 

@@ -2,6 +2,7 @@ import dbConnect from "@/server/connectDb";
 import CategoriesModel from "@/server/models/categories.model";
 import ExpensesModel from "@/server/models/expenses.model";
 import IncomesModel from "@/server/models/incomes.model";
+import TransfersModel from "@/server/models/transfers.model";
 import {
     CategoryKind,
     IFromCategoriesData,
@@ -17,6 +18,7 @@ import {
 import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
+import { NOT_ARCHIVED } from "../utils/archived";
 
 function isCategoryKind(value: unknown): value is CategoryKind {
     return Object.values(CategoryKind).includes(value as CategoryKind);
@@ -62,7 +64,7 @@ export class CategoriesService {
 
         const { search = "" } = query;
         const { page, limit } = normalizePagination(query.page, query.limit, 100);
-        const filter: Record<string, unknown> = { userId: user.userId };
+        const filter: Record<string, unknown> = { userId: user.userId, ...NOT_ARCHIVED };
         if (search) {
             filter.name = { $regex: escapeRegex(search), $options: "i" };
         }
@@ -138,7 +140,7 @@ export class CategoriesService {
             return errorResponseWithStatusCode("Loại danh mục không hợp lệ", 400);
         }
 
-        const existing = await CategoriesModel.findOne({ _id: id, userId: user.userId })
+        const existing = await CategoriesModel.findOne({ _id: id, userId: user.userId, ...NOT_ARCHIVED })
             .select("kind")
             .lean<{ kind?: CategoryKind }>();
         if (!existing) {
@@ -190,8 +192,9 @@ export class CategoriesService {
             CategoriesModel.find({
                 userId: user.userId,
                 _id: { $in: orderedIds },
+                ...NOT_ARCHIVED,
             }).select("_id"),
-            CategoriesModel.countDocuments({ userId: user.userId }),
+            CategoriesModel.countDocuments({ userId: user.userId, ...NOT_ARCHIVED }),
         ]);
 
         if (owned.length !== orderedIds.length) {
@@ -226,11 +229,25 @@ export class CategoriesService {
             return unauthorizedResponse();
         }
 
-        const deleted = await CategoriesModel.findOneAndDelete({
-            _id: id,
-            userId: user.userId,
-        });
+        const filter = { _id: id, userId: user.userId, ...NOT_ARCHIVED };
+        const [expense, income, transfer] = await Promise.all([
+            ExpensesModel.exists({ userId: user.userId, categoryId: id }),
+            IncomesModel.exists({ userId: user.userId, categoryId: id }),
+            TransfersModel.exists({ userId: user.userId, feeCategoryId: id }),
+        ]);
 
+        // Đã có giao dịch thì chỉ lưu trữ để lịch sử vẫn hiển thị tên danh mục
+        if (expense || income || transfer) {
+            const archived = await CategoriesModel.findOneAndUpdate(filter, {
+                $set: { archivedAt: new Date() },
+            });
+            if (!archived) {
+                return errorResponseWithStatusCode("Không tìm thấy danh mục", 404);
+            }
+            return successResponse(null, "Đã xóa danh mục (lịch sử giao dịch vẫn giữ tên)");
+        }
+
+        const deleted = await CategoriesModel.findOneAndDelete(filter);
         if (!deleted) {
             return errorResponseWithStatusCode("Không tìm thấy danh mục", 404);
         }

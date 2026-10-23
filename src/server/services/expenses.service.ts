@@ -18,6 +18,7 @@ import {
 import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
+import { NOT_ARCHIVED } from "../utils/archived";
 
 function normalizePayload(data: IFromExpensesData) {
     const categoryId = data.categoryId?.trim();
@@ -38,29 +39,36 @@ function normalizePayload(data: IFromExpensesData) {
     return { categoryId, sourceOfMoneyId, amount, note, spentAt };
 }
 
-/** `currentCategoryId`: danh mục đang gắn với bản ghi khi sửa — giữ nguyên thì bỏ qua kiểm tra loại (dữ liệu cũ). */
+/**
+ * `current`: danh mục/nguồn đang gắn với bản ghi khi sửa. Giữ nguyên thì được phép dù
+ * đã lưu trữ hoặc khác loại (dữ liệu cũ); chọn mới thì phải đang dùng và đúng loại.
+ * `sourceActive = false` nghĩa là nguồn đã lưu trữ — không điều chỉnh số dư của nó.
+ */
 async function assertOwnedRefs(
     userId: string,
     categoryId: string,
     sourceOfMoneyId: string,
-    currentCategoryId?: string,
+    current?: { categoryId: string; sourceOfMoneyId: string },
 ) {
     const [category, source] = await Promise.all([
-        CategoriesModel.findOne({ _id: categoryId, userId }).select("_id name kind"),
+        CategoriesModel.findOne({ _id: categoryId, userId }).select("_id name kind archivedAt"),
         SourcesOfMoneyModel.findOne({ _id: sourceOfMoneyId, userId }),
     ]);
 
     if (!category) throw new Error("Không tìm thấy danh mục");
     if (!source) throw new Error("Không tìm thấy nguồn tiền");
-    if (
-        categoryId !== currentCategoryId &&
-        category.kind &&
-        category.kind !== CategoryKind.EXPENSE
-    ) {
-        throw new Error("Danh mục này dành cho thu nhập, hãy chọn danh mục chi tiêu");
+
+    if (categoryId !== current?.categoryId) {
+        if (category.archivedAt) throw new Error("Danh mục đã bị xóa");
+        if (category.kind && category.kind !== CategoryKind.EXPENSE) {
+            throw new Error("Danh mục này dành cho thu nhập, hãy chọn danh mục chi tiêu");
+        }
+    }
+    if (sourceOfMoneyId !== current?.sourceOfMoneyId && source.archivedAt) {
+        throw new Error("Nguồn tiền đã bị xóa");
     }
 
-    return { category, source };
+    return { category, source, sourceActive: !source.archivedAt };
 }
 
 /** Apply: trừ tiền / tăng dư nợ. Revert: hoàn tiền / giảm dư nợ. */
@@ -142,8 +150,8 @@ const FEE_EXPENSE_LOCKED_MESSAGE =
 
 async function getPopulatedExpense(id: string, userId: string) {
     return ExpensesModel.findOne({ _id: id, userId })
-        .populate("categoryId", "name")
-        .populate("sourceOfMoneyId", "name type balance creditDetails")
+        .populate("categoryId", "name archivedAt")
+        .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
         .lean();
 }
 
@@ -185,8 +193,8 @@ export class ExpensesService {
 
         const [items, total] = await Promise.all([
             ExpensesModel.find(filter)
-                .populate("categoryId", "name")
-                .populate("sourceOfMoneyId", "name type balance creditDetails")
+                .populate("categoryId", "name archivedAt")
+                .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
                 .skip((page - 1) * limit)
                 .limit(limit)
                 .sort({ spentAt: -1, createdAt: -1 })
@@ -266,17 +274,21 @@ export class ExpensesService {
             }
 
             const payload = normalizePayload(data);
-            await assertOwnedRefs(
+            const oldSourceId = existing.sourceOfMoneyId.toString();
+            const oldAmount = existing.amount;
+            const { sourceActive: newSourceActive } = await assertOwnedRefs(
                 user.userId,
                 payload.categoryId,
                 payload.sourceOfMoneyId,
-                existing.categoryId.toString(),
+                { categoryId: existing.categoryId.toString(), sourceOfMoneyId: oldSourceId },
             );
-
-            const oldSourceId = existing.sourceOfMoneyId.toString();
-            const oldAmount = existing.amount;
+            // Nguồn đã xóa hoặc lưu trữ: bỏ qua phía đó, không hoàn số dư
             const oldSourceExists = Boolean(
-                await SourcesOfMoneyModel.exists({ _id: oldSourceId, userId: user.userId }),
+                await SourcesOfMoneyModel.exists({
+                    _id: oldSourceId,
+                    userId: user.userId,
+                    ...NOT_ARCHIVED,
+                }),
             );
 
             // Revert old effect, then apply new
@@ -290,12 +302,14 @@ export class ExpensesService {
             }
 
             try {
-                await adjustSourceBalance(
-                    user.userId,
-                    payload.sourceOfMoneyId,
-                    payload.amount,
-                    "apply",
-                );
+                if (newSourceActive) {
+                    await adjustSourceBalance(
+                        user.userId,
+                        payload.sourceOfMoneyId,
+                        payload.amount,
+                        "apply",
+                    );
+                }
             } catch (applyError) {
                 if (oldSourceExists) {
                     await adjustSourceBalance(
@@ -331,12 +345,14 @@ export class ExpensesService {
                 return successResponse(populated, "Cập nhật chi tiêu thành công");
             } catch (updateError) {
                 // Roll back to previous balances
-                await adjustSourceBalance(
-                    user.userId,
-                    payload.sourceOfMoneyId,
-                    payload.amount,
-                    "revert",
-                );
+                if (newSourceActive) {
+                    await adjustSourceBalance(
+                        user.userId,
+                        payload.sourceOfMoneyId,
+                        payload.amount,
+                        "revert",
+                    );
+                }
                 if (oldSourceExists) {
                     await adjustSourceBalance(
                         user.userId,
@@ -375,6 +391,7 @@ export class ExpensesService {
                 await SourcesOfMoneyModel.exists({
                     _id: existing.sourceOfMoneyId,
                     userId: user.userId,
+                    ...NOT_ARCHIVED,
                 }),
             );
             const skipBalance = !sourceExists;

@@ -149,7 +149,7 @@ export default function SourcesOfMoneyContextProvider({
         (record: ISourcesOfMoneyData) => {
             modal.confirm({
                 title: "Xóa nguồn tiền",
-                content: `Bạn có chắc muốn xóa "${record.name}"?`,
+                content: `Bạn có chắc muốn xóa "${record.name}"? Nếu nguồn tiền đã có giao dịch, số dư hoặc dư nợ phải bằng 0 và lịch sử vẫn giữ tên nguồn.`,
                 okText: "Xóa",
                 okType: "danger",
                 cancelText: "Hủy",

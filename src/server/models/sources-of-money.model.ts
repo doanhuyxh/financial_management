@@ -16,6 +16,8 @@ export interface ISourcesOfMoney extends Document {
     dueDate?: number;       // Ngày đến hạn thanh toán (1 - 31)
   };
   metadata?: Record<string, any>;
+  /** Xóa mềm: nguồn đã có giao dịch chỉ được lưu trữ để giữ lịch sử */
+  archivedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -61,6 +63,10 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
     metadata: {
       type: Schema.Types.Mixed,
       default: {},
+    },
+    archivedAt: {
+      type: Date,
+      default: null,
     },
   },
   { 

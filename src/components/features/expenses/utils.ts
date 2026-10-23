@@ -4,6 +4,7 @@ import type {
     IExpensesData,
 } from "@/libs/interfaces/expensesData";
 import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
+import { withArchivedLabel } from "@/libs/utils/archivedRef";
 
 export function getExpenseCategory(
     record: IExpensesData,
@@ -12,7 +13,7 @@ export function getExpenseCategory(
     if (typeof record.categoryId === "string") {
         return { _id: record.categoryId, name: "—" };
     }
-    return record.categoryId;
+    return withArchivedLabel(record.categoryId);
 }
 
 export function getExpenseSource(record: IExpensesData): IExpenseSourceRef | null {
@@ -24,7 +25,7 @@ export function getExpenseSource(record: IExpensesData): IExpenseSourceRef | nul
             type: SourcesOfMoneyType.OTHER,
         };
     }
-    return record.sourceOfMoneyId;
+    return withArchivedLabel(record.sourceOfMoneyId);
 }
 
 export function getRefId(
