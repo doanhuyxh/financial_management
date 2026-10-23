@@ -19,6 +19,7 @@ export const configQueryKey = {
 	INCOMES: "incomes",
 	TRANSFERS: "transfers",
 	DASHBOARD_EXPENSES_SUMMARY: "dashboard-expenses-summary",
+	DASHBOARD_CASHFLOW: "dashboard-cashflow",
 }
 
 export const configSessionKey = {

@@ -1,5 +1,8 @@
 import type { Dayjs } from "dayjs";
-import type { IDashboardExpensesSummary } from "@/libs/interfaces/dashboardData";
+import type {
+    IDashboardCashflowSummary,
+    IDashboardExpensesSummary,
+} from "@/libs/interfaces/dashboardData";
 import type {
     IAssetsSummary,
     ICreditCardDebtItem,
@@ -9,6 +12,8 @@ export interface IDashboardContextProps {
     monthValue: Dayjs;
     summary?: IDashboardExpensesSummary;
     isLoading: boolean;
+    cashflow?: IDashboardCashflowSummary;
+    isCashflowLoading: boolean;
     creditCardDebts: ICreditCardDebtItem[];
     totalCreditDebt: number;
     assets: IAssetsSummary;

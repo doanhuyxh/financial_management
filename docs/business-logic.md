@@ -113,7 +113,7 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 
 ## 6. Dashboard — `dashboard.service.ts`
 
-`GET /api/dashboard/expenses-summary?year=&month=` chỉ thống kê **chi tiêu**. Thu nhập và chuyển tiền chưa có thống kê.
+`GET /api/dashboard/expenses-summary?year=&month=` chỉ thống kê **chi tiêu**. Thu nhập và dòng tiền nằm ở endpoint `cashflow` (bên dưới). Chuyển tiền không phải thu/chi nên không thống kê (phí chuyển tiền tính là chi tiêu).
 - Khoảng thời gian: ngày 1 00:00 đến ngày cuối tháng 23:59:59.999, theo +07:00.
 - `byCategory`: tổng theo danh mục (pie chart), sắp xếp theo tổng giảm dần.
 - `byDay`: tổng theo từng ngày trong tháng (bar chart), ngày không có chi tiêu vẫn có giá trị 0.
@@ -122,6 +122,13 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 - **Phí chuyển tiền (expense có skipBalanceAdjust) được tính vào chi tiêu.**
 - Thẻ tổng quan ở header (tính phía client từ summary): **Trung bình / ngày** = totalAmount chia cho số ngày đã qua (tháng hiện tại tính đến hôm nay, tháng trước tính cả tháng, tháng tương lai trả về 0); **Ngày chi nhiều nhất** = ngày có tổng lớn nhất trong `byDay`; **Số danh mục đã chi** = số phần tử của `byCategory`.
 - Cạnh tổng chi tiêu, header còn hiện **Tổng dư nợ thẻ tín dụng**: tổng `currentDebt` của các thẻ đang có dư nợ (cùng số với "Tổng dư nợ" ở bảng dư nợ phía dưới). Đây là dư nợ hiện tại, không đổi khi chọn tháng khác.
+
+**Dòng tiền** — `GET /api/dashboard/cashflow?year=&month=` (`DashboardService.getCashflowSummary`), khối "Dòng tiền" và donut "Thu nhập theo danh mục":
+- `totalIncome` = tổng Income theo `receivedAt`; `totalExpense` = tổng Expense theo `spentAt` (**gồm phí chuyển tiền**), cùng khoảng tháng +07:00 như trên. Income vào thẻ tín dụng (trả nợ thẻ từ bên ngoài) vẫn tính là thu nhập.
+- `net = totalIncome − totalExpense`; `savingsRate = net / totalIncome`, là `null` khi tháng không có thu nhập (UI hiện "—").
+- `trend`: 6 tháng tính lùi từ tháng đang chọn (gồm tháng đó), mỗi tháng có `income, expense, net`, nhóm theo tháng giờ VN. `previous` = tháng liền trước, để UI hiện % thay đổi; nếu tháng trước bằng 0 thì không so (hiện "chưa có số liệu").
+- `incomeByCategory`: giống `byCategory` của chi tiêu, danh mục đã xóa hẳn thì gom vào "Không xác định".
+- Query key `DASHBOARD_CASHFLOW`, được invalidate bởi mutation expense, income và transfer.
 
 **Tài sản** (tính phía client, `buildAssetsSummary` trong `features/dashboard/utils.ts`, từ toàn bộ nguồn tiền; số liệu hiện tại, không đổi khi chọn tháng):
 - **Tiền mặt** = tổng `balance` của mọi nguồn không phải thẻ tín dụng (BANK, CASH, E_WALLET, OTHER).
@@ -170,7 +177,7 @@ Cách form dùng:
 | URL | Feature folder | Nội dung |
 |---|---|---|
 | `/` | `auth-login` | Đăng nhập |
-| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; header hiện tổng chi tiêu tháng và tổng dư nợ thẻ tín dụng hiện tại; phần Tài sản (4 ô: tổng tài sản, tiền mặt, tín dụng có thể dùng, tài sản ròng + bảng chi tiết theo nguồn); bảng dư nợ thẻ tín dụng và hạn thanh toán; donut chart theo danh mục và theo nguồn tiền (số tiền + %), bar chart theo ngày |
+| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; header hiện tổng chi tiêu tháng và tổng dư nợ thẻ tín dụng hiện tại; phần Tài sản (4 ô: tổng tài sản, tiền mặt, tín dụng có thể dùng, tài sản ròng + bảng chi tiết theo nguồn); khối Dòng tiền (thu nhập, chi tiêu, dòng tiền ròng, tỷ lệ tiết kiệm + biểu đồ cột thu/chi 6 tháng); donut thu nhập theo danh mục; bảng dư nợ thẻ tín dụng và hạn thanh toán; donut chart theo danh mục và theo nguồn tiền (số tiền + %), bar chart theo ngày |
 | `/expenses` | `expenses` | Bảng và form chi tiêu (có tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal |
 | `/incomes` | `incomes` | Bảng và form thu nhập (có tùy chọn "tiếp tục tạo") |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
@@ -180,9 +187,9 @@ Cách form dùng:
 Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục). Route key ở `src/libs/constants/menuKey.ts`.
 
 **Cache React Query** (key ở `configQueryKey`), các mutation invalidate như sau:
-- expense → `EXPENSES`, `SOURCES_OF_MONEY`, `DASHBOARD_EXPENSES_SUMMARY`
-- income → `INCOMES`, `SOURCES_OF_MONEY`
-- transfer → `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`
+- expense → `EXPENSES`, `SOURCES_OF_MONEY`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW`
+- income → `INCOMES`, `SOURCES_OF_MONEY`, `DASHBOARD_CASHFLOW`
+- transfer → `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW`
 - Mặc định (`tanstack-provider.tsx`): staleTime 30 giây, gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần, không giữ dữ liệu query trước đó ở mức global. Danh mục và nguồn tiền stale 5 phút. Dữ liệu chỉ đổi qua mutation của chính app nên dựa vào invalidate ở trên.
 
 ## 9. Điểm cần lưu ý / nợ kỹ thuật đã biết
