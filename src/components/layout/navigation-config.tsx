@@ -73,6 +73,10 @@ export const sidebarConfig: SidebarConfig = {
                     title: "Danh mục",
                     url: `${MENU_KEY.CATEGORIES}`,
                 },
+                {
+                    title: "Ngân sách",
+                    url: `${MENU_KEY.BUDGETS}`,
+                },
             ],
         },
     ],

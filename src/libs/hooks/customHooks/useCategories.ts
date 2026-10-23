@@ -46,6 +46,7 @@ export const useUpdateCategory = () => {
             updateCategory(id, body),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [configQueryKey.CATEGORIES] });
+            queryClient.invalidateQueries({ queryKey: [configQueryKey.BUDGETS] });
         },
     });
 };
@@ -91,6 +92,7 @@ export const useDeleteCategory = () => {
         mutationFn: (id: string) => deleteCategory(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [configQueryKey.CATEGORIES] });
+            queryClient.invalidateQueries({ queryKey: [configQueryKey.BUDGETS] });
         },
     });
 };

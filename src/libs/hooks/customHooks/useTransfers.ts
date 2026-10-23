@@ -21,6 +21,7 @@ function invalidateTransferRelated(
     queryClient.invalidateQueries({ queryKey: [configQueryKey.EXPENSES] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_EXPENSES_SUMMARY] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_CASHFLOW] });
+    queryClient.invalidateQueries({ queryKey: [configQueryKey.BUDGETS] });
 }
 
 export const useGetTransfers = (query: IPaginatedTransfersQuery = {}) => {

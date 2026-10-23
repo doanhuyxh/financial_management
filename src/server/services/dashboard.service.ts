@@ -14,27 +14,12 @@ import {
     unauthorizedResponse,
 } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
+import { getMonthRange, isValidMonth, pad2 } from "../utils/monthRange";
 
-function pad2(n: number) {
-    return String(n).padStart(2, "0");
-}
-
-function getMonthRange(year: number, month: number) {
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const start = new Date(`${year}-${pad2(month)}-01T00:00:00.000+07:00`);
-    const end = new Date(
-        `${year}-${pad2(month)}-${pad2(daysInMonth)}T23:59:59.999+07:00`,
-    );
-    return { start, end, daysInMonth };
-}
 
 const TIMEZONE = "Asia/Ho_Chi_Minh";
 /** Số tháng của biểu đồ xu hướng, tính lùi từ tháng đang chọn (gồm cả tháng đó). */
 const TREND_MONTHS = 6;
-
-function isValidMonth(year: number, month: number) {
-    return Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12;
-}
 
 /** Lùi `offset` tháng từ year/month (month 1–12). */
 function shiftMonth(year: number, month: number, offset: number) {
