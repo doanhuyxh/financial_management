@@ -3,7 +3,10 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import dayjs, { type Dayjs } from "dayjs";
-import { useGetDashboardExpensesSummary } from "@/libs/hooks/customHooks/useDashboard";
+import {
+    useGetDashboardCashflow,
+    useGetDashboardExpensesSummary,
+} from "@/libs/hooks/customHooks/useDashboard";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { MENU_KEY } from "@/libs/constants/menuKey";
 import { buildAssetsSummary, buildCreditCardDebts } from "@/components/features/dashboard/utils";
@@ -31,6 +34,12 @@ export default function DashboardContextProvider({
 
     const { data, isLoading, isFetching, isPlaceholderData } =
         useGetDashboardExpensesSummary(query);
+    const {
+        data: cashflowData,
+        isLoading: isCashflowInitialLoading,
+        isFetching: isCashflowFetching,
+        isPlaceholderData: isCashflowPlaceholder,
+    } = useGetDashboardCashflow(query);
     // Toàn bộ nguồn tiền: dùng cho cả bảng dư nợ thẻ và phần Tài sản
     const { data: sourcesData, isLoading: isSourcesLoading } = useGetSourcesOfMoney({
         page: 1,
@@ -69,6 +78,9 @@ export default function DashboardContextProvider({
             // Spinner only on first load or month change, not on background refetch
             // (which would unmount and re-create the charts).
             isLoading: isLoading || (isFetching && isPlaceholderData),
+            cashflow: cashflowData?.data,
+            isCashflowLoading:
+                isCashflowInitialLoading || (isCashflowFetching && isCashflowPlaceholder),
             creditCardDebts,
             totalCreditDebt,
             assets,
@@ -83,6 +95,10 @@ export default function DashboardContextProvider({
             isLoading,
             isFetching,
             isPlaceholderData,
+            cashflowData?.data,
+            isCashflowInitialLoading,
+            isCashflowFetching,
+            isCashflowPlaceholder,
             creditCardDebts,
             totalCreditDebt,
             assets,

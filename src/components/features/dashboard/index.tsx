@@ -7,6 +7,8 @@ import CreditCardDebts from "@/components/features/dashboard/components/credit-c
 import CategoryPieChart from "@/components/features/dashboard/components/category-pie-chart";
 import SourcePieChart from "@/components/features/dashboard/components/source-pie-chart";
 import DailyBarChart from "@/components/features/dashboard/components/daily-bar-chart";
+import CashflowOverview from "@/components/features/dashboard/components/cashflow-overview";
+import IncomePieChart from "@/components/features/dashboard/components/income-pie-chart";
 
 export default function DashboardComponent() {
     return (
@@ -15,12 +17,16 @@ export default function DashboardComponent() {
                 <DashboardHeader />
                 <div className="flex flex-col gap-4">
                     <AssetsOverview />
+                    <CashflowOverview />
                     <CreditCardDebts />
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                         <CategoryPieChart />
                         <SourcePieChart />
                     </div>
-                    <DailyBarChart />
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                        <IncomePieChart />
+                        <DailyBarChart />
+                    </div>
                 </div>
             </div>
         </DashboardContextProvider>

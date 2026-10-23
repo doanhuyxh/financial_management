@@ -9,6 +9,7 @@ import {
     type IPaginatedTransfersQuery,
 } from "@/libs/interfaces/transfersData";
 import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
 import {
     errorResponseWithStatusCode,
     successResponse,
@@ -18,6 +19,7 @@ import {
 import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
+import { NOT_ARCHIVED } from "../utils/archived";
 
 type SourceDoc = {
     _id: mongoose.Types.ObjectId;
@@ -72,8 +74,8 @@ function normalizePayload(data: IFromTransfersData) {
 
 async function loadOwnedSources(userId: string, fromId: string, toId: string) {
     const [fromSource, toSource] = await Promise.all([
-        SourcesOfMoneyModel.findOne({ _id: fromId, userId }),
-        SourcesOfMoneyModel.findOne({ _id: toId, userId }),
+        SourcesOfMoneyModel.findOne({ _id: fromId, userId, ...NOT_ARCHIVED }),
+        SourcesOfMoneyModel.findOne({ _id: toId, userId, ...NOT_ARCHIVED }),
     ]);
 
     if (!fromSource) throw new Error("Không tìm thấy nguồn chuyển");
@@ -309,9 +311,9 @@ function validateTransferRules(
 
 async function getPopulatedTransfer(id: string, userId: string) {
     return TransfersModel.findOne({ _id: id, userId })
-        .populate("fromSourceId", "name type balance creditDetails")
-        .populate("toSourceId", "name type balance creditDetails")
-        .populate("feeCategoryId", "name")
+        .populate("fromSourceId", "name type balance creditDetails archivedAt")
+        .populate("toSourceId", "name type balance creditDetails archivedAt")
+        .populate("feeCategoryId", "name archivedAt")
         .lean();
 }
 
@@ -353,9 +355,9 @@ export class TransfersService {
 
         const [items, total] = await Promise.all([
             TransfersModel.find(filter)
-                .populate("fromSourceId", "name type balance creditDetails")
-                .populate("toSourceId", "name type balance creditDetails")
-                .populate("feeCategoryId", "name")
+                .populate("fromSourceId", "name type balance creditDetails archivedAt")
+                .populate("toSourceId", "name type balance creditDetails archivedAt")
+                .populate("feeCategoryId", "name archivedAt")
                 .skip((page - 1) * limit)
                 .limit(limit)
                 .sort({ transferredAt: -1, createdAt: -1 })
@@ -392,9 +394,13 @@ export class TransfersService {
                 const category = await CategoriesModel.findOne({
                     _id: payload.feeCategoryId,
                     userId: user.userId,
-                }).select("_id");
+                    ...NOT_ARCHIVED,
+                }).select("_id kind");
                 if (!category) {
                     throw new Error("Không tìm thấy danh mục phí");
+                }
+                if (category.kind && category.kind !== CategoryKind.EXPENSE) {
+                    throw new Error("Danh mục phí phải là danh mục chi tiêu");
                 }
             }
 
@@ -484,10 +490,18 @@ export class TransfersService {
                 );
             }
 
-            // A side whose source was deleted has nothing left to reverse.
+            // A side whose source was deleted or archived has nothing left to reverse.
             const [fromSource, toSource] = (await Promise.all([
-                SourcesOfMoneyModel.findOne({ _id: existing.fromSourceId, userId: user.userId }),
-                SourcesOfMoneyModel.findOne({ _id: existing.toSourceId, userId: user.userId }),
+                SourcesOfMoneyModel.findOne({
+                    _id: existing.fromSourceId,
+                    userId: user.userId,
+                    ...NOT_ARCHIVED,
+                }),
+                SourcesOfMoneyModel.findOne({
+                    _id: existing.toSourceId,
+                    userId: user.userId,
+                    ...NOT_ARCHIVED,
+                }),
             ])) as [SourceDoc | null, SourceDoc | null];
 
             const receiveAmount = existing.amount - (existing.feeAmount || 0);

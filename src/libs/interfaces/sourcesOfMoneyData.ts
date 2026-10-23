@@ -35,6 +35,13 @@ export interface IFromSourcesOfMoneyData {
     sortOrder?: number;
     creditDetails?: Partial<ICreditDetails>;
     metadata?: Record<string, unknown>;
+    /**
+     * Khi sửa: số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form. Giá trị mới bằng giá trị này
+     * thì server giữ nguyên số trong DB; khác thì chỉ ghi đè khi DB vẫn bằng giá trị này.
+     */
+    expectedAmount?: number;
+    /** Ghi chú cho lần điều chỉnh số dư/dư nợ */
+    adjustmentNote?: string;
 }
 
 export interface IReorderSourcesOfMoneyData {

@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { Button, Space, Table, Tag } from "antd";
+import { Button, Space, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Pencil, Trash2 } from "lucide-react";
 import MobileRecordList from "@/components/common/mobile-record-list";
+import FeeTag from "@/components/features/expenses/components/expenses-table/components/fee-tag";
 import { useExpensesContext } from "@/components/features/expenses/context";
 import {
     formatMoney,
@@ -17,6 +18,8 @@ import {
     SOURCES_OF_MONEY_TYPE_LABELS,
     SourcesOfMoneyType,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+
+const FEE_LOCKED_HINT = "Phí chuyển tiền: xóa giao dịch chuyển tiền gốc để thay đổi";
 
 export default function ExpensesTable() {
     const {
@@ -60,7 +63,12 @@ export default function ExpensesTable() {
             {
                 title: "Danh mục",
                 key: "category",
-                render: (_value, record) => getExpenseCategory(record)?.name ?? "—",
+                render: (_value, record) => (
+                    <div className="flex flex-col gap-0.5">
+                        <span>{getExpenseCategory(record)?.name ?? "—"}</span>
+                        {record.skipBalanceAdjust && <FeeTag />}
+                    </div>
+                ),
             },
             {
                 title: "Nguồn tiền",
@@ -93,23 +101,27 @@ export default function ExpensesTable() {
                 width: 120,
                 align: "right",
                 render: (_value, record) => (
-                    <Space size="small">
-                        <Button
-                            type="text"
-                            size="small"
-                            aria-label="Sửa chi tiêu"
-                            icon={<Pencil className="size-4" />}
-                            onClick={() => openEditModal(record)}
-                        />
-                        <Button
-                            type="text"
-                            size="small"
-                            danger
-                            aria-label="Xóa chi tiêu"
-                            icon={<Trash2 className="size-4" />}
-                            onClick={() => handleDelete(record)}
-                        />
-                    </Space>
+                    <Tooltip title={record.skipBalanceAdjust ? FEE_LOCKED_HINT : undefined}>
+                        <Space size="small">
+                            <Button
+                                type="text"
+                                size="small"
+                                aria-label="Sửa chi tiêu"
+                                disabled={record.skipBalanceAdjust}
+                                icon={<Pencil className="size-4" />}
+                                onClick={() => openEditModal(record)}
+                            />
+                            <Button
+                                type="text"
+                                size="small"
+                                danger
+                                aria-label="Xóa chi tiêu"
+                                disabled={record.skipBalanceAdjust}
+                                icon={<Trash2 className="size-4" />}
+                                onClick={() => handleDelete(record)}
+                            />
+                        </Space>
+                    </Tooltip>
                 ),
             },
         ],
@@ -136,8 +148,9 @@ export default function ExpensesTable() {
                     return (
                         <div className="flex flex-col gap-1">
                             <div className="flex items-start justify-between gap-3">
-                                <span className="font-semibold">
+                                <span className="flex flex-wrap items-center gap-1 font-semibold">
                                     {getExpenseCategory(record)?.name ?? "—"}
+                                    {record.skipBalanceAdjust && <FeeTag />}
                                 </span>
                                 <span className="font-semibold text-rose-600">
                                     {formatMoney(record.amount)}
@@ -154,25 +167,31 @@ export default function ExpensesTable() {
                                 <p className="line-clamp-2 text-xs text-muted-foreground">
                                     {record.note || "Không có ghi chú"}
                                 </p>
-                                <Space size="small">
-                                    <Button
-                                        type="text"
-                                        size="middle"
-                                        aria-label="Sửa chi tiêu"
-                                        className="size-10"
-                                        icon={<Pencil className="size-4" />}
-                                        onClick={() => openEditModal(record)}
-                                    />
-                                    <Button
-                                        type="text"
-                                        size="middle"
-                                        danger
-                                        aria-label="Xóa chi tiêu"
-                                        className="size-10"
-                                        icon={<Trash2 className="size-4" />}
-                                        onClick={() => handleDelete(record)}
-                                    />
-                                </Space>
+                                {record.skipBalanceAdjust ? (
+                                    <span className="shrink-0 text-xs text-muted-foreground">
+                                        Sửa qua chuyển tiền
+                                    </span>
+                                ) : (
+                                    <Space size="small">
+                                        <Button
+                                            type="text"
+                                            size="middle"
+                                            aria-label="Sửa chi tiêu"
+                                            className="size-10"
+                                            icon={<Pencil className="size-4" />}
+                                            onClick={() => openEditModal(record)}
+                                        />
+                                        <Button
+                                            type="text"
+                                            size="middle"
+                                            danger
+                                            aria-label="Xóa chi tiêu"
+                                            className="size-10"
+                                            icon={<Trash2 className="size-4" />}
+                                            onClick={() => handleDelete(record)}
+                                        />
+                                    </Space>
+                                )}
                             </div>
                         </div>
                     );

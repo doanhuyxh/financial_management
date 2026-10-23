@@ -1,30 +1,157 @@
 import mongoose from "mongoose";
 import dbConnect from "@/server/connectDb";
 import ExpensesModel from "@/server/models/expenses.model";
+import IncomesModel from "@/server/models/incomes.model";
 import CategoriesModel from "@/server/models/categories.model";
 import SourcesOfMoneyModel from "@/server/models/sources-of-money.model";
-import type { IDashboardExpensesSummaryQuery } from "@/libs/interfaces/dashboardData";
+import type {
+    ICashflowMonthItem,
+    IDashboardExpensesSummaryQuery,
+} from "@/libs/interfaces/dashboardData";
 import {
     errorResponseWithStatusCode,
     successResponse,
     unauthorizedResponse,
 } from "../utils/responseServer";
 import { getCurrentUser } from "../utils/getCurrentUser";
+import { getMonthRange, isValidMonth, pad2 } from "../utils/monthRange";
 
-function pad2(n: number) {
-    return String(n).padStart(2, "0");
+
+const TIMEZONE = "Asia/Ho_Chi_Minh";
+/** Số tháng của biểu đồ xu hướng, tính lùi từ tháng đang chọn (gồm cả tháng đó). */
+const TREND_MONTHS = 6;
+
+/** Lùi `offset` tháng từ year/month (month 1–12). */
+function shiftMonth(year: number, month: number, offset: number) {
+    const index = year * 12 + (month - 1) + offset;
+    return { year: Math.floor(index / 12), month: (index % 12) + 1 };
 }
 
-function getMonthRange(year: number, month: number) {
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const start = new Date(`${year}-${pad2(month)}-01T00:00:00.000+07:00`);
-    const end = new Date(
-        `${year}-${pad2(month)}-${pad2(daysInMonth)}T23:59:59.999+07:00`,
-    );
-    return { start, end, daysInMonth };
+function monthKey(year: number, month: number) {
+    return `${year}-${pad2(month)}`;
+}
+
+/** Tổng amount theo tháng (YYYY-MM, giờ VN) trong khoảng thời gian. */
+async function sumByMonth(
+    model: typeof ExpensesModel,
+    dateField: "spentAt" | "receivedAt",
+    userId: mongoose.Types.ObjectId,
+    start: Date,
+    end: Date,
+) {
+    const rows: { _id: string; total: number }[] = await model.aggregate([
+        { $match: { userId, [dateField]: { $gte: start, $lte: end } } },
+        {
+            $group: {
+                _id: {
+                    $dateToString: { format: "%Y-%m", date: `$${dateField}`, timezone: TIMEZONE },
+                },
+                total: { $sum: "$amount" },
+            },
+        },
+    ]);
+    return new Map(rows.map((row) => [row._id, row.total]));
 }
 
 export class DashboardService {
+    static async getCashflowSummary(query: IDashboardExpensesSummaryQuery) {
+        await dbConnect();
+        const user = await getCurrentUser();
+        if (!user?.userId) {
+            return unauthorizedResponse();
+        }
+
+        const year = Number(query.year);
+        const month = Number(query.month);
+        if (!isValidMonth(year, month)) {
+            return errorResponseWithStatusCode("Tháng/năm không hợp lệ", 400);
+        }
+
+        const first = shiftMonth(year, month, -(TREND_MONTHS - 1));
+        const { start: rangeStart } = getMonthRange(first.year, first.month);
+        const { start: monthStart, end: monthEnd } = getMonthRange(year, month);
+        const userObjectId = new mongoose.Types.ObjectId(user.userId);
+
+        const [expenseByMonth, incomeByMonth, incomeByCategoryAgg] = await Promise.all([
+            sumByMonth(ExpensesModel, "spentAt", userObjectId, rangeStart, monthEnd),
+            sumByMonth(IncomesModel, "receivedAt", userObjectId, rangeStart, monthEnd),
+            IncomesModel.aggregate([
+                {
+                    $match: {
+                        userId: userObjectId,
+                        receivedAt: { $gte: monthStart, $lte: monthEnd },
+                    },
+                },
+                { $group: { _id: "$categoryId", total: { $sum: "$amount" } } },
+                {
+                    $lookup: {
+                        from: CategoriesModel.collection.name,
+                        localField: "_id",
+                        foreignField: "_id",
+                        as: "category",
+                    },
+                },
+                { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+                {
+                    $project: {
+                        _id: 0,
+                        categoryId: { $toString: "$_id" },
+                        categoryName: { $ifNull: ["$category.name", "Không xác định"] },
+                        total: 1,
+                        sortOrder: { $ifNull: ["$category.sortOrder", 9999] },
+                    },
+                },
+                { $sort: { total: -1, sortOrder: 1 } },
+            ]),
+        ]);
+
+        const trend: ICashflowMonthItem[] = Array.from({ length: TREND_MONTHS }, (_, index) => {
+            const item = shiftMonth(first.year, first.month, index);
+            const key = monthKey(item.year, item.month);
+            const income = incomeByMonth.get(key) ?? 0;
+            const expense = expenseByMonth.get(key) ?? 0;
+            return {
+                year: item.year,
+                month: item.month,
+                label: `${pad2(item.month)}/${String(item.year).slice(-2)}`,
+                income,
+                expense,
+                net: income - expense,
+            };
+        });
+
+        const current = trend[trend.length - 1];
+        const previous = trend[trend.length - 2];
+
+        return successResponse(
+            {
+                year,
+                month,
+                totalIncome: current.income,
+                totalExpense: current.expense,
+                net: current.net,
+                // Không có thu nhập thì tỷ lệ tiết kiệm không có nghĩa
+                savingsRate: current.income > 0 ? current.net / current.income : null,
+                previous: previous
+                    ? {
+                          totalIncome: previous.income,
+                          totalExpense: previous.expense,
+                          net: previous.net,
+                      }
+                    : null,
+                trend,
+                incomeByCategory: incomeByCategoryAgg.map(
+                    (item: { categoryId: string; categoryName: string; total: number }) => ({
+                        categoryId: item.categoryId,
+                        categoryName: item.categoryName,
+                        total: item.total,
+                    }),
+                ),
+            },
+            "Lấy thống kê dòng tiền thành công",
+        );
+    }
+
     static async getExpensesSummary(query: IDashboardExpensesSummaryQuery) {
         await dbConnect();
         const user = await getCurrentUser();
@@ -35,12 +162,7 @@ export class DashboardService {
         const year = Number(query.year);
         const month = Number(query.month);
 
-        if (
-            !Number.isInteger(year) ||
-            !Number.isInteger(month) ||
-            month < 1 ||
-            month > 12
-        ) {
+        if (!isValidMonth(year, month)) {
             return errorResponseWithStatusCode("Tháng/năm không hợp lệ", 400);
         }
 
@@ -97,7 +219,7 @@ export class DashboardService {
                         _id: {
                             $dayOfMonth: {
                                 date: "$spentAt",
-                                timezone: "Asia/Ho_Chi_Minh",
+                                timezone: TIMEZONE,
                             },
                         },
                         total: { $sum: "$amount" },

@@ -19,6 +19,7 @@ export const configQueryKey = {
 	INCOMES: "incomes",
 	TRANSFERS: "transfers",
 	DASHBOARD_EXPENSES_SUMMARY: "dashboard-expenses-summary",
+	DASHBOARD_CASHFLOW: "dashboard-cashflow",
 }
 
 export const configSessionKey = {
@@ -26,7 +27,7 @@ export const configSessionKey = {
 }
 
 export const configLocalStorageKey = {
-	
+	SOURCES_HIDE_EMPTY: "sources-of-money-hide-empty",
 }
 
 export const configCookieKey = {

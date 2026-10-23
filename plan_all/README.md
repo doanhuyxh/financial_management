@@ -23,7 +23,7 @@ Ngày lập: 2026-10-15 · Nhánh gốc: `main` (commit `20027ab`)
 - Đọc `node_modules/next/dist/docs/` trước khi dùng API Next.js (bản 16.4 — khác kiến thức cũ).
 - Component mới: 1 folder `kebab-case` + `index.tsx`, ưu tiên antd / shadcn / lucide-react.
 - Hook dùng chung đặt ở `src/libs/hooks/` hoặc `src/libs/hooks/customHooks/` — kiểm tra trùng trước khi tạo.
-- Nếu đổi business rule, cập nhật `docs/business-logic.md`.
+- Nếu đổi business rule, cập nhật `.agent/business-logic.md`.
 
 ## Định nghĩa "xong"
 

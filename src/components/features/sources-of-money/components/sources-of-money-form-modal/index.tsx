@@ -10,6 +10,7 @@ import {
     type IFromSourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 
 type FormValues = {
     name: string;
@@ -19,6 +20,7 @@ type FormValues = {
     currentDebt?: string | number | null;
     statementDate?: string | number | null;
     dueDate?: string | number | null;
+    adjustmentNote?: string;
 };
 
 const typeOptions = Object.values(SourcesOfMoneyType).map((type) => ({
@@ -71,6 +73,16 @@ export default function SourcesOfMoneyFormModal() {
     const selectedType = Form.useWatch("type", form);
     const isEdit = Boolean(editingItem?._id);
     const isCreditCard = selectedType === SourcesOfMoneyType.CREDIT_CARD;
+    const balanceWatch = Form.useWatch("balance", form);
+    const currentDebtWatch = Form.useWatch("currentDebt", form);
+
+    // Số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form; server dùng để phát hiện ghi đè
+    const wasCreditCard = editingItem?.type === SourcesOfMoneyType.CREDIT_CARD;
+    const expectedAmount = editingItem ? getTrackedAmount(editingItem) : undefined;
+    const sameKindAsOriginal = isEdit && wasCreditCard === isCreditCard;
+    const enteredAmount = toNumber(isCreditCard ? currentDebtWatch : balanceWatch);
+    const amountChanged =
+        sameKindAsOriginal && enteredAmount !== undefined && enteredAmount !== expectedAmount;
 
     useEffect(() => {
         if (!modalOpen) return;
@@ -113,6 +125,11 @@ export default function SourcesOfMoneyFormModal() {
             payload.balance = 0;
         } else {
             payload.balance = toNumber(values.balance) ?? 0;
+        }
+
+        if (sameKindAsOriginal) {
+            payload.expectedAmount = expectedAmount;
+            if (amountChanged) payload.adjustmentNote = values.adjustmentNote?.trim();
         }
 
         await handleSubmit(payload);
@@ -208,6 +225,20 @@ export default function SourcesOfMoneyFormModal() {
                         </div>
                     </div>
                 )}
+
+                {amountChanged ? (
+                    <Form.Item
+                        name="adjustmentNote"
+                        label="Lý do điều chỉnh"
+                        extra="Lần điều chỉnh này được lưu vào lịch sử của nguồn tiền"
+                        rules={[{ max: 200, message: "Tối đa 200 ký tự" }]}
+                    >
+                        <Input
+                            placeholder="Ví dụ: Đối chiếu với app ngân hàng"
+                            maxLength={200}
+                        />
+                    </Form.Item>
+                ) : null}
             </Form>
         </ResponsiveModal>
     );

@@ -4,11 +4,13 @@ import type { SourcesOfMoneyType } from "./sourcesOfMoneyData";
 export interface IExpenseCategoryRef {
     _id: string;
     name: string;
+    archivedAt?: string | null;
 }
 
 export interface IExpenseSourceRef {
     _id: string;
     name: string;
+    archivedAt?: string | null;
     type: SourcesOfMoneyType;
     balance?: number;
     availableCreditLimit?: number | null;
@@ -21,6 +23,8 @@ export interface IExpensesData {
     amount: number;
     note?: string;
     spentAt: string;
+    /** Phí chuyển tiền: chỉ thay đổi qua giao dịch chuyển tiền gốc */
+    skipBalanceAdjust?: boolean;
     createdAt?: string;
     updatedAt?: string;
 }

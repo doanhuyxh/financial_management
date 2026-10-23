@@ -4,9 +4,11 @@ import { useMemo } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { configQueryKey, QUERY_STALE_TIME } from "@/libs/constants/configKey";
 import type {
+    CategoryKind,
     IFromCategoriesData,
     IPaginatedCategoriesQuery,
 } from "@/libs/interfaces/categoriesData";
+import { filterCategoriesByKind } from "@/libs/utils/categoryKind";
 import {
     createCategory,
     deleteCategory,
@@ -63,16 +65,17 @@ export const useReorderCategories = () => {
     });
 };
 
-export const useCategoryOptions = (allLabel?: string) => {
+export const useCategoryOptions = (kind?: CategoryKind, allLabel?: string) => {
     const query = useGetCategories({ page: 1, limit: 100 });
     const options = useMemo(() => {
-        const mapped = (query.data?.data?.items ?? []).map((item) => ({
+        const items = query.data?.data?.items ?? [];
+        const mapped = (kind ? filterCategoriesByKind(items, kind) : items).map((item) => ({
             value: item._id,
             label: item.name,
         }));
         if (!allLabel) return mapped;
         return [{ value: "", label: allLabel }, ...mapped];
-    }, [query.data, allLabel]);
+    }, [query.data, kind, allLabel]);
 
     return {
         options,

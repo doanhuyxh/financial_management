@@ -5,7 +5,7 @@ import { Button, Space, Tag } from "antd";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import type { ColumnsType } from "antd/es/table";
-import { Pencil, Trash2 } from "lucide-react";
+import { History, Pencil, Trash2 } from "lucide-react";
 import SortableTable from "@/components/common/sortable-table";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import {
@@ -30,6 +30,7 @@ export default function SourcesOfMoneyTable() {
         canReorder,
         handleReorder,
         openEditModal,
+        openHistory,
         handleDelete,
     } = useSourcesOfMoneyContext();
     const isMobile = useIsMobile();
@@ -86,10 +87,19 @@ export default function SourcesOfMoneyTable() {
             {
                 title: "Thao tác",
                 key: "actions",
-                width: 120,
+                width: 150,
                 align: "right",
                 render: (_value, record) => (
                     <Space size="small">
+                        <Button
+                            type="text"
+                            size={isMobile ? "middle" : "small"}
+                            aria-label="Lịch sử điều chỉnh"
+                            title="Lịch sử điều chỉnh"
+                            className={isMobile ? "size-10" : undefined}
+                            icon={<History className="size-4" />}
+                            onClick={() => openHistory(record)}
+                        />
                         <Button
                             type="text"
                             size={isMobile ? "middle" : "small"}
@@ -111,7 +121,7 @@ export default function SourcesOfMoneyTable() {
                 ),
             },
         ],
-        [openEditModal, handleDelete, isMobile],
+        [openEditModal, openHistory, handleDelete, isMobile],
     );
 
     return (

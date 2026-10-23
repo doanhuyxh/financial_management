@@ -4,6 +4,7 @@ import type {
     ITransfersData,
 } from "@/libs/interfaces/transfersData";
 import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
+import { withArchivedLabel } from "@/libs/utils/archivedRef";
 
 export function getTransferSource(
     value: ITransfersData["fromSourceId"] | ITransfersData["toSourceId"],
@@ -16,7 +17,7 @@ export function getTransferSource(
             type: SourcesOfMoneyType.OTHER,
         };
     }
-    return value;
+    return withArchivedLabel(value);
 }
 
 export function getTransferCategory(
@@ -26,7 +27,7 @@ export function getTransferCategory(
     if (typeof value === "string") {
         return { _id: value, name: "—" };
     }
-    return value;
+    return withArchivedLabel(value);
 }
 
 export function getRefId(

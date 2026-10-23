@@ -9,7 +9,11 @@ import {
     useReorderCategories,
     useUpdateCategory,
 } from "@/libs/hooks/customHooks/useCategories";
-import type { ICategoriesData } from "@/libs/interfaces/categoriesData";
+import type {
+    CategoryKind,
+    ICategoriesData,
+    IFromCategoriesData,
+} from "@/libs/interfaces/categoriesData";
 import type { ICategoryContextProps } from "./type";
 
 const LIST_LIMIT = 100;
@@ -31,6 +35,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
     const { notification, modal } = useAntdApp();
 
     const [search, setSearch] = useState("");
+    const [kindFilter, setKindFilter] = useState<CategoryKind | "">("");
     const [localItems, setLocalItems] = useState<ICategoriesData[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<ICategoriesData | null>(null);
@@ -40,8 +45,9 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
             page: 1,
             limit: LIST_LIMIT,
             search: search.trim() || undefined,
+            kind: kindFilter || undefined,
         }),
-        [search],
+        [search, kindFilter],
     );
 
     const { data, isLoading, isFetching, isPlaceholderData } = useGetCategories(query);
@@ -61,6 +67,10 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         setSearch(value);
     }, []);
 
+    const handleKindFilter = useCallback((value: CategoryKind | "") => {
+        setKindFilter(value);
+    }, []);
+
     const openCreateModal = useCallback(() => {
         setEditingCategory(null);
         setModalOpen(true);
@@ -77,7 +87,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
     }, []);
 
     const handleSubmit = useCallback(
-        async (values: { name: string }) => {
+        async (values: IFromCategoriesData) => {
             try {
                 if (editingCategory?._id) {
                     await updateCategory({
@@ -101,7 +111,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         (record: ICategoriesData) => {
             modal.confirm({
                 title: "Xóa danh mục",
-                content: `Bạn có chắc muốn xóa "${record.name}"?`,
+                content: `Bạn có chắc muốn xóa "${record.name}"? Nếu danh mục đã có giao dịch, lịch sử vẫn giữ tên danh mục.`,
                 okText: "Xóa",
                 okType: "danger",
                 cancelText: "Hủy",
@@ -140,16 +150,18 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
     const value = useMemo<ICategoryContextProps>(
         () => ({
             search,
+            kindFilter,
             items: localItems,
             // Only show loading for first load or a changed query (page/filter);
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
             isReordering,
-            canReorder: !query.search,
+            canReorder: !query.search && !query.kind,
             modalOpen,
             editingCategory,
             isSubmitting: isCreating || isUpdating,
             handleSearch,
+            handleKindFilter,
             handleReorder,
             openCreateModal,
             openEditModal,
@@ -159,6 +171,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         }),
         [
             search,
+            kindFilter,
             query,
             localItems,
             isLoading,
@@ -170,6 +183,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
             isCreating,
             isUpdating,
             handleSearch,
+            handleKindFilter,
             handleReorder,
             openCreateModal,
             openEditModal,

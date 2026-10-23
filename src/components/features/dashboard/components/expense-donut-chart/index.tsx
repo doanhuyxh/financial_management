@@ -64,6 +64,7 @@ interface IExpenseDonutChartProps {
     subtitle: string;
     items: DonutItem[];
     isLoading: boolean;
+    emptyText?: string;
 }
 
 export default function ExpenseDonutChart({
@@ -71,6 +72,7 @@ export default function ExpenseDonutChart({
     subtitle,
     items,
     isLoading,
+    emptyText = "Chưa có chi tiêu trong tháng này",
 }: IExpenseDonutChartProps) {
     const isDark = useIsDarkMode();
     const isMobile = useIsMobile();
@@ -150,7 +152,7 @@ export default function ExpenseDonutChart({
                 </div>
             ) : data.length === 0 ? (
                 <div className="flex h-72 items-center justify-center">
-                    <Empty description="Chưa có chi tiêu trong tháng này" />
+                    <Empty description={emptyText} />
                 </div>
             ) : (
                 <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center">

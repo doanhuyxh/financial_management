@@ -1,5 +1,7 @@
 import { fetcherBackEnd } from "@/libs/fetchFromBackEnd";
 import type ApiResponse from "@/libs/interfaces/ApiResponseData";
+import type { IBalanceAdjustmentData } from "@/libs/interfaces/balanceAdjustmentsData";
+import type { IDefaultQuery } from "@/libs/interfaces/DefaultQuery";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 import type {
     IFromSourcesOfMoneyData,
@@ -49,4 +51,15 @@ export const deleteSourcesOfMoney = async (id: string) => {
     return fetcherBackEnd<ApiResponse<null>>(`/sources-of-money/${id}`, {
         method: "DELETE",
     });
+};
+
+export const getBalanceAdjustments = async (sourceId: string, query: IDefaultQuery = {}) => {
+    const params = new URLSearchParams();
+    if (query.page) params.set("page", String(query.page));
+    if (query.limit) params.set("limit", String(query.limit));
+    const qs = params.toString();
+    return fetcherBackEnd<ApiResponse<PaginatedResponse<IBalanceAdjustmentData>>>(
+        `/sources-of-money/${sourceId}/adjustments${qs ? `?${qs}` : ""}`,
+        { method: "GET" },
+    );
 };

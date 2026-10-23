@@ -4,6 +4,7 @@ import type { SourcesOfMoneyType } from "./sourcesOfMoneyData";
 export interface ITransferSourceRef {
     _id: string;
     name: string;
+    archivedAt?: string | null;
     type: SourcesOfMoneyType;
     balance?: number;
     creditDetails?: {
@@ -18,6 +19,7 @@ export interface ITransferSourceRef {
 export interface ITransferCategoryRef {
     _id: string;
     name: string;
+    archivedAt?: string | null;
 }
 
 export interface ITransfersData {

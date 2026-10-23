@@ -3,6 +3,7 @@
 import TransactionFilterFields from "@/components/common/transaction-filter-fields";
 import { useExpensesContext } from "@/components/features/expenses/context";
 import { useCategoryOptions } from "@/libs/hooks/customHooks/useCategories";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
 import { useSourceOptions } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 
 export default function ExpensesFilterDrawer({ layout }: { layout: "desktop" | "drawer" }) {
@@ -14,7 +15,7 @@ export default function ExpensesFilterDrawer({ layout }: { layout: "desktop" | "
         handleSourceFilter,
         handleDateRange,
     } = useExpensesContext();
-    const { options: categoryOptions } = useCategoryOptions("Tất cả danh mục");
+    const { options: categoryOptions } = useCategoryOptions(CategoryKind.EXPENSE, "Tất cả danh mục");
     const { options: sourceOptions } = useSourceOptions("Tất cả nguồn tiền");
 
     return (

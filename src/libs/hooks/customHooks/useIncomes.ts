@@ -17,6 +17,7 @@ import {
 function invalidateIncomeRelated(queryClient: ReturnType<typeof useQueryClient>) {
     queryClient.invalidateQueries({ queryKey: [configQueryKey.INCOMES] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
+    queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_CASHFLOW] });
 }
 
 export const useGetIncomes = (query: IPaginatedIncomesQuery = {}) => {

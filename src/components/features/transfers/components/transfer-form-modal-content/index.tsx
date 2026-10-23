@@ -9,6 +9,8 @@ import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
 import TransferPairSuggestions from "@/components/features/transfers/components/transfer-pair-suggestions";
 import { formatMoney } from "@/components/features/transfers/utils";
 import { useGetCategories } from "@/libs/hooks/customHooks/useCategories";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
+import { filterCategoriesByKind } from "@/libs/utils/categoryKind";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { useGetTransferSuggestions } from "@/libs/hooks/customHooks/useTransfers";
 import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
@@ -116,7 +118,10 @@ export default function TransferFormModalContent({
     const availableOut = getAvailableOut(fromSource);
     const maxToCredit = getMaxToCredit(toSource);
 
-    const categoryOptions = (categoriesData?.data?.items ?? []).map((item) => ({
+    const categoryOptions = filterCategoriesByKind(
+        categoriesData?.data?.items ?? [],
+        CategoryKind.EXPENSE,
+    ).map((item) => ({
         value: item._id,
         label: item.name,
     }));
@@ -309,7 +314,7 @@ export default function TransferFormModalContent({
             destroyOnHidden
             okText="Chuyển tiền"
             cancelText="Hủy"
-            width={520}
+            width={600}
             footer={(_, { OkBtn, CancelBtn }) => (
                 <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center md:justify-between">
                     <label className="flex items-center gap-2 text-sm text-neutral-600">
@@ -344,48 +349,50 @@ export default function TransferFormModalContent({
                     <DatePicker inputReadOnly className="w-full" format="DD/MM/YYYY" />
                 </Form.Item>
 
-                <Form.Item
-                    name="fromSourceId"
-                    label="Từ nguồn"
-                    rules={[{ required: true, message: "Nguồn chuyển là bắt buộc" }]}
-                    extra={
-                        fromSource
-                            ? fromIsCredit
-                                ? `Hạn mức còn lại: ${formatMoney(availableOut)}`
-                                : `Số dư: ${formatMoney(availableOut)}`
-                            : undefined
-                    }
-                >
-                    <Select
-                        showSearch
-                        optionFilterProp="label"
-                        placeholder="Chọn nguồn chuyển"
-                        loading={sourcesLoading}
-                        options={fromOptions}
-                        onChange={handleFromChange}
-                    />
-                </Form.Item>
+                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
+                    <Form.Item
+                        name="fromSourceId"
+                        label="Từ nguồn"
+                        rules={[{ required: true, message: "Nguồn chuyển là bắt buộc" }]}
+                        extra={
+                            fromSource
+                                ? fromIsCredit
+                                    ? `Hạn mức còn lại: ${formatMoney(availableOut)}`
+                                    : `Số dư: ${formatMoney(availableOut)}`
+                                : undefined
+                        }
+                    >
+                        <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="Chọn nguồn chuyển"
+                            loading={sourcesLoading}
+                            options={fromOptions}
+                            onChange={handleFromChange}
+                        />
+                    </Form.Item>
 
-                <Form.Item
-                    name="toSourceId"
-                    label="Đến nguồn"
-                    rules={[{ required: true, message: "Nguồn nhận là bắt buộc" }]}
-                    extra={
-                        toIsCredit && maxToCredit != null
-                            ? `Dư nợ đang nợ: ${formatMoney(maxToCredit)}`
-                            : toSource
-                              ? `Số dư: ${formatMoney(toSource.balance ?? 0)}`
-                              : undefined
-                    }
-                >
-                    <Select
-                        showSearch
-                        optionFilterProp="label"
-                        placeholder="Chọn nguồn nhận"
-                        loading={sourcesLoading}
-                        options={toOptions}
-                    />
-                </Form.Item>
+                    <Form.Item
+                        name="toSourceId"
+                        label="Đến nguồn"
+                        rules={[{ required: true, message: "Nguồn nhận là bắt buộc" }]}
+                        extra={
+                            toIsCredit && maxToCredit != null
+                                ? `Dư nợ đang nợ: ${formatMoney(maxToCredit)}`
+                                : toSource
+                                  ? `Số dư: ${formatMoney(toSource.balance ?? 0)}`
+                                  : undefined
+                        }
+                    >
+                        <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="Chọn nguồn nhận"
+                            loading={sourcesLoading}
+                            options={toOptions}
+                        />
+                    </Form.Item>
+                </div>
 
                 <Form.Item
                     name="amount"
@@ -408,7 +415,7 @@ export default function TransferFormModalContent({
                 </Form.Item>
 
                 {fromIsCredit && !toIsCredit ? (
-                    <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
                         <Form.Item
                             name="feePercent"
                             label="% phí chuyển đổi"
@@ -450,7 +457,7 @@ export default function TransferFormModalContent({
                                 options={categoryOptions}
                             />
                         </Form.Item>
-                    </>
+                    </div>
                 ) : null}
 
                 <Form.Item name="note" label="Ghi chú">
