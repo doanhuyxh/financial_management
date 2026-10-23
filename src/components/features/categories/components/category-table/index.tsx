@@ -1,13 +1,17 @@
 "use client";
 
 import { useMemo } from "react";
-import { Button, Space } from "antd";
+import { Button, Space, Tag } from "antd";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import type { ColumnsType } from "antd/es/table";
 import { Pencil, Trash2 } from "lucide-react";
 import SortableTable from "@/components/common/sortable-table";
 import { useCategoryContext } from "@/components/features/categories/context";
-import type { ICategoriesData } from "@/libs/interfaces/categoriesData";
+import {
+    CATEGORY_KIND_LABELS,
+    CategoryKind,
+    type ICategoriesData,
+} from "@/libs/interfaces/categoriesData";
 
 export default function CategoryTable() {
     const {
@@ -35,6 +39,20 @@ export default function CategoryTable() {
                 dataIndex: "name",
                 key: "name",
                 render: (name: string) => <span className="font-medium text-nowrap">{name}</span>,
+            },
+            {
+                title: "Loại",
+                dataIndex: "kind",
+                key: "kind",
+                width: 110,
+                render: (kind?: CategoryKind) =>
+                    kind ? (
+                        <Tag color={kind === CategoryKind.INCOME ? "green" : "red"}>
+                            {CATEGORY_KIND_LABELS[kind]}
+                        </Tag>
+                    ) : (
+                        "—"
+                    ),
             },
             {
                 title: "Thao tác",

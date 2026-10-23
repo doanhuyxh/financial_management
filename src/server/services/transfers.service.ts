@@ -9,6 +9,7 @@ import {
     type IPaginatedTransfersQuery,
 } from "@/libs/interfaces/transfersData";
 import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
 import {
     errorResponseWithStatusCode,
     successResponse,
@@ -392,9 +393,12 @@ export class TransfersService {
                 const category = await CategoriesModel.findOne({
                     _id: payload.feeCategoryId,
                     userId: user.userId,
-                }).select("_id");
+                }).select("_id kind");
                 if (!category) {
                     throw new Error("Không tìm thấy danh mục phí");
+                }
+                if (category.kind && category.kind !== CategoryKind.EXPENSE) {
+                    throw new Error("Danh mục phí phải là danh mục chi tiêu");
                 }
             }
 

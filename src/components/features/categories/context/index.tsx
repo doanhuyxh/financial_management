@@ -9,7 +9,7 @@ import {
     useReorderCategories,
     useUpdateCategory,
 } from "@/libs/hooks/customHooks/useCategories";
-import type { ICategoriesData } from "@/libs/interfaces/categoriesData";
+import type { ICategoriesData, IFromCategoriesData } from "@/libs/interfaces/categoriesData";
 import type { ICategoryContextProps } from "./type";
 
 const LIST_LIMIT = 100;
@@ -77,7 +77,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
     }, []);
 
     const handleSubmit = useCallback(
-        async (values: { name: string }) => {
+        async (values: IFromCategoriesData) => {
             try {
                 if (editingCategory?._id) {
                     await updateCategory({

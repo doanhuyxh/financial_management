@@ -1,6 +1,6 @@
 # Nghiệp vụ — Money Manager (financial_management)
 
-> Tài liệu tóm tắt nghiệp vụ đang chạy, đọc trước khi sửa code. Cập nhật lần cuối: 2026-10-21.
+> Tài liệu tóm tắt nghiệp vụ đang chạy, đọc trước khi sửa code. Cập nhật lần cuối: 2026-10-23.
 > Nguồn sự thật là `src/server/services/*.service.ts` — nếu code khác tài liệu, tin code và sửa lại tài liệu.
 
 ## 1. Tổng quan
@@ -18,13 +18,13 @@
 | Model | Collection | Trường chính |
 |---|---|---|
 | User | `user` | fullName, email, password (**bcrypt**), phoneNumber, avatarUrl, tokenVersion |
-| Category | `categories` | userId, name, sortOrder |
+| Category | `categories` | userId, name, kind (`EXPENSE`/`INCOME`), sortOrder |
 | SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate}, metadata; virtual `availableCreditLimit = max(0, limit − debt)` |
 | Expense | `expenses` | userId, categoryId, sourceOfMoneyId, amount (>0), note, spentAt, skipBalanceAdjust |
 | Income | `incomes` | userId, categoryId, sourceOfMoneyId, amount (>0), note, receivedAt |
 | Transfer | `transfers` | userId, fromSourceId, toSourceId, amount, feePercent, feeAmount, feeCategoryId, feeExpenseId, note, transferredAt |
 
-**Category** dùng chung cho cả chi tiêu, thu nhập và phí chuyển tiền (không có phân loại thu/chi).
+**Category** có `kind`: `EXPENSE` (dùng cho chi tiêu và phí chuyển tiền) hoặc `INCOME` (dùng cho thu nhập). Xem mục 5.
 
 ## 3. Nguồn tiền (Sources of Money)
 
@@ -55,7 +55,7 @@ Mọi giao dịch đều cập nhật số dư bằng `$inc` atomic với điề
 | Xóa (revert) | `balance += amount` | `currentDebt −= amount` (không xuống dưới 0) |
 | Sửa | revert bản cũ (nguồn cũ, số tiền cũ), rồi apply bản mới; nếu lỗi thì khôi phục | như cột bên |
 
-- `skipBalanceAdjust = true` (chỉ dùng cho **phí chuyển tiền**, xem 4.3): sửa hoặc xóa expense này **không động vào số dư**.
+- `skipBalanceAdjust = true` (chỉ dùng cho **phí chuyển tiền**, xem 4.3): expense này **bị khóa**, API sửa/xóa trả 400. Muốn thay đổi thì xóa transfer gốc (xóa luôn fee expense) rồi tạo lại. UI gắn tag "Phí chuyển tiền" và vô hiệu nút sửa/xóa.
 - Lọc danh sách: `search` (regex theo note), `categoryId`, `sourceOfMoneyId`, `from`/`to` (to = cuối ngày). Sắp xếp `spentAt desc`.
 
 ### 4.2 Thu nhập (Income) — `incomes.service.ts`
@@ -92,6 +92,11 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 
 ## 5. Danh mục (Categories)
 
+- **Loại (`kind`)**: bắt buộc khi tạo (`EXPENSE` hoặc `INCOME`, UI mặc định Chi tiêu).
+  - Chỉ đổi được loại khi danh mục **chưa có** Expense/Income nào ("Danh mục đã có giao dịch, không thể đổi loại").
+  - Dữ liệu cũ thiếu `kind` được backfill khi GET danh sách: danh mục chỉ được dùng bởi Income thì thành `INCOME`, còn lại thành `EXPENSE`.
+  - Server kiểm tra loại khi tạo expense/income, khi đổi sang danh mục khác lúc sửa, và với danh mục phí chuyển tiền (phải là `EXPENSE`). Sửa giao dịch mà **giữ nguyên** danh mục cũ khác loại thì vẫn cho qua (dữ liệu cũ dùng chung danh mục).
+  - Form và bộ lọc chỉ hiện danh mục đúng loại (`filterCategoriesByKind` trong `src/libs/utils/categoryKind.ts`). Khi sửa, form vẫn giữ danh mục hiện tại của bản ghi.
 - CRUD theo tên, kéo-thả sắp xếp (`/api/categories/reorder`, body `{ orderedIds }`; mọi ID phải thuộc user và phải gửi đủ toàn bộ danh mục). UI ẩn tay kéo khi đang tìm kiếm.
 - **Xóa không kiểm tra ràng buộc.** Expense/Income đang dùng danh mục sẽ mồ côi, và dashboard gom chúng vào "Không xác định".
 
@@ -172,7 +177,7 @@ Menu nằm trong `src/components/layout/navigation-config.tsx`: Dashboard; nhóm
 ## 9. Điểm cần lưu ý / nợ kỹ thuật đã biết
 
 1. Không dùng Mongo transaction. Rollback thủ công có thể để lại dữ liệu lệch nếu chính bước rollback cũng lỗi, hoặc nếu có request đồng thời.
-2. Sửa fee expense (có `skipBalanceAdjust`) trong trang Chi tiêu **không đồng bộ** với transfer gốc (feeAmount của transfer giữ nguyên). Nếu xóa fee expense riêng lẻ, transfer vẫn giữ `feeExpenseId` cũ.
+2. Fee expense (có `skipBalanceAdjust`) bị khóa sửa/xóa ở trang Chi tiêu để luôn khớp với `feeAmount`/`feeExpenseId` của transfer gốc.
 3. Xóa Category hoặc SourceOfMoney không kiểm tra giao dịch đang tham chiếu (giao dịch mồ côi vẫn sửa/xóa được, xem mục 3).
 4. Sửa trực tiếp số dư/dư nợ trên form nguồn tiền sẽ ghi đè và không để lại lịch sử. Sau đó, revert một giao dịch cũ có thể bị chặn (ví dụ số dư không đủ để xóa income).
 5. Password lưu bcrypt. Token sống 30 ngày. Logout tăng `tokenVersion` nên thu hồi mọi thiết bị.

@@ -1,6 +1,9 @@
 import dbConnect from "@/server/connectDb";
 import CategoriesModel from "@/server/models/categories.model";
+import ExpensesModel from "@/server/models/expenses.model";
+import IncomesModel from "@/server/models/incomes.model";
 import {
+    CategoryKind,
     IFromCategoriesData,
     IPaginatedCategoriesQuery,
     IReorderCategoriesData,
@@ -14,6 +17,40 @@ import {
 import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
+
+function isCategoryKind(value: unknown): value is CategoryKind {
+    return Object.values(CategoryKind).includes(value as CategoryKind);
+}
+
+/** Legacy: danh mục chỉ dùng cho thu nhập → INCOME, còn lại → EXPENSE. */
+async function backfillCategoryKind(userId: string) {
+    const missing = await CategoriesModel.find({
+        userId,
+        $or: [{ kind: { $exists: false } }, { kind: null }],
+    }).select("_id");
+    if (missing.length === 0) return;
+
+    const ids = missing.map((doc) => doc._id);
+    const [expenseCategoryIds, incomeCategoryIds] = await Promise.all([
+        ExpensesModel.distinct("categoryId", { userId, categoryId: { $in: ids } }),
+        IncomesModel.distinct("categoryId", { userId, categoryId: { $in: ids } }),
+    ]);
+    const usedByExpense = new Set(expenseCategoryIds.map(String));
+    const incomeOnly = incomeCategoryIds
+        .map(String)
+        .filter((id) => !usedByExpense.has(id));
+
+    if (incomeOnly.length > 0) {
+        await CategoriesModel.updateMany(
+            { userId, _id: { $in: incomeOnly } },
+            { $set: { kind: CategoryKind.INCOME } },
+        );
+    }
+    await CategoriesModel.updateMany(
+        { userId, _id: { $in: ids }, $or: [{ kind: { $exists: false } }, { kind: null }] },
+        { $set: { kind: CategoryKind.EXPENSE } },
+    );
+}
 
 export class CategoriesService {
     static async getCategories(query: IPaginatedCategoriesQuery) {
@@ -49,12 +86,14 @@ export class CategoriesService {
             );
         }
 
+        await backfillCategoryKind(user.userId);
+
         const [categories, total] = await Promise.all([
             CategoriesModel.find(filter)
                 .skip((page - 1) * limit)
                 .limit(limit)
                 .sort({ sortOrder: 1, createdAt: 1 })
-                .select(["_id", "name", "sortOrder", "createdAt", "updatedAt"]),
+                .select(["_id", "name", "kind", "sortOrder", "createdAt", "updatedAt"]),
             CategoriesModel.countDocuments(filter),
         ]);
 
@@ -68,6 +107,10 @@ export class CategoriesService {
             return unauthorizedResponse();
         }
 
+        if (!isCategoryKind(category.kind)) {
+            return errorResponseWithStatusCode("Loại danh mục không hợp lệ", 400);
+        }
+
         const last = await CategoriesModel.findOne({ userId: user.userId })
             .sort({ sortOrder: -1 })
             .select("sortOrder")
@@ -77,6 +120,7 @@ export class CategoriesService {
 
         const newCategory = await CategoriesModel.create({
             name: category.name.trim(),
+            kind: category.kind,
             sortOrder,
             userId: user.userId,
         });
@@ -90,9 +134,36 @@ export class CategoriesService {
             return unauthorizedResponse();
         }
 
+        if (category.kind !== undefined && !isCategoryKind(category.kind)) {
+            return errorResponseWithStatusCode("Loại danh mục không hợp lệ", 400);
+        }
+
+        const existing = await CategoriesModel.findOne({ _id: id, userId: user.userId })
+            .select("kind")
+            .lean<{ kind?: CategoryKind }>();
+        if (!existing) {
+            return errorResponseWithStatusCode("Không tìm thấy danh mục", 404);
+        }
+
+        const update: Record<string, unknown> = { name: category.name.trim() };
+        if (category.kind && category.kind !== existing.kind) {
+            // Đổi loại sẽ làm giao dịch cũ nằm sai loại danh mục
+            const [expenseCount, incomeCount] = await Promise.all([
+                ExpensesModel.countDocuments({ userId: user.userId, categoryId: id }),
+                IncomesModel.countDocuments({ userId: user.userId, categoryId: id }),
+            ]);
+            if (expenseCount + incomeCount > 0) {
+                return errorResponseWithStatusCode(
+                    "Danh mục đã có giao dịch, không thể đổi loại",
+                    400,
+                );
+            }
+            update.kind = category.kind;
+        }
+
         const updatedCategory = await CategoriesModel.findOneAndUpdate(
             { _id: id, userId: user.userId },
-            { name: category.name.trim() },
+            update,
             { returnDocument: "after" },
         );
 

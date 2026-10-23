@@ -9,6 +9,8 @@ import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
 import TransferPairSuggestions from "@/components/features/transfers/components/transfer-pair-suggestions";
 import { formatMoney } from "@/components/features/transfers/utils";
 import { useGetCategories } from "@/libs/hooks/customHooks/useCategories";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
+import { filterCategoriesByKind } from "@/libs/utils/categoryKind";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { useGetTransferSuggestions } from "@/libs/hooks/customHooks/useTransfers";
 import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
@@ -116,7 +118,10 @@ export default function TransferFormModalContent({
     const availableOut = getAvailableOut(fromSource);
     const maxToCredit = getMaxToCredit(toSource);
 
-    const categoryOptions = (categoriesData?.data?.items ?? []).map((item) => ({
+    const categoryOptions = filterCategoriesByKind(
+        categoriesData?.data?.items ?? [],
+        CategoryKind.EXPENSE,
+    ).map((item) => ({
         value: item._id,
         label: item.name,
     }));

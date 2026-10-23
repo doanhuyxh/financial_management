@@ -8,6 +8,7 @@ import {
     type IPaginatedIncomesQuery,
 } from "@/libs/interfaces/incomesData";
 import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
 import {
     errorResponseWithStatusCode,
     successResponse,
@@ -37,18 +38,27 @@ function normalizePayload(data: IFromIncomesData) {
     return { categoryId, sourceOfMoneyId, amount, note, receivedAt };
 }
 
+/** `currentCategoryId`: danh mục đang gắn với bản ghi khi sửa — giữ nguyên thì bỏ qua kiểm tra loại (dữ liệu cũ). */
 async function assertOwnedRefs(
     userId: string,
     categoryId: string,
     sourceOfMoneyId: string,
+    currentCategoryId?: string,
 ) {
     const [category, source] = await Promise.all([
-        CategoriesModel.findOne({ _id: categoryId, userId }).select("_id name"),
+        CategoriesModel.findOne({ _id: categoryId, userId }).select("_id name kind"),
         SourcesOfMoneyModel.findOne({ _id: sourceOfMoneyId, userId }),
     ]);
 
     if (!category) throw new Error("Không tìm thấy danh mục");
     if (!source) throw new Error("Không tìm thấy nguồn tiền");
+    if (
+        categoryId !== currentCategoryId &&
+        category.kind &&
+        category.kind !== CategoryKind.INCOME
+    ) {
+        throw new Error("Danh mục này dành cho chi tiêu, hãy chọn danh mục thu nhập");
+    }
 
     return { category, source };
 }
@@ -259,6 +269,7 @@ export class IncomesService {
                 user.userId,
                 payload.categoryId,
                 payload.sourceOfMoneyId,
+                existing.categoryId.toString(),
             );
 
             const oldSourceId = existing.sourceOfMoneyId.toString();

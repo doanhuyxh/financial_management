@@ -17,11 +17,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const { name } = await req.json();
+        const { name, kind } = await req.json();
         if (!name) {
             return errorResponseWithStatusCode("Tên danh mục là bắt buộc", 400);
         }
-        return await CategoriesService.createCategory({ name });
+        return await CategoriesService.createCategory({ name, kind });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Something went wrong";
         return errorResponseWithStatusCode(message);

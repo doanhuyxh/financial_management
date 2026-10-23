@@ -9,6 +9,8 @@ import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
 import { useIncomesContext } from "@/components/features/incomes/context";
 import { formatMoney, getRefId } from "@/components/features/incomes/utils";
 import { useGetCategories } from "@/libs/hooks/customHooks/useCategories";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
+import { filterCategoriesByKind } from "@/libs/utils/categoryKind";
 import { useGetIncomeSuggestions } from "@/libs/hooks/customHooks/useIncomes";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import type { IFromIncomesData } from "@/libs/interfaces/incomesData";
@@ -91,7 +93,11 @@ export default function IncomesFormModal() {
     }, [selectedSource, editingItem, selectedSourceId]);
 
     const categoryOptions = groupSuggestedOptions(
-        (categoriesData?.data?.items ?? []).map((item) => ({
+        filterCategoriesByKind(
+            categoriesData?.data?.items ?? [],
+            CategoryKind.INCOME,
+            editingItem ? getRefId(editingItem.categoryId) : undefined,
+        ).map((item) => ({
             value: item._id,
             label: item.name,
         })),

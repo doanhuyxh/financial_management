@@ -1,4 +1,4 @@
-import type { ICategoriesData } from "@/libs/interfaces/categoriesData";
+import type { ICategoriesData, IFromCategoriesData } from "@/libs/interfaces/categoriesData";
 
 export interface ICategoryContextProps {
     // values
@@ -18,6 +18,6 @@ export interface ICategoryContextProps {
     openCreateModal: () => void;
     openEditModal: (record: ICategoriesData) => void;
     closeModal: () => void;
-    handleSubmit: (values: { name: string }) => Promise<void>;
+    handleSubmit: (values: IFromCategoriesData) => Promise<void>;
     handleDelete: (record: ICategoriesData) => void;
 }

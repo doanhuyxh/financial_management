@@ -21,6 +21,8 @@ export interface IExpensesData {
     amount: number;
     note?: string;
     spentAt: string;
+    /** Phí chuyển tiền: chỉ thay đổi qua giao dịch chuyển tiền gốc */
+    skipBalanceAdjust?: boolean;
     createdAt?: string;
     updatedAt?: string;
 }

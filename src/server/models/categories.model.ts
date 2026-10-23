@@ -1,5 +1,6 @@
 import { Schema, model, models } from "mongoose";
 import { modelUserName } from "./users.model";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
 
 const categoriesSchema = new Schema({
     userId: {
@@ -12,6 +13,11 @@ const categoriesSchema = new Schema({
         type: String,
         required: true,
         trim: true,
+    },
+    /** Dữ liệu cũ chưa có kind được backfill khi GET danh sách */
+    kind: {
+        type: String,
+        enum: Object.values(CategoryKind),
     },
     sortOrder: {
         type: Number,

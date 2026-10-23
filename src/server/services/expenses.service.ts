@@ -8,6 +8,7 @@ import {
     type IPaginatedExpensesQuery,
 } from "@/libs/interfaces/expensesData";
 import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
 import {
     errorResponseWithStatusCode,
     successResponse,
@@ -37,18 +38,27 @@ function normalizePayload(data: IFromExpensesData) {
     return { categoryId, sourceOfMoneyId, amount, note, spentAt };
 }
 
+/** `currentCategoryId`: danh mục đang gắn với bản ghi khi sửa — giữ nguyên thì bỏ qua kiểm tra loại (dữ liệu cũ). */
 async function assertOwnedRefs(
     userId: string,
     categoryId: string,
     sourceOfMoneyId: string,
+    currentCategoryId?: string,
 ) {
     const [category, source] = await Promise.all([
-        CategoriesModel.findOne({ _id: categoryId, userId }).select("_id name"),
+        CategoriesModel.findOne({ _id: categoryId, userId }).select("_id name kind"),
         SourcesOfMoneyModel.findOne({ _id: sourceOfMoneyId, userId }),
     ]);
 
     if (!category) throw new Error("Không tìm thấy danh mục");
     if (!source) throw new Error("Không tìm thấy nguồn tiền");
+    if (
+        categoryId !== currentCategoryId &&
+        category.kind &&
+        category.kind !== CategoryKind.EXPENSE
+    ) {
+        throw new Error("Danh mục này dành cho thu nhập, hãy chọn danh mục chi tiêu");
+    }
 
     return { category, source };
 }
@@ -126,6 +136,9 @@ async function adjustSourceBalance(
     }
     return updated;
 }
+
+const FEE_EXPENSE_LOCKED_MESSAGE =
+    "Đây là phí chuyển tiền, chỉ thay đổi được bằng cách xóa giao dịch chuyển tiền gốc";
 
 async function getPopulatedExpense(id: string, userId: string) {
     return ExpensesModel.findOne({ _id: id, userId })
@@ -248,50 +261,51 @@ export class ExpensesService {
             if (!existing) {
                 return errorResponseWithStatusCode("Không tìm thấy chi tiêu", 404);
             }
+            if (existing.skipBalanceAdjust) {
+                return errorResponseWithStatusCode(FEE_EXPENSE_LOCKED_MESSAGE, 400);
+            }
 
             const payload = normalizePayload(data);
             await assertOwnedRefs(
                 user.userId,
                 payload.categoryId,
                 payload.sourceOfMoneyId,
+                existing.categoryId.toString(),
             );
 
             const oldSourceId = existing.sourceOfMoneyId.toString();
             const oldAmount = existing.amount;
-            const skipBalance = Boolean(existing.skipBalanceAdjust);
             const oldSourceExists = Boolean(
                 await SourcesOfMoneyModel.exists({ _id: oldSourceId, userId: user.userId }),
             );
 
-            if (!skipBalance) {
-                // Revert old effect, then apply new
+            // Revert old effect, then apply new
+            if (oldSourceExists) {
+                await adjustSourceBalance(
+                    user.userId,
+                    oldSourceId,
+                    oldAmount,
+                    "revert",
+                );
+            }
+
+            try {
+                await adjustSourceBalance(
+                    user.userId,
+                    payload.sourceOfMoneyId,
+                    payload.amount,
+                    "apply",
+                );
+            } catch (applyError) {
                 if (oldSourceExists) {
                     await adjustSourceBalance(
                         user.userId,
                         oldSourceId,
                         oldAmount,
-                        "revert",
-                    );
-                }
-
-                try {
-                    await adjustSourceBalance(
-                        user.userId,
-                        payload.sourceOfMoneyId,
-                        payload.amount,
                         "apply",
                     );
-                } catch (applyError) {
-                    if (oldSourceExists) {
-                        await adjustSourceBalance(
-                            user.userId,
-                            oldSourceId,
-                            oldAmount,
-                            "apply",
-                        );
-                    }
-                    throw applyError;
                 }
+                throw applyError;
             }
 
             try {
@@ -316,22 +330,20 @@ export class ExpensesService {
                 const populated = await getPopulatedExpense(id, user.userId);
                 return successResponse(populated, "Cập nhật chi tiêu thành công");
             } catch (updateError) {
-                if (!skipBalance) {
-                    // Roll back to previous balances
+                // Roll back to previous balances
+                await adjustSourceBalance(
+                    user.userId,
+                    payload.sourceOfMoneyId,
+                    payload.amount,
+                    "revert",
+                );
+                if (oldSourceExists) {
                     await adjustSourceBalance(
                         user.userId,
-                        payload.sourceOfMoneyId,
-                        payload.amount,
-                        "revert",
+                        oldSourceId,
+                        oldAmount,
+                        "apply",
                     );
-                    if (oldSourceExists) {
-                        await adjustSourceBalance(
-                            user.userId,
-                            oldSourceId,
-                            oldAmount,
-                            "apply",
-                        );
-                    }
                 }
                 throw updateError;
             }
@@ -355,6 +367,9 @@ export class ExpensesService {
             if (!existing) {
                 return errorResponseWithStatusCode("Không tìm thấy chi tiêu", 404);
             }
+            if (existing.skipBalanceAdjust) {
+                return errorResponseWithStatusCode(FEE_EXPENSE_LOCKED_MESSAGE, 400);
+            }
 
             const sourceExists = Boolean(
                 await SourcesOfMoneyModel.exists({
@@ -362,7 +377,7 @@ export class ExpensesService {
                     userId: user.userId,
                 }),
             );
-            const skipBalance = Boolean(existing.skipBalanceAdjust) || !sourceExists;
+            const skipBalance = !sourceExists;
 
             if (!skipBalance) {
                 await adjustSourceBalance(

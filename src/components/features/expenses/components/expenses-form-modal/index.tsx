@@ -9,6 +9,8 @@ import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
 import { useExpensesContext } from "@/components/features/expenses/context";
 import { formatMoney, getRefId } from "@/components/features/expenses/utils";
 import { useGetCategories } from "@/libs/hooks/customHooks/useCategories";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
+import { filterCategoriesByKind } from "@/libs/utils/categoryKind";
 import { useGetExpenseSuggestions } from "@/libs/hooks/customHooks/useExpenses";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import type { IFromExpensesData } from "@/libs/interfaces/expensesData";
@@ -89,7 +91,11 @@ export default function ExpensesFormModal() {
 
 
     const categoryOptions = groupSuggestedOptions(
-        (categoriesData?.data?.items ?? []).map((item) => ({
+        filterCategoriesByKind(
+            categoriesData?.data?.items ?? [],
+            CategoryKind.EXPENSE,
+            editingItem ? getRefId(editingItem.categoryId) : undefined,
+        ).map((item) => ({
             value: item._id,
             label: item.name,
         })),
