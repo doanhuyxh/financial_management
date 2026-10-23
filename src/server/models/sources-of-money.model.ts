@@ -1,6 +1,6 @@
 import { Schema, model, models, Document, Types } from "mongoose";
 import { modelUserName } from "./users.model";
-import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
+import { SourcesOfMoneyType, type IBankAccount } from "@/libs/interfaces/sourcesOfMoneyData";
 
 export interface ISourcesOfMoney extends Document {
   userId: Types.ObjectId;
@@ -15,6 +15,8 @@ export interface ISourcesOfMoney extends Document {
     statementDate?: number; // Ngày sao kê (1 - 31)
     dueDate?: number;       // Ngày đến hạn thanh toán (1 - 31)
   };
+  // Tài khoản nhận tiền (chỉ loại BANK) để tạo mã VietQR
+  bankAccount?: IBankAccount;
   metadata?: Record<string, any>;
   /** Xóa mềm: nguồn đã có giao dịch chỉ được lưu trữ để giữ lịch sử */
   archivedAt?: Date | null;
@@ -59,6 +61,18 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
       currentDebt: { type: Number, default: 0, min: 0 },
       statementDate: { type: Number, min: 1, max: 31 },
       dueDate: { type: Number, min: 1, max: 31 },
+    },
+    bankAccount: {
+      type: new Schema<IBankAccount>(
+        {
+          bin: { type: String, required: true, trim: true },
+          bankName: { type: String, required: true, trim: true },
+          accountNumber: { type: String, required: true, trim: true },
+          accountName: { type: String, trim: true },
+        },
+        { _id: false },
+      ),
+      default: undefined,
     },
     metadata: {
       type: Schema.Types.Mixed,

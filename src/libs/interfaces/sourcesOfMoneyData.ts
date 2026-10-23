@@ -15,6 +15,27 @@ export interface ICreditDetails {
     dueDate?: number;
 }
 
+/** Tài khoản nhận tiền của nguồn loại BANK, dùng để tạo mã VietQR. */
+export interface IBankAccount {
+    /** Mã BIN 6 số của ngân hàng theo NAPAS (VD: 970415) */
+    bin: string;
+    /** Tên ngắn của ngân hàng, lưu kèm để hiển thị không cần gọi API danh sách ngân hàng */
+    bankName: string;
+    accountNumber: string;
+    /** Tên chủ tài khoản: in hoa, không dấu */
+    accountName?: string;
+}
+
+/** Một ngân hàng trong danh sách của api.vietqr.io/v2/banks (chỉ các trường dùng tới). */
+export interface IVietQrBank {
+    id: number;
+    name: string;
+    code: string;
+    bin: string;
+    shortName: string;
+    logo: string;
+}
+
 export interface ISourcesOfMoneyData {
     _id: string;
     name: string;
@@ -22,6 +43,7 @@ export interface ISourcesOfMoneyData {
     balance: number;
     sortOrder: number;
     creditDetails?: ICreditDetails;
+    bankAccount?: IBankAccount;
     metadata?: Record<string, unknown>;
     availableCreditLimit?: number | null;
     createdAt?: string;
@@ -34,6 +56,8 @@ export interface IFromSourcesOfMoneyData {
     balance?: number;
     sortOrder?: number;
     creditDetails?: Partial<ICreditDetails>;
+    /** Chỉ lưu với loại BANK; bỏ trống hoặc loại khác thì xóa */
+    bankAccount?: IBankAccount | null;
     metadata?: Record<string, unknown>;
     /**
      * Khi sửa: số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form. Giá trị mới bằng giá trị này

@@ -63,6 +63,7 @@ export default function SourcesOfMoneyContextProvider({
     const [transferModalOpen, setTransferModalOpen] = useState(false);
     const [historySource, setHistorySource] = useState<ISourcesOfMoneyData | null>(null);
     const [historyPage, setHistoryPage] = useState(1);
+    const [qrSource, setQrSource] = useState<ISourcesOfMoneyData | null>(null);
 
     const query = useMemo(
         () => ({
@@ -142,6 +143,14 @@ export default function SourcesOfMoneyContextProvider({
 
     const handleHistoryPageChange = useCallback((page: number) => {
         setHistoryPage(page);
+    }, []);
+
+    const openQr = useCallback((record: ISourcesOfMoneyData) => {
+        setQrSource(record);
+    }, []);
+
+    const closeQr = useCallback(() => {
+        setQrSource(null);
     }, []);
 
     const openTransferModal = useCallback(() => {
@@ -270,6 +279,7 @@ export default function SourcesOfMoneyContextProvider({
             historyPagination: historyData?.data?.pagination,
             isHistoryLoading:
                 isHistoryInitialLoading || (isHistoryFetching && isHistoryPlaceholder),
+            qrSource,
             handleSearch,
             handleTypeFilter,
             handleHideEmpty,
@@ -282,6 +292,8 @@ export default function SourcesOfMoneyContextProvider({
             openHistory,
             closeHistory,
             handleHistoryPageChange,
+            openQr,
+            closeQr,
             openTransferModal,
             closeTransferModal,
             handleTransferSubmit,
@@ -308,6 +320,7 @@ export default function SourcesOfMoneyContextProvider({
             isHistoryInitialLoading,
             isHistoryFetching,
             isHistoryPlaceholder,
+            qrSource,
             handleSearch,
             handleTypeFilter,
             handleHideEmpty,
@@ -320,6 +333,8 @@ export default function SourcesOfMoneyContextProvider({
             openHistory,
             closeHistory,
             handleHistoryPageChange,
+            openQr,
+            closeQr,
             openTransferModal,
             closeTransferModal,
             handleTransferSubmit,

@@ -4,7 +4,7 @@ const isDevelopment = NEXT_PUBLIC_NODE_ENV === 'development';
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
-  reactCompiler: true,
+  reactCompiler: false,
   logging: {
     fetches: {
       fullUrl: true,

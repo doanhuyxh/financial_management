@@ -23,6 +23,7 @@ import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
 import { getTrackedAmount } from "@/libs/utils/trackedAmount";
+import { normalizeAccountName } from "@/libs/utils/vietQr";
 
 function normalizePayload(data: IFromSourcesOfMoneyData) {
     const name = data.name?.trim();
@@ -67,6 +68,7 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
                 ...(statementDate != null ? { statementDate } : {}),
                 ...(dueDate != null ? { dueDate } : {}),
             },
+            bankAccount: undefined,
             metadata: data.metadata ?? {},
         };
     }
@@ -81,7 +83,33 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
         type,
         balance,
         creditDetails: undefined,
+        bankAccount:
+            type === SourcesOfMoneyType.BANK ? normalizeBankAccount(data.bankAccount) : undefined,
         metadata: data.metadata ?? {},
+    };
+}
+
+/** Bỏ trống số tài khoản = không lưu tài khoản (không tạo được mã QR). */
+function normalizeBankAccount(data: IFromSourcesOfMoneyData["bankAccount"]) {
+    const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+    const accountNumber = text(data?.accountNumber);
+    if (!accountNumber) return undefined;
+
+    const bin = text(data?.bin);
+    const bankName = text(data?.bankName);
+    if (!/^\d{6}$/.test(bin) || !bankName) {
+        throw new Error("Ngân hàng không hợp lệ");
+    }
+    if (!/^[0-9A-Za-z]{1,19}$/.test(accountNumber)) {
+        throw new Error("Số tài khoản chỉ gồm chữ/số, tối đa 19 ký tự");
+    }
+    const accountName = normalizeAccountName(text(data?.accountName)).slice(0, 50);
+
+    return {
+        bin,
+        bankName: bankName.slice(0, 100),
+        accountNumber,
+        ...(accountName ? { accountName } : {}),
     };
 }
 
@@ -288,6 +316,8 @@ export class SourcesOfMoneyService {
             } else {
                 $unset.creditDetails = 1;
             }
+            if (payload.bankAccount) $set.bankAccount = payload.bankAccount;
+            else $unset.bankAccount = 1;
             if (amountChanged) {
                 $set[trackedPath] = newAmount;
                 if (sameKind) filter[trackedPath] = expectedAmount;

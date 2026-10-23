@@ -8,7 +8,7 @@ import CategoryPieChart from "@/components/features/dashboard/components/categor
 import SourcePieChart from "@/components/features/dashboard/components/source-pie-chart";
 import DailyBarChart from "@/components/features/dashboard/components/daily-bar-chart";
 import CashflowOverview from "@/components/features/dashboard/components/cashflow-overview";
-import IncomePieChart from "@/components/features/dashboard/components/income-pie-chart";
+// import IncomePieChart from "@/components/features/dashboard/components/income-pie-chart";
 
 export default function DashboardComponent() {
     return (
@@ -22,11 +22,9 @@ export default function DashboardComponent() {
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                         <CategoryPieChart />
                         <SourcePieChart />
+                        {/* <IncomePieChart /> */}
                     </div>
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        <IncomePieChart />
-                        <DailyBarChart />
-                    </div>
+                    <DailyBarChart />
                 </div>
             </div>
         </DashboardContextProvider>

@@ -5,7 +5,7 @@ import { Button, Space, Tag } from "antd";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import type { ColumnsType } from "antd/es/table";
-import { History, Pencil, Trash2 } from "lucide-react";
+import { History, Pencil, QrCode, Trash2 } from "lucide-react";
 import SortableTable from "@/components/common/sortable-table";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import {
@@ -31,6 +31,7 @@ export default function SourcesOfMoneyTable() {
         handleReorder,
         openEditModal,
         openHistory,
+        openQr,
         handleDelete,
     } = useSourcesOfMoneyContext();
     const isMobile = useIsMobile();
@@ -48,7 +49,16 @@ export default function SourcesOfMoneyTable() {
                 title: "Tên",
                 dataIndex: "name",
                 key: "name",
-                render: (name: string) => <span className="font-medium">{name}</span>,
+                render: (name: string, record) => (
+                    <div className="leading-5">
+                        <div className="font-medium">{name}</div>
+                        {record.bankAccount ? (
+                            <div className="text-xs text-muted-foreground">
+                                {record.bankAccount.bankName} · {record.bankAccount.accountNumber}
+                            </div>
+                        ) : null}
+                    </div>
+                ),
             },
             {
                 title: "Loại",
@@ -87,10 +97,21 @@ export default function SourcesOfMoneyTable() {
             {
                 title: "Thao tác",
                 key: "actions",
-                width: 150,
+                width: 190,
                 align: "right",
                 render: (_value, record) => (
                     <Space size="small">
+                        {record.type === SourcesOfMoneyType.BANK && record.bankAccount ? (
+                            <Button
+                                type="text"
+                                size={isMobile ? "middle" : "small"}
+                                aria-label="Mã QR nhận tiền"
+                                title="Mã QR nhận tiền"
+                                className={isMobile ? "size-10" : undefined}
+                                icon={<QrCode className="size-4" />}
+                                onClick={() => openQr(record)}
+                            />
+                        ) : null}
                         <Button
                             type="text"
                             size={isMobile ? "middle" : "small"}
@@ -121,7 +142,7 @@ export default function SourcesOfMoneyTable() {
                 ),
             },
         ],
-        [openEditModal, openHistory, handleDelete, isMobile],
+        [openEditModal, openHistory, openQr, handleDelete, isMobile],
     );
 
     return (
