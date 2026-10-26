@@ -136,7 +136,7 @@ export default function AssetsBreakdown() {
         <div className="rounded-xl border border-border bg-background">
             <Collapse
                 ghost
-                defaultActiveKey={["breakdown"]}
+                // defaultActiveKey={["breakdown"]}
                 items={[
                     {
                         key: "breakdown",
