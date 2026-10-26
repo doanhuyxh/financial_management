@@ -17,8 +17,8 @@ export default function DashboardComponent() {
                 <DashboardHeader />
                 <div className="flex flex-col gap-4">
                     <AssetsOverview />
-                    <CashflowOverview />
                     <CreditCardDebts />
+                    <CashflowOverview />
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                         <CategoryPieChart />
                         <SourcePieChart />
