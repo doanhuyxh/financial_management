@@ -4,6 +4,7 @@ import dbConnect from "@/server/connectDb";
 import UserModel from "@/server/models/users.model";
 import { successResponse } from "@/server/utils/responseServer";
 import { verifyAccessToken } from "@/server/utils/jwtUtil";
+import { invalidateTokenVersionCache } from "@/server/utils/getCurrentUser";
 
 export async function POST() {
     try {
@@ -16,6 +17,7 @@ export async function POST() {
                     { _id: payload.userId },
                     { $inc: { tokenVersion: 1 } },
                 );
+                invalidateTokenVersionCache(payload.userId);
             }
         }
     } catch (error) {

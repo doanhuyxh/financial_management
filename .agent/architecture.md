@@ -59,7 +59,7 @@ UI component ──use<Feature>Context()──▶ feature context
 - Mọi API trả `{ status, message, data, statusCode }` (`src/server/utils/responseServer.ts`).
 - Danh sách phân trang: `data: { items, pagination: { total, page, limit, totalPages } }`.
 - `page`/`limit` chuẩn hóa qua `normalizePagination` (`src/server/utils/pagination.ts`): page ≥ 1, 1 ≤ limit ≤ 100, giá trị sai dùng mặc định.
-- Mọi response 401 (`unauthorizedResponse`) xóa cookie `access_token`.
+- Mọi response 401 (`unauthorizedResponse`) cố xóa cookie `access_token` (best-effort; proxy kiểm tra `tokenVersion` cho request trang nên không phụ thuộc việc xóa cookie).
 
 ### Cache React Query
 

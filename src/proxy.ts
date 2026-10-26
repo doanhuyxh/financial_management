@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { unauthorizedResponse } from "@/server/utils/responseServer";
 import { verifyAccessToken } from "@/server/utils/jwtUtil";
+import { validateAccessToken } from "@/server/utils/getCurrentUser";
 import { configCookieKey } from "@/libs/constants/configKey";
 import getValueCookieServer from "@/libs/utils/getValueCookieServer";
 
@@ -49,13 +50,34 @@ function redirectToLogin(request: NextRequest) {
     url.pathname = "/";
     url.search = "";
     url.searchParams.set("returnUrl", returnUrl);
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    // Best-effort: trình duyệt điện thoại có lúc không xóa được cookie, nên không dựa vào bước này.
+    // Trang "/" luôn kiểm tra token đầy đủ nên cookie cũ còn sót cũng không gây vòng lặp.
+    response.cookies.delete(configCookieKey.ACCESS_TOKEN_KEY);
+    return response;
+}
+
+/**
+ * Trang (không phải /api): kiểm tra đầy đủ cả tokenVersion trong DB, để token đã bị thu hồi
+ * bị đá về đăng nhập ngay thay vì vào dashboard rồi kẹt ở 401.
+ * /api: chỉ kiểm tra chữ ký, vì service đã gọi getCurrentUser (tránh query DB 2 lần).
+ * DB lỗi tạm thời: rơi về kết quả kiểm tra chữ ký, không đá user ra vì sự cố server.
+ */
+async function resolveAccessToken(accessToken: string, fullCheck: boolean) {
+    const verifyResult = accessToken ? await verifyAccessToken(accessToken) : null;
+    if (!verifyResult || !fullCheck) return verifyResult;
+    try {
+        return await validateAccessToken(accessToken);
+    } catch (error) {
+        console.error("Proxy: failed to validate access token", error);
+        return verifyResult;
+    }
 }
 
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const accessToken = await getValueCookieServer(configCookieKey.ACCESS_TOKEN_KEY);
-    const verifyResult = accessToken ? await verifyAccessToken(accessToken) : null;
+    const verifyResult = await resolveAccessToken(accessToken, !pathname.startsWith("/api"));
 
     if (pathname === "/") {
         if (verifyResult) {
