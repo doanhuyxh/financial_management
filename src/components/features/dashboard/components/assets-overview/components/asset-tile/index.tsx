@@ -32,7 +32,7 @@ export default function AssetTile({
             </div>
             <div
                 className={cn(
-                    "text-base font-bold tracking-tight break-words tabular-nums sm:text-xl",
+                    "text-base font-bold tracking-tight wrap-break-word tabular-nums sm:text-xl",
                     valueClassName,
                 )}
             >

@@ -63,6 +63,14 @@ function getErrorMessage(error: unknown) {
         : AUTH_ME_FALLBACK_ERROR;
 }
 
+function isUnauthorizedError(error: unknown) {
+    return (
+        !!error &&
+        typeof error === "object" &&
+        (error as { statusCode?: number }).statusCode === 401
+    );
+}
+
 function redirectToLogin() {
     if (typeof window === "undefined" || window.location.pathname === "/") return;
     const returnUrl = encodeURIComponent(
@@ -79,6 +87,7 @@ export const fetchAuthMe = createAsyncThunk<
     let lastMessage = AUTH_ME_FALLBACK_ERROR;
 
     // Thử tối đa 3 lần, mỗi lần retry cách nhau 3s. Thất bại hết -> đá về trang đăng nhập.
+    // 401 = token không hợp lệ, retry vô ích -> đá về đăng nhập ngay.
     for (let attempt = 1; attempt <= AUTH_ME_MAX_ATTEMPTS; attempt++) {
         try {
             const response = await authMe();
@@ -88,6 +97,7 @@ export const fetchAuthMe = createAsyncThunk<
             lastMessage = response?.message || AUTH_ME_FALLBACK_ERROR;
         } catch (error: unknown) {
             lastMessage = getErrorMessage(error);
+            if (isUnauthorizedError(error)) break;
         }
 
         if (attempt < AUTH_ME_MAX_ATTEMPTS) {
