@@ -101,7 +101,7 @@ export default function SourcesOfMoneyTable() {
                                     {formatMoney(available)}
                                 </div>
                                 {annualFeeText ? (
-                                    <div className="text-xs text-muted-foreground">
+                                    <div className="text-xs text-blue-500">
                                         {annualFeeText}
                                     </div>
                                 ) : null}
