@@ -7,7 +7,7 @@ export const metadata = {
   description: "Quản lý nguồn tiền",
 }
 
-export default async function SourcesOfMoneyPage() {
+export default function SourcesOfMoneyPage() {
   return (
     <Suspense fallback={<LoadingComponent />}>
       <SourcesOfMoneyComponent />

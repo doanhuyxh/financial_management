@@ -20,6 +20,7 @@ import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
+import { calcPercentFee } from "@/libs/utils/cardFee";
 
 type SourceDoc = {
     _id: mongoose.Types.ObjectId;
@@ -28,6 +29,7 @@ type SourceDoc = {
     creditDetails?: {
         creditLimit?: number;
         currentDebt?: number;
+        cashAdvanceFeeMin?: number;
     };
 };
 
@@ -57,8 +59,7 @@ function normalizePayload(data: IFromTransfersData) {
         throw new Error("Ngày chuyển không hợp lệ");
     }
 
-    const feeAmount =
-        feePercent > 0 ? Math.round((amount * feePercent) / 100) : 0;
+    const feeAmount = calcPercentFee(amount, feePercent);
 
     return {
         fromSourceId,
@@ -284,7 +285,9 @@ function validateTransferRules(
 
     if (fromIsCC) {
         if (feeAmount >= amount) {
-            throw new Error("Phí chuyển đổi phải nhỏ hơn số tiền chuyển");
+            throw new Error(
+                `Phí chuyển đổi (${feeAmount.toLocaleString("vi-VN")}) phải nhỏ hơn số tiền chuyển`,
+            );
         }
         if (feeAmount > 0 && !feeCategoryId) {
             throw new Error("Danh mục chi tiêu phí là bắt buộc khi có phí");
@@ -380,6 +383,20 @@ export class TransfersService {
                 payload.fromSourceId,
                 payload.toSourceId,
             );
+
+            // Phí rút tiền mặt tối thiểu của thẻ áp dụng cho mọi lần chuyển có phí từ thẻ
+            const cashAdvanceFeeMin = fromSource.creditDetails?.cashAdvanceFeeMin;
+            if (
+                payload.feePercent > 0 &&
+                fromSource.type === SourcesOfMoneyType.CREDIT_CARD &&
+                cashAdvanceFeeMin
+            ) {
+                payload.feeAmount = calcPercentFee(
+                    payload.amount,
+                    payload.feePercent,
+                    cashAdvanceFeeMin,
+                );
+            }
 
             const { receiveAmount } = validateTransferRules(
                 fromSource,

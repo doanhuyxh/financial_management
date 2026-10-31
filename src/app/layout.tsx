@@ -4,10 +4,7 @@ import { type ReactNode } from "react";
 import "./globals.css";
 
 import NextTopLoader from "nextjs-toploader";
-import TanStackProvider from "@/components/providers/tanstack-provider";
-import AntdProvider from "@/components/providers/antd-provider";
-import { ReduxProvider } from "@/components/providers/redux-provider";
-import getValueCookieServer from "@/libs/utils/getValueCookieServer";
+import ClientApp from "@/components/providers/client-app";
 import { configCookieKey } from "@/libs/constants/configKey";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -45,22 +42,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const theme = await getValueCookieServer(configCookieKey.THEME_KEY);
-  const initialTheme = theme === "dark" ? "dark" : "light";
+// Đọc theme từ cookie ngay khi parse HTML (trước lần paint đầu) để trang vẫn build tĩnh mà không nháy màu.
+const themeScript = `try{if(document.cookie.split("; ").indexOf("${configCookieKey.THEME_KEY}=dark")!==-1)document.documentElement.classList.add("dark")}catch(e){}`;
 
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="vi"
-      className={`${initialTheme} ${beVietnamPro.variable} h-full antialiased`}
+      className={`${beVietnamPro.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full bg-background text-foreground">
-        <TanStackProvider>
-          <AntdProvider initialTheme={initialTheme}>
-            <ReduxProvider>{children}</ReduxProvider>
-          </AntdProvider>
-        </TanStackProvider>
+        <ClientApp>{children}</ClientApp>
         <NextTopLoader showSpinner={false} />
       </body>
     </html>

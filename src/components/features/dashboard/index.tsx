@@ -4,6 +4,7 @@ import DashboardContextProvider from "@/components/features/dashboard/context";
 import DashboardHeader from "@/components/features/dashboard/components/header";
 import AssetsOverview from "@/components/features/dashboard/components/assets-overview";
 import CreditCardDebts from "@/components/features/dashboard/components/credit-card-debts";
+import CreditCardFees from "@/components/features/dashboard/components/credit-card-fees";
 import CategoryPieChart from "@/components/features/dashboard/components/category-pie-chart";
 import SourcePieChart from "@/components/features/dashboard/components/source-pie-chart";
 import DailyBarChart from "@/components/features/dashboard/components/daily-bar-chart";
@@ -19,6 +20,7 @@ export default function DashboardComponent() {
                     <AssetsOverview />
                     <CashflowOverview />
                     <CreditCardDebts />
+                    <CreditCardFees />
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                         <CategoryPieChart />
                         <SourcePieChart />

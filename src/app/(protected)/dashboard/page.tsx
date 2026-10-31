@@ -7,7 +7,7 @@ export const metadata = {
     description: "Dashboard page",
 }
 
-export default async function Dashboard() {
+export default function Dashboard() {
   return (
     <Suspense fallback={<LoadingComponent />}>
       <DashboardComponent />

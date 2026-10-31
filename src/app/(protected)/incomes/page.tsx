@@ -7,7 +7,7 @@ export const metadata = {
   description: "Quản lý thu nhập",
 }
 
-export default async function IncomesPage() {
+export default function IncomesPage() {
   return (
     <Suspense fallback={<LoadingComponent />}>
       <IncomesComponent />

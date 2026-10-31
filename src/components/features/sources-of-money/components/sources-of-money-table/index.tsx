@@ -8,6 +8,7 @@ import type { ColumnsType } from "antd/es/table";
 import { History, Pencil, QrCode, Trash2 } from "lucide-react";
 import SortableTable from "@/components/common/sortable-table";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
+import CardFeeDetails from "@/components/features/sources-of-money/components/sources-of-money-table/components/card-fee-details";
 import {
     SOURCES_OF_MONEY_TYPE_LABELS,
     SourcesOfMoneyType,
@@ -88,6 +89,7 @@ export default function SourcesOfMoneyTable() {
                                     Hạn mức: {formatMoney(limit)} · Còn lại:{" "}
                                     {formatMoney(available)}
                                 </div>
+                                <CardFeeDetails record={record} />
                             </div>
                         );
                     }

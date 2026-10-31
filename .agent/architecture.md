@@ -29,11 +29,21 @@ src/
     features/<feature>/       # Module theo trang (cấu trúc: conventions.md)
     common/                   # Component dùng chung nhiều feature
     layout/                   # Khung trang, menu (navigation-config.tsx)
-    providers/                # antd, redux, tanstack, auth-bootstrap
+    providers/                # client-app (gate ssr:false), app-providers, antd, redux, tanstack, auth-bootstrap
     shadcn/ui/                # Component shadcn đã sinh
 scripts/                      # Script một lần + deploy.sh
 plan_all/                     # Kế hoạch cũ (lịch sử, không phải nguồn sự thật)
 ```
+
+## Mô hình render (SPA phía client)
+
+App chỉ có một người dùng nên render như SPA React: server không SSR giao diện.
+
+- `app/layout.tsx` không đọc cookie/headers → mọi trang là **static** (`○` khi `bun run build`), HTML build sẵn chỉ chứa màn loading.
+- Toàn bộ providers (React Query, antd, Redux) và page nằm trong `ClientApp` (`components/providers/client-app`, `next/dynamic` với `ssr: false`) → chỉ render trên trình duyệt.
+- Theme: inline script trong `<head>` đọc cookie `theme` và gắn class `dark` trước lần paint đầu; `AntdProvider` đọc class đó khi khởi tạo.
+- Server chỉ làm 3 việc: trả file tĩnh, `proxy.ts` kiểm tra JWT, và `/api/*`.
+- **Không** thêm `cookies()`/`headers()`/`await` dữ liệu vào layout/page: trang sẽ quay lại SSR động. Dữ liệu luôn lấy qua React Query.
 
 ## Ranh giới
 
@@ -83,6 +93,7 @@ Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; 
 | `/incomes` | `incomes` | Bảng + form thu nhập |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
 | `/sources-of-money` | `sources-of-money` | Nguồn tiền, kéo-thả, chuyển tiền nhanh, lịch sử điều chỉnh |
+| `/credit-card-compare` | `credit-card-compare` | So sánh thẻ tín dụng theo kịch bản sử dụng (chỉ tính phía client từ danh sách nguồn tiền) |
 | `/categories` | `categories` | Danh mục, kéo-thả, lọc theo loại |
 
 Menu: `src/components/layout/navigation-config.tsx` — Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục). Chi tiết từng trang: [business-logic.md](business-logic.md).

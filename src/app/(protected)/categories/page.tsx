@@ -7,7 +7,7 @@ export const metadata = {
   description: "Categories page",
 }
 
-export default async function Categories() {
+export default function Categories() {
   return (
     <Suspense fallback={<LoadingComponent />}>
       <CategoriesComponent />

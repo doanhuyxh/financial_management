@@ -1,6 +1,7 @@
 import type { Dayjs } from "dayjs";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 import type {
+    IExpenseCreateDefaults,
     IExpensesData,
     IFromExpensesData,
 } from "@/libs/interfaces/expensesData";
@@ -19,6 +20,7 @@ export interface IExpensesContextProps {
     isLoading: boolean;
     modalOpen: boolean;
     editingItem: IExpensesData | null;
+    createDefaults: IExpenseCreateDefaults | null;
     isSubmitting: boolean;
 
     // handlers

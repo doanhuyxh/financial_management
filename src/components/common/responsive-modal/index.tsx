@@ -71,6 +71,7 @@ export default function ResponsiveModal({
                 size="90dvh"
                 onClose={onCancel}
                 destroyOnHidden={destroyOnHidden}
+                classNames={{ body: "scrollbar-theme" }}
                 styles={{
                     body: { maxHeight: "calc(90dvh - 120px)", overflowY: "auto" },
                 }}
@@ -93,10 +94,20 @@ export default function ResponsiveModal({
             footer={footer}
             destroyOnHidden={destroyOnHidden}
             width={width}
-            // Căn giữa để cả modal (tiêu đề + thân + footer ≈ thân + 116px) nằm gọn trong
-            // màn hình; chỉ thân modal cuộn, tránh cuộn đôi cùng trang trên màn hình thấp.
-            centered
-            styles={{ body: { maxHeight: "calc(100dvh - 160px)", overflowY: "auto" } }}
+            // Cách mép trên 20% màn hình. Thân modal giới hạn chiều cao để cả modal
+            // (tiêu đề + thân + footer ≈ thân + 116px) nằm gọn trong 80% còn lại;
+            // chỉ thân modal cuộn, tránh cuộn đôi cùng trang trên màn hình thấp.
+            style={{ top: "5dvh" }}
+            // Thanh cuộn mảnh theo theme, đẩy ra lề phải để không đè lên ô nhập
+            classNames={{ body: "scrollbar-theme" }}
+            styles={{
+                body: {
+                    maxHeight: "calc(92dvh - 140px)",
+                    overflowY: "auto",
+                    marginRight: -16,
+                    paddingRight: 10,
+                },
+            }}
         >
             {children}
         </Modal>

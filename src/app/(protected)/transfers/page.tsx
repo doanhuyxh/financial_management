@@ -7,7 +7,7 @@ export const metadata = {
   description: "Chuyển tiền giữa các nguồn",
 }
 
-export default async function TransfersPage() {
+export default function TransfersPage() {
   return (
     <Suspense fallback={<LoadingComponent />}>
       <TransfersComponent />

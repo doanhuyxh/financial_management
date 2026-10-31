@@ -70,6 +70,10 @@ export const sidebarConfig: SidebarConfig = {
                     url: `${MENU_KEY.SOURCES_OF_MONEY}`,
                 },
                 {
+                    title: "So sánh thẻ",
+                    url: `${MENU_KEY.CREDIT_CARD_COMPARE}`,
+                },
+                {
                     title: "Danh mục",
                     url: `${MENU_KEY.CATEGORIES}`,
                 },

@@ -6,6 +6,7 @@ import ResponsiveModal from "@/components/common/responsive-modal";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
+import CardPaymentFeeAlert from "@/components/common/card-payment-fee-alert";
 import { useIncomesContext } from "@/components/features/incomes/context";
 import {
     formatMoney,
@@ -61,6 +62,7 @@ export default function IncomesFormModal() {
     const selectedSourceId = Form.useWatch("sourceOfMoneyId", form);
     const selectedCategoryId = Form.useWatch("categoryId", form);
     const amountWatch = Form.useWatch("amount", form);
+    const receivedAtWatch = Form.useWatch("receivedAt", form);
     const isEdit = Boolean(editingItem?._id);
 
     const { data: categoriesData, isLoading: categoriesLoading } = useGetCategories({
@@ -277,6 +279,11 @@ export default function IncomesFormModal() {
                         options={sourceOptions}
                     />
                 </Form.Item>
+
+                {/* Khi sửa, lần trả nợ này đã được tính trong kỳ */}
+                {!isEdit ? (
+                    <CardPaymentFeeAlert source={selectedSource} date={receivedAtWatch} />
+                ) : null}
 
                 <Form.Item
                     name="amount"

@@ -4,6 +4,7 @@ import type { IBalanceAdjustmentData } from "@/libs/interfaces/balanceAdjustment
 import type { IDefaultQuery } from "@/libs/interfaces/DefaultQuery";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 import type {
+    ICreditCardFeeProgress,
     IFromSourcesOfMoneyData,
     IPaginatedSourcesOfMoneyQuery,
     ISourcesOfMoneyData,
@@ -60,6 +61,13 @@ export const getBalanceAdjustments = async (sourceId: string, query: IDefaultQue
     const qs = params.toString();
     return fetcherBackEnd<ApiResponse<PaginatedResponse<IBalanceAdjustmentData>>>(
         `/sources-of-money/${sourceId}/adjustments${qs ? `?${qs}` : ""}`,
+        { method: "GET" },
+    );
+};
+
+export const getCreditCardFeeProgress = async () => {
+    return fetcherBackEnd<ApiResponse<ICreditCardFeeProgress[]>>(
+        "/sources-of-money/credit-card-fees",
         { method: "GET" },
     );
 };

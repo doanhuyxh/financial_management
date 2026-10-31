@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DatePicker, Form, Input, Select, Switch } from "antd";
+import { Alert, DatePicker, Form, Input, Select, Switch } from "antd";
 import ResponsiveModal from "@/components/common/responsive-modal";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
+import CardPaymentFeeAlert from "@/components/common/card-payment-fee-alert";
 import TransferPairSuggestions from "@/components/features/transfers/components/transfer-pair-suggestions";
 import { formatMoney } from "@/components/features/transfers/utils";
 import { useGetCategories } from "@/libs/hooks/customHooks/useCategories";
@@ -21,6 +22,7 @@ import {
     type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import { groupSuggestedOptions } from "@/libs/utils/suggestionOptions";
+import { calcPercentFee } from "@/libs/utils/cardFee";
 
 type FormValues = {
     fromSourceId: string;
@@ -81,6 +83,7 @@ export default function TransferFormModalContent({
     const toSourceId = Form.useWatch("toSourceId", form);
     const amountWatch = Form.useWatch("amount", form);
     const feePercentWatch = Form.useWatch("feePercent", form);
+    const transferredAtWatch = Form.useWatch("transferredAt", form);
 
     const { data: categoriesData, isLoading: categoriesLoading } = useGetCategories({
         page: 1,
@@ -109,9 +112,12 @@ export default function TransferFormModalContent({
 
     const amount = Number(amountWatch) || 0;
     const feePercent = fromIsCredit ? Number(feePercentWatch) || 0 : 0;
+    // Giống server: phí rút tiền mặt tối thiểu của thẻ áp dụng khi có % phí
+    const cashAdvanceFeeMin = fromIsCredit ? fromSource?.creditDetails?.cashAdvanceFeeMin : undefined;
+    const interestRate = fromIsCredit ? fromSource?.creditDetails?.interestRate : undefined;
     const feeAmount =
         fromIsCredit && feePercent > 0
-            ? Math.round((amount * feePercent) / 100)
+            ? calcPercentFee(amount, feePercent, cashAdvanceFeeMin)
             : 0;
     const receiveAmount = fromIsCredit ? Math.max(0, amount - feeAmount) : amount;
 
@@ -190,11 +196,17 @@ export default function TransferFormModalContent({
         resetCreateForm(form);
     }, [open, form]);
 
+    // Đổi nguồn chuyển: thẻ có cấu hình phí rút tiền mặt thì điền sẵn %, người dùng vẫn sửa được
+    const cashAdvanceFeePercent = fromIsCredit
+        ? fromSource?.creditDetails?.cashAdvanceFeePercent
+        : undefined;
     useEffect(() => {
         if (!fromIsCredit) {
             form.setFieldsValue({ feePercent: 0, feeCategoryId: undefined });
+        } else if (cashAdvanceFeePercent != null) {
+            form.setFieldValue("feePercent", cashAdvanceFeePercent);
         }
-    }, [fromIsCredit, form]);
+    }, [fromIsCredit, fromSourceId, cashAdvanceFeePercent, form]);
 
     useEffect(() => {
         if (toIsCredit && fromIsCredit) {
@@ -414,6 +426,17 @@ export default function TransferFormModalContent({
                     <DebouncedNumberInput min={0} placeholder="0" delay={300} />
                 </Form.Item>
 
+                <CardPaymentFeeAlert source={toSource} date={transferredAtWatch} />
+
+                {fromIsCredit && !toIsCredit && interestRate != null ? (
+                    <Alert
+                        type="info"
+                        showIcon
+                        className="mb-4"
+                        message={`Rút tiền từ thẻ bị tính lãi ${interestRate}%/năm ngay từ ngày rút, đến khi trả hết`}
+                    />
+                ) : null}
+
                 {fromIsCredit && !toIsCredit ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
                         <Form.Item
@@ -421,7 +444,7 @@ export default function TransferFormModalContent({
                             label="% phí chuyển đổi"
                             extra={
                                 amount > 0
-                                    ? `Phí: ${formatMoney(feeAmount)} · Nhận thực tế: ${formatMoney(receiveAmount)}`
+                                    ? `Phí: ${formatMoney(feeAmount)}${cashAdvanceFeeMin && feePercent > 0 ? ` (tối thiểu ${formatMoney(cashAdvanceFeeMin)})` : ""} · Nhận thực tế: ${formatMoney(receiveAmount)}`
                                     : "Phí trừ vào số tiền nhận; dư nợ thẻ tăng đúng số tiền chuyển"
                             }
                         >

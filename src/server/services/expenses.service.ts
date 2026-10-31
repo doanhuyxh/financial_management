@@ -4,10 +4,16 @@ import ExpensesModel from "@/server/models/expenses.model";
 import CategoriesModel from "@/server/models/categories.model";
 import SourcesOfMoneyModel from "@/server/models/sources-of-money.model";
 import {
+    CardFeeType,
     type IFromExpensesData,
     type IPaginatedExpensesQuery,
 } from "@/libs/interfaces/expensesData";
-import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
+import {
+    FOREIGN_FEE_TYPE_LABELS,
+    ForeignFeeType,
+    SourcesOfMoneyType,
+} from "@/libs/interfaces/sourcesOfMoneyData";
+import { calcPercentFee, getForeignFeeConfig } from "@/libs/utils/cardFee";
 import { CategoryKind } from "@/libs/interfaces/categoriesData";
 import {
     errorResponseWithStatusCode,
@@ -36,7 +42,41 @@ function normalizePayload(data: IFromExpensesData) {
         throw new Error("Ngày chi không hợp lệ");
     }
 
-    return { categoryId, sourceOfMoneyId, amount, note, spentAt };
+    const cardFeeType = data.cardFeeType || undefined;
+    if (cardFeeType && !Object.values(CardFeeType).includes(cardFeeType)) {
+        throw new Error("Loại phí thẻ không hợp lệ");
+    }
+
+    return { categoryId, sourceOfMoneyId, amount, note, spentAt, cardFeeType };
+}
+
+/**
+ * Phí giao dịch quốc tế (chỉ khi tạo): tính theo cấu hình của thẻ, max(% × số tiền, tối thiểu).
+ * Trả null khi không chọn.
+ */
+function getForeignFee(
+    data: IFromExpensesData,
+    source: { type: SourcesOfMoneyType; creditDetails?: Parameters<typeof getForeignFeeConfig>[0] },
+    amount: number,
+    cardFeeType: CardFeeType | undefined,
+) {
+    const type = data.foreignFeeType || undefined;
+    if (!type) return null;
+    if (!Object.values(ForeignFeeType).includes(type)) {
+        throw new Error("Loại giao dịch quốc tế không hợp lệ");
+    }
+    if (cardFeeType) throw new Error("Khoản phí thẻ không thể kèm phí giao dịch quốc tế");
+    if (source.type !== SourcesOfMoneyType.CREDIT_CARD) {
+        throw new Error("Phí giao dịch quốc tế chỉ áp dụng cho thẻ tín dụng");
+    }
+    const config = getForeignFeeConfig(source.creditDetails, type);
+    if (!config) {
+        throw new Error(`Thẻ chưa cấu hình phí ${FOREIGN_FEE_TYPE_LABELS[type].toLowerCase()}`);
+    }
+    const feeAmount = calcPercentFee(amount, config.percent, config.min);
+    if (feeAmount <= 0) return null;
+    const rate = config.percent ? ` ${config.percent}%` : "";
+    return { feeAmount, label: `Phí ${FOREIGN_FEE_TYPE_LABELS[type].toLowerCase()}${rate}` };
 }
 
 /**
@@ -212,19 +252,26 @@ export class ExpensesService {
 
         try {
             const payload = normalizePayload(data);
-            await assertOwnedRefs(
+            const { source } = await assertOwnedRefs(
                 user.userId,
                 payload.categoryId,
                 payload.sourceOfMoneyId,
             );
+            if (payload.cardFeeType && source.type !== SourcesOfMoneyType.CREDIT_CARD) {
+                throw new Error("Phí thẻ chỉ ghi được trên thẻ tín dụng");
+            }
+            const foreignFee = getForeignFee(data, source, payload.amount, payload.cardFeeType);
+            // Trừ một lần cho cả khoản chi và phí để kiểm tra hạn mức cùng lúc
+            const totalAmount = payload.amount + (foreignFee?.feeAmount ?? 0);
 
             await adjustSourceBalance(
                 user.userId,
                 payload.sourceOfMoneyId,
-                payload.amount,
+                totalAmount,
                 "apply",
             );
 
+            let createdId: mongoose.Types.ObjectId | undefined;
             try {
                 const created = await ExpensesModel.create({
                     ...payload,
@@ -234,6 +281,21 @@ export class ExpensesService {
                         payload.sourceOfMoneyId,
                     ),
                 });
+                createdId = created._id as mongoose.Types.ObjectId;
+
+                if (foreignFee) {
+                    await ExpensesModel.create({
+                        userId: user.userId,
+                        categoryId: created.categoryId,
+                        sourceOfMoneyId: created.sourceOfMoneyId,
+                        amount: foreignFee.feeAmount,
+                        note: payload.note
+                            ? `${foreignFee.label} - ${payload.note}`
+                            : foreignFee.label,
+                        spentAt: payload.spentAt,
+                        cardFeeType: CardFeeType.FOREIGN_FEE,
+                    });
+                }
 
                 const populated = await getPopulatedExpense(
                     created._id.toString(),
@@ -241,10 +303,13 @@ export class ExpensesService {
                 );
                 return successResponse(populated, "Tạo chi tiêu thành công");
             } catch (createError) {
+                if (createdId) {
+                    await ExpensesModel.findOneAndDelete({ _id: createdId, userId: user.userId });
+                }
                 await adjustSourceBalance(
                     user.userId,
                     payload.sourceOfMoneyId,
-                    payload.amount,
+                    totalAmount,
                     "revert",
                 );
                 throw createError;
@@ -276,7 +341,7 @@ export class ExpensesService {
             const payload = normalizePayload(data);
             const oldSourceId = existing.sourceOfMoneyId.toString();
             const oldAmount = existing.amount;
-            const { sourceActive: newSourceActive } = await assertOwnedRefs(
+            const { source: newSource, sourceActive: newSourceActive } = await assertOwnedRefs(
                 user.userId,
                 payload.categoryId,
                 payload.sourceOfMoneyId,
@@ -323,17 +388,19 @@ export class ExpensesService {
             }
 
             try {
+                const $set = {
+                    categoryId: new mongoose.Types.ObjectId(payload.categoryId),
+                    sourceOfMoneyId: new mongoose.Types.ObjectId(payload.sourceOfMoneyId),
+                    amount: payload.amount,
+                    note: payload.note,
+                    spentAt: payload.spentAt,
+                };
+                // Giữ đánh dấu phí thẻ khi sửa; chuyển sang nguồn không phải thẻ thì bỏ
+                const dropCardFee =
+                    existing.cardFeeType && newSource.type !== SourcesOfMoneyType.CREDIT_CARD;
                 const updated = await ExpensesModel.findOneAndUpdate(
                     { _id: id, userId: user.userId },
-                    {
-                        categoryId: new mongoose.Types.ObjectId(payload.categoryId),
-                        sourceOfMoneyId: new mongoose.Types.ObjectId(
-                            payload.sourceOfMoneyId,
-                        ),
-                        amount: payload.amount,
-                        note: payload.note,
-                        spentAt: payload.spentAt,
-                    },
+                    dropCardFee ? { $set, $unset: { cardFeeType: 1 } } : { $set },
                     { returnDocument: "after" },
                 );
 
