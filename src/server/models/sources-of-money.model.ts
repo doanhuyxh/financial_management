@@ -1,6 +1,10 @@
 import { Schema, model, models, Document, Types } from "mongoose";
 import { modelUserName } from "./users.model";
-import { SourcesOfMoneyType, type IBankAccount } from "@/libs/interfaces/sourcesOfMoneyData";
+import {
+  AnnualFeeWaiverPeriod,
+  SourcesOfMoneyType,
+  type IBankAccount,
+} from "@/libs/interfaces/sourcesOfMoneyData";
 
 export interface ISourcesOfMoney extends Document {
   userId: Types.ObjectId;
@@ -17,6 +21,24 @@ export interface ISourcesOfMoney extends Document {
     annualFee?: number;      // Phí thường niên ước tính
     annualFeeDay?: number;   // Ngày thu phí thường niên (1 - 31)
     annualFeeMonth?: number; // Tháng thu phí thường niên (1 - 12)
+    annualFeeWaiverPeriod?: AnnualFeeWaiverPeriod; // Kỳ tính chi tiêu để miễn phí thường niên
+    annualFeeWaiverMinSpend?: number;              // Chi tiêu tối thiểu trong kỳ
+    managementFee?: number;                        // Phí quản lý ước tính mỗi tháng
+    managementFeeDay?: number;                     // Ngày thu phí quản lý (1 - 31)
+    managementFeeWaiverMinTransactions?: number;   // Số giao dịch tối thiểu/kỳ sao kê để miễn phí quản lý
+    managementFeeWaiverMinSpend?: number;          // Hoặc chi tiêu tối thiểu/kỳ sao kê để miễn phí quản lý
+    paymentFee?: number;                           // Phí mỗi lần trả nợ thẻ vượt số lần miễn phí
+    freePaymentsPerCycle?: number;                 // Số lần trả nợ miễn phí mỗi kỳ sao kê
+    interestRate?: number;                         // Lãi suất %/năm
+    cashAdvanceFeePercent?: number;                // Phí rút tiền mặt (%)
+    cashAdvanceFeeMin?: number;                    // Phí rút tiền mặt tối thiểu
+    foreignFxFeePercent?: number;                  // Phí giao dịch ngoại tệ (%)
+    foreignFxFeeMin?: number;
+    foreignVndFeePercent?: number;                 // Phí giao dịch VND tại ĐV nước ngoài (%)
+    foreignVndFeeMin?: number;
+    lateFeePercentPerDay?: number;                 // Phí chậm thanh toán (%/ngày)
+    lateFeeMin?: number;
+    lateFeeMax?: number;
   };
   // Tài khoản nhận tiền (chỉ loại BANK) để tạo mã VietQR
   bankAccount?: IBankAccount;
@@ -67,6 +89,24 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
       annualFee: { type: Number, min: 0 },
       annualFeeDay: { type: Number, min: 1, max: 31 },
       annualFeeMonth: { type: Number, min: 1, max: 12 },
+      annualFeeWaiverPeriod: { type: String, enum: Object.values(AnnualFeeWaiverPeriod) },
+      annualFeeWaiverMinSpend: { type: Number, min: 0 },
+      managementFee: { type: Number, min: 0 },
+      managementFeeDay: { type: Number, min: 1, max: 31 },
+      managementFeeWaiverMinTransactions: { type: Number, min: 1 },
+      managementFeeWaiverMinSpend: { type: Number, min: 0 },
+      paymentFee: { type: Number, min: 0 },
+      freePaymentsPerCycle: { type: Number, min: 0 },
+      interestRate: { type: Number, min: 0, max: 100 },
+      cashAdvanceFeePercent: { type: Number, min: 0, max: 100 },
+      cashAdvanceFeeMin: { type: Number, min: 0 },
+      foreignFxFeePercent: { type: Number, min: 0, max: 100 },
+      foreignFxFeeMin: { type: Number, min: 0 },
+      foreignVndFeePercent: { type: Number, min: 0, max: 100 },
+      foreignVndFeeMin: { type: Number, min: 0 },
+      lateFeePercentPerDay: { type: Number, min: 0, max: 100 },
+      lateFeeMin: { type: Number, min: 0 },
+      lateFeeMax: { type: Number, min: 0 },
     },
     bankAccount: {
       type: new Schema<IBankAccount>(

@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+import dayjs from "dayjs";
 import dbConnect from "@/server/connectDb";
 import SourcesOfMoneyModel from "@/server/models/sources-of-money.model";
 import ExpensesModel from "@/server/models/expenses.model";
@@ -7,6 +9,9 @@ import BalanceAdjustmentsModel from "@/server/models/balance-adjustments.model";
 import { BalanceAdjustmentField } from "@/libs/interfaces/balanceAdjustmentsData";
 import type { IDefaultQuery } from "@/libs/interfaces/DefaultQuery";
 import {
+    AnnualFeeWaiverPeriod,
+    type ICreditCardFeeProgress,
+    type ICreditDetails,
     IFromSourcesOfMoneyData,
     IPaginatedSourcesOfMoneyQuery,
     IReorderSourcesOfMoneyData,
@@ -24,6 +29,8 @@ import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
 import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 import { normalizeAccountName } from "@/libs/utils/vietQr";
+import { getNextAnnualDate } from "@/libs/utils/annualFeeDate";
+import { getStatementCycle } from "@/libs/utils/statementCycle";
 
 function normalizePayload(data: IFromSourcesOfMoneyData) {
     const name = data.name?.trim();
@@ -57,7 +64,7 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
         if (dueDate != null && (dueDate < 1 || dueDate > 31)) {
             throw new Error("Ngày đến hạn phải từ 1 đến 31");
         }
-        const annual = normalizeAnnualFee(data.creditDetails);
+        const fees = normalizeCardFees(data.creditDetails);
 
         return {
             name,
@@ -68,7 +75,9 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
                 currentDebt,
                 ...(statementDate != null ? { statementDate } : {}),
                 ...(dueDate != null ? { dueDate } : {}),
-                ...annual,
+                ...Object.fromEntries(
+                    Object.entries(fees).filter(([, value]) => value != null),
+                ),
             },
             bankAccount: undefined,
             metadata: data.metadata ?? {},
@@ -91,13 +100,74 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
     };
 }
 
-/** Phí thường niên chỉ là ước tính; ngày và tháng thu phí phải đi cùng nhau. */
-function normalizeAnnualFee(data: IFromSourcesOfMoneyData["creditDetails"]) {
-    const annualFee = data?.annualFee != null ? Number(data.annualFee) : undefined;
-    const annualFeeDay = data?.annualFeeDay != null ? Number(data.annualFeeDay) : undefined;
-    const annualFeeMonth = data?.annualFeeMonth != null ? Number(data.annualFeeMonth) : undefined;
+/** Tỷ lệ % (0–100, giữ 2 chữ số thập phân). */
+const CARD_RATE_KEYS = [
+    "interestRate",
+    "cashAdvanceFeePercent",
+    "foreignFxFeePercent",
+    "foreignVndFeePercent",
+    "lateFeePercentPerDay",
+] as const;
 
-    if (annualFee != null && !(Number.isFinite(annualFee) && annualFee >= 0)) {
+/** Số tiền ≥ 0, làm tròn. */
+const CARD_MONEY_KEYS = [
+    "cashAdvanceFeeMin",
+    "foreignFxFeeMin",
+    "foreignVndFeeMin",
+    "lateFeeMin",
+    "lateFeeMax",
+] as const;
+
+const CARD_RATE_LABELS: Record<(typeof CARD_RATE_KEYS)[number], string> = {
+    interestRate: "Lãi suất",
+    cashAdvanceFeePercent: "Phí rút tiền mặt",
+    foreignFxFeePercent: "Phí giao dịch ngoại tệ",
+    foreignVndFeePercent: "Phí giao dịch VND tại đơn vị nước ngoài",
+    lateFeePercentPerDay: "Phí chậm thanh toán",
+};
+
+const CARD_FEE_KEYS = [
+    "annualFee",
+    "annualFeeDay",
+    "annualFeeMonth",
+    "annualFeeWaiverPeriod",
+    "annualFeeWaiverMinSpend",
+    "managementFee",
+    "managementFeeDay",
+    "managementFeeWaiverMinTransactions",
+    "managementFeeWaiverMinSpend",
+    "paymentFee",
+    "freePaymentsPerCycle",
+    ...CARD_RATE_KEYS,
+    ...CARD_MONEY_KEYS,
+] as const;
+
+function optionalNumber(value: unknown) {
+    if (value == null || value === "") return undefined;
+    return Number(value);
+}
+
+/**
+ * Phí thẻ chỉ là ước tính. Ngày và tháng thu phí thường niên đi cùng nhau;
+ * kỳ và mức chi tiêu tối thiểu để miễn phí thường niên cũng vậy.
+ */
+function normalizeCardFees(data: IFromSourcesOfMoneyData["creditDetails"]) {
+    const annualFee = optionalNumber(data?.annualFee);
+    const annualFeeDay = optionalNumber(data?.annualFeeDay);
+    const annualFeeMonth = optionalNumber(data?.annualFeeMonth);
+    const annualFeeWaiverPeriod = data?.annualFeeWaiverPeriod || undefined;
+    const annualFeeWaiverMinSpend = optionalNumber(data?.annualFeeWaiverMinSpend);
+    const managementFee = optionalNumber(data?.managementFee);
+    const managementFeeDay = optionalNumber(data?.managementFeeDay);
+    const managementFeeWaiverMinTransactions = optionalNumber(
+        data?.managementFeeWaiverMinTransactions,
+    );
+    const managementFeeWaiverMinSpend = optionalNumber(data?.managementFeeWaiverMinSpend);
+    const paymentFee = optionalNumber(data?.paymentFee);
+    const freePaymentsPerCycle = optionalNumber(data?.freePaymentsPerCycle);
+
+    const isMoney = (value: number) => Number.isFinite(value) && value >= 0;
+    if (annualFee != null && !isMoney(annualFee)) {
         throw new Error("Phí thường niên phải >= 0");
     }
     if ((annualFeeDay == null) !== (annualFeeMonth == null)) {
@@ -113,10 +183,98 @@ function normalizeAnnualFee(data: IFromSourcesOfMoneyData["creditDetails"]) {
             throw new Error("Ngày thu phí thường niên không hợp lệ");
         }
     }
+    if (
+        annualFeeWaiverPeriod != null &&
+        !Object.values(AnnualFeeWaiverPeriod).includes(annualFeeWaiverPeriod)
+    ) {
+        throw new Error("Kỳ miễn phí thường niên không hợp lệ");
+    }
+    if ((annualFeeWaiverPeriod == null) !== (annualFeeWaiverMinSpend == null)) {
+        throw new Error("Cần nhập đủ kỳ và mức chi tiêu tối thiểu để miễn phí thường niên");
+    }
+    if (
+        annualFeeWaiverMinSpend != null &&
+        !(Number.isFinite(annualFeeWaiverMinSpend) && annualFeeWaiverMinSpend > 0)
+    ) {
+        throw new Error("Chi tiêu tối thiểu để miễn phí thường niên phải > 0");
+    }
+    if (managementFee != null && !isMoney(managementFee)) {
+        throw new Error("Phí quản lý phải >= 0");
+    }
+    if (
+        managementFeeDay != null &&
+        (!Number.isInteger(managementFeeDay) || managementFeeDay < 1 || managementFeeDay > 31)
+    ) {
+        throw new Error("Ngày thu phí quản lý phải từ 1 đến 31");
+    }
+    if (
+        managementFeeWaiverMinTransactions != null &&
+        (!Number.isInteger(managementFeeWaiverMinTransactions) ||
+            managementFeeWaiverMinTransactions < 1)
+    ) {
+        throw new Error("Số giao dịch tối thiểu để miễn phí quản lý phải là số nguyên >= 1");
+    }
+    if (
+        managementFeeWaiverMinSpend != null &&
+        !(Number.isFinite(managementFeeWaiverMinSpend) && managementFeeWaiverMinSpend > 0)
+    ) {
+        throw new Error("Chi tiêu tối thiểu để miễn phí quản lý phải > 0");
+    }
+    if (paymentFee != null && !isMoney(paymentFee)) {
+        throw new Error("Phí thanh toán dư nợ phải >= 0");
+    }
+    if (
+        freePaymentsPerCycle != null &&
+        (!Number.isInteger(freePaymentsPerCycle) || freePaymentsPerCycle < 0)
+    ) {
+        throw new Error("Số lần trả nợ miễn phí phải là số nguyên >= 0");
+    }
+    if (freePaymentsPerCycle != null && paymentFee == null) {
+        throw new Error("Cần nhập phí thanh toán dư nợ khi đặt số lần miễn phí");
+    }
+
+    const rates: Partial<Record<(typeof CARD_RATE_KEYS)[number], number>> = {};
+    for (const key of CARD_RATE_KEYS) {
+        const value = optionalNumber(data?.[key]);
+        if (value == null) continue;
+        if (!Number.isFinite(value) || value < 0 || value > 100) {
+            throw new Error(`${CARD_RATE_LABELS[key]} phải từ 0 đến 100%`);
+        }
+        rates[key] = Math.round(value * 100) / 100;
+    }
+    const minimums: Partial<Record<(typeof CARD_MONEY_KEYS)[number], number>> = {};
+    for (const key of CARD_MONEY_KEYS) {
+        const value = optionalNumber(data?.[key]);
+        if (value == null) continue;
+        if (!isMoney(value)) throw new Error("Phí tối thiểu/tối đa phải >= 0");
+        minimums[key] = Math.round(value);
+    }
+    if (
+        minimums.lateFeeMin != null &&
+        minimums.lateFeeMax != null &&
+        minimums.lateFeeMin > minimums.lateFeeMax
+    ) {
+        throw new Error("Phí chậm thanh toán tối thiểu không được lớn hơn tối đa");
+    }
 
     return {
-        ...(annualFee != null ? { annualFee: Math.round(annualFee) } : {}),
-        ...(annualFeeDay != null ? { annualFeeDay, annualFeeMonth } : {}),
+        annualFee: annualFee != null ? Math.round(annualFee) : undefined,
+        annualFeeDay,
+        annualFeeMonth,
+        annualFeeWaiverPeriod,
+        annualFeeWaiverMinSpend:
+            annualFeeWaiverMinSpend != null ? Math.round(annualFeeWaiverMinSpend) : undefined,
+        managementFee: managementFee != null ? Math.round(managementFee) : undefined,
+        managementFeeDay,
+        managementFeeWaiverMinTransactions,
+        managementFeeWaiverMinSpend:
+            managementFeeWaiverMinSpend != null
+                ? Math.round(managementFeeWaiverMinSpend)
+                : undefined,
+        paymentFee: paymentFee != null ? Math.round(paymentFee) : undefined,
+        freePaymentsPerCycle,
+        ...rates,
+        ...minimums,
     };
 }
 
@@ -157,6 +315,17 @@ async function hasTransactions(userId: string, sourceId: string) {
 }
 
 const ADJUSTMENT_NOTE_MAX = 200;
+const TIMEZONE = "Asia/Ho_Chi_Minh";
+
+/** Hôm nay theo giờ VN dạng YYYY-MM-DD, không phụ thuộc TZ của server. */
+function getTodayInVietnam() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: TIMEZONE }).format(new Date());
+}
+
+/** 00:00 giờ VN của ngày YYYY-MM-DD. */
+function startOfVietnamDay(date: string) {
+    return new Date(`${date}T00:00:00.000+07:00`);
+}
 
 type ExistingSource = {
     type: SourcesOfMoneyType;
@@ -332,8 +501,8 @@ export class SourcesOfMoneyService {
                 else $unset["creditDetails.statementDate"] = 1;
                 if (dueDate != null) $set["creditDetails.dueDate"] = dueDate;
                 else $unset["creditDetails.dueDate"] = 1;
-                for (const key of ["annualFee", "annualFeeDay", "annualFeeMonth"] as const) {
-                    const value = payload.creditDetails[key];
+                for (const key of CARD_FEE_KEYS) {
+                    const value = (payload.creditDetails as Partial<ICreditDetails>)[key];
                     if (value != null) $set[`creditDetails.${key}`] = value;
                     else $unset[`creditDetails.${key}`] = 1;
                 }
@@ -398,6 +567,114 @@ export class SourcesOfMoneyService {
                 error instanceof Error ? error.message : "Cập nhật nguồn tiền thất bại";
             return errorResponseWithStatusCode(message, 400);
         }
+    }
+
+    /**
+     * Tiến độ điều kiện miễn phí của các thẻ có cấu hình miễn phí hoặc phí thanh toán: chi tiêu,
+     * số giao dịch và số lần trả nợ trong kỳ sao kê hiện tại (`getStatementCycle`), chi tiêu trong năm thẻ (12 tháng trước lần thu phí thường niên kế tiếp;
+     * thẻ chưa đặt ngày thu thì tính theo năm dương lịch). Không tính phí chuyển tiền
+     * (`skipBalanceAdjust`) và các khoản phí thẻ (`cardFeeType`).
+     */
+    static async getCreditCardFeeProgress() {
+        await dbConnect();
+        const user = await getCurrentUser();
+        if (!user?.userId) {
+            return unauthorizedResponse();
+        }
+
+        const cards = await SourcesOfMoneyModel.find({
+            userId: user.userId,
+            type: SourcesOfMoneyType.CREDIT_CARD,
+            ...NOT_ARCHIVED,
+            $or: [
+                { "creditDetails.annualFeeWaiverPeriod": { $exists: true } },
+                { "creditDetails.managementFeeWaiverMinTransactions": { $exists: true } },
+                { "creditDetails.managementFeeWaiverMinSpend": { $exists: true } },
+                { "creditDetails.paymentFee": { $exists: true } },
+            ],
+        })
+            .select("creditDetails")
+            .lean<{ _id: mongoose.Types.ObjectId; creditDetails?: ICreditDetails }[]>();
+
+        const today = dayjs(getTodayInVietnam());
+        const userObjectId = new mongoose.Types.ObjectId(user.userId);
+        const toVietnamDay = (date: dayjs.Dayjs) => startOfVietnamDay(date.format("YYYY-MM-DD"));
+
+        const items: ICreditCardFeeProgress[] = await Promise.all(
+            cards.map(async (card) => {
+                const { annualFeeDay, annualFeeMonth, statementDate } = card.creditDetails ?? {};
+                let yearStart = startOfVietnamDay(`${today.year()}-01-01`);
+                let yearEnd = startOfVietnamDay(`${today.year() + 1}-01-01`);
+                if (annualFeeDay && annualFeeMonth) {
+                    const nextFee = getNextAnnualDate(annualFeeDay, annualFeeMonth, today);
+                    yearEnd = toVietnamDay(nextFee);
+                    yearStart = toVietnamDay(nextFee.subtract(1, "year"));
+                }
+                const cycle = getStatementCycle(statementDate, today);
+                const cycleStart = toVietnamDay(cycle.start);
+                const cycleEnd = toVietnamDay(cycle.end);
+
+                const inCycle = {
+                    $and: [{ $gte: ["$spentAt", cycleStart] }, { $lt: ["$spentAt", cycleEnd] }],
+                };
+                const inYear = {
+                    $and: [{ $gte: ["$spentAt", yearStart] }, { $lt: ["$spentAt", yearEnd] }],
+                };
+                const [[row], transferPayments, incomePayments] = await Promise.all([
+                    ExpensesModel.aggregate<{
+                        cycleSpend: number;
+                        cycleTransactions: number;
+                        yearSpend: number;
+                    }>([
+                        {
+                            $match: {
+                                userId: userObjectId,
+                                sourceOfMoneyId: card._id,
+                                skipBalanceAdjust: { $ne: true },
+                                cardFeeType: null,
+                                spentAt: {
+                                    $gte: cycleStart < yearStart ? cycleStart : yearStart,
+                                    $lt: cycleEnd > yearEnd ? cycleEnd : yearEnd,
+                                },
+                            },
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                cycleSpend: { $sum: { $cond: [inCycle, "$amount", 0] } },
+                                cycleTransactions: { $sum: { $cond: [inCycle, 1, 0] } },
+                                yearSpend: { $sum: { $cond: [inYear, "$amount", 0] } },
+                            },
+                        },
+                    ]),
+                    // Trả nợ thẻ = chuyển tiền vào thẻ hoặc thu nhập vào thẻ
+                    TransfersModel.countDocuments({
+                        userId: user.userId,
+                        toSourceId: card._id,
+                        transferredAt: { $gte: cycleStart, $lt: cycleEnd },
+                    }),
+                    IncomesModel.countDocuments({
+                        userId: user.userId,
+                        sourceOfMoneyId: card._id,
+                        receivedAt: { $gte: cycleStart, $lt: cycleEnd },
+                    }),
+                ]);
+
+                return {
+                    sourceOfMoneyId: card._id.toString(),
+                    cycleStart: cycleStart.toISOString(),
+                    cycleEnd: cycleEnd.toISOString(),
+                    cycleSpend: row?.cycleSpend ?? 0,
+                    cycleTransactions: row?.cycleTransactions ?? 0,
+                    cyclePayments: transferPayments + incomePayments,
+                    yearSpend: row?.yearSpend ?? 0,
+                    yearStart: yearStart.toISOString(),
+                    yearEnd: yearEnd.toISOString(),
+                };
+            }),
+        );
+
+        return successResponse(items);
     }
 
     static async reorderSourcesOfMoney(data: IReorderSourcesOfMoneyData) {

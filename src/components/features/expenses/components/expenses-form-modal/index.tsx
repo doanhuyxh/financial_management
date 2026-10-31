@@ -21,11 +21,14 @@ import { useGetExpenseSuggestions } from "@/libs/hooks/customHooks/useExpenses";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import type { IFromExpensesData } from "@/libs/interfaces/expensesData";
 import {
+    FOREIGN_FEE_TYPE_LABELS,
+    ForeignFeeType,
     SOURCES_OF_MONEY_TYPE_LABELS,
     SourcesOfMoneyType,
     type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import { groupSuggestedOptions } from "@/libs/utils/suggestionOptions";
+import { calcPercentFee, getForeignFeeConfig } from "@/libs/utils/cardFee";
 
 type FormValues = {
     categoryId: string;
@@ -33,6 +36,7 @@ type FormValues = {
     amount: string | number | null;
     note?: string;
     spentAt: dayjs.Dayjs;
+    foreignFeeType?: ForeignFeeType | null;
 };
 
 function getSourceRemaining(source?: ISourcesOfMoneyData | null) {
@@ -63,6 +67,7 @@ export default function ExpensesFormModal() {
     const selectedSourceId = Form.useWatch("sourceOfMoneyId", form);
     const selectedCategoryId = Form.useWatch("categoryId", form);
     const amountWatch = Form.useWatch("amount", form);
+    const foreignFeeTypeWatch = Form.useWatch("foreignFeeType", form);
     const isEdit = Boolean(editingItem?._id);
 
     const { data: categoriesData, isLoading: categoriesLoading } = useGetCategories({
@@ -95,6 +100,37 @@ export default function ExpensesFormModal() {
         return base;
     }, [selectedSource, editingItem, selectedSourceId]);
 
+
+    // Phí giao dịch quốc tế: chỉ khi tạo, trên thẻ có cấu hình phí loại đó
+    const foreignFeeOptions = useMemo(() => {
+        if (isEdit || selectedSource?.type !== SourcesOfMoneyType.CREDIT_CARD) return [];
+        return Object.values(ForeignFeeType).flatMap((type) => {
+            const config = getForeignFeeConfig(selectedSource.creditDetails, type);
+            if (!config) return [];
+            const parts = [
+                config.percent ? `${config.percent}%` : null,
+                config.min ? `tối thiểu ${formatMoney(config.min)}` : null,
+            ].filter(Boolean);
+            return [{ value: type, label: `${FOREIGN_FEE_TYPE_LABELS[type]} (${parts.join(", ")})` }];
+        });
+    }, [isEdit, selectedSource]);
+    const foreignFeeConfig =
+        foreignFeeTypeWatch && selectedSource
+            ? getForeignFeeConfig(selectedSource.creditDetails, foreignFeeTypeWatch)
+            : null;
+    const foreignFeeAmount = foreignFeeConfig
+        ? calcPercentFee(Number(amountWatch) || 0, foreignFeeConfig.percent, foreignFeeConfig.min)
+        : 0;
+
+    // Đổi sang nguồn không có loại phí đang chọn thì bỏ chọn
+    useEffect(() => {
+        if (
+            foreignFeeTypeWatch &&
+            !foreignFeeOptions.some((option) => option.value === foreignFeeTypeWatch)
+        ) {
+            form.setFieldValue("foreignFeeType", null);
+        }
+    }, [foreignFeeTypeWatch, foreignFeeOptions, form]);
 
     const categoryOptions = groupSuggestedOptions(
         appendCurrentOption(
@@ -180,12 +216,22 @@ export default function ExpensesFormModal() {
             note: values.note?.trim() || "",
             spentAt: values.spentAt.toISOString(),
         };
+        // Chỉ đánh dấu phí thẻ khi vẫn ghi trên đúng thẻ được mở từ dashboard
+        if (
+            !isEdit &&
+            createDefaults?.cardFeeType &&
+            values.sourceOfMoneyId === createDefaults.sourceOfMoneyId
+        ) {
+            payload.cardFeeType = createDefaults.cardFeeType;
+        } else if (!isEdit && values.foreignFeeType) {
+            payload.foreignFeeType = values.foreignFeeType;
+        }
 
         const shouldKeepOpen = !isEdit && keepCreating;
         const success = await handleSubmit(payload, { keepOpen: shouldKeepOpen });
         if (success && shouldKeepOpen) {
             // Giữ lại ngày đã chọn để nhập nhanh nhiều khoản trong cùng ngày
-            form.resetFields(["categoryId", "sourceOfMoneyId", "amount", "note"]);
+            form.resetFields(["categoryId", "sourceOfMoneyId", "amount", "note", "foreignFeeType"]);
             form.setFieldsValue({ amount: "", note: "" });
         }
     };
@@ -281,6 +327,20 @@ export default function ExpensesFormModal() {
                 >
                     <DebouncedNumberInput min={0} placeholder="0" delay={300} />
                 </Form.Item>
+
+                {foreignFeeOptions.length > 0 && !createDefaults?.cardFeeType ? (
+                    <Form.Item
+                        name="foreignFeeType"
+                        label="Giao dịch quốc tế"
+                        extra={
+                            foreignFeeAmount > 0
+                                ? `Ghi thêm khoản phí ~${formatMoney(foreignFeeAmount)} trên thẻ (cùng danh mục)`
+                                : "Chọn nếu thanh toán bằng ngoại tệ hoặc tại đơn vị nước ngoài"
+                        }
+                    >
+                        <Select allowClear placeholder="Không" options={foreignFeeOptions} />
+                    </Form.Item>
+                ) : null}
 
                 <Form.Item name="note" label="Ghi chú">
                     <Input.TextArea

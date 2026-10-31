@@ -7,13 +7,17 @@ import {
     useGetDashboardCashflow,
     useGetDashboardExpensesSummary,
 } from "@/libs/hooks/customHooks/useDashboard";
-import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
+import {
+    useGetCreditCardFeeProgress,
+    useGetSourcesOfMoney,
+} from "@/libs/hooks/customHooks/useSourcesOfMoney";
+import { CardFeeType } from "@/libs/interfaces/expensesData";
 import { MENU_KEY } from "@/libs/constants/menuKey";
 import {
-    buildAnnualFees,
     buildAssetsSummary,
     buildCreditCardDebts,
-    type IAnnualFeeItem,
+    buildCreditCardFees,
+    type ICreditCardFeeItem,
 } from "@/components/features/dashboard/utils";
 import type { IDashboardContextProps } from "./type";
 
@@ -53,7 +57,12 @@ export default function DashboardContextProvider({
     const sources = sourcesData?.data?.items;
 
     const creditCardDebts = useMemo(() => buildCreditCardDebts(sources ?? []), [sources]);
-    const annualFees = useMemo(() => buildAnnualFees(sources ?? []), [sources]);
+    const { data: feeProgressData } = useGetCreditCardFeeProgress();
+    const feeProgress = feeProgressData?.data;
+    const creditCardFees = useMemo(
+        () => buildCreditCardFees(sources ?? [], feeProgress ?? []),
+        [sources, feeProgress],
+    );
     const assets = useMemo(() => buildAssetsSummary(sources ?? []), [sources]);
     const totalCreditDebt = useMemo(
         () => creditCardDebts.reduce((sum, item) => sum + item.currentDebt, 0),
@@ -68,15 +77,49 @@ export default function DashboardContextProvider({
         router.push(`${MENU_KEY.EXPENSES}?action=create`);
     }, [router]);
 
-    // Phí thực tế có thể khác ước tính: mở form chi tiêu điền sẵn để người dùng sửa số rồi lưu
-    const handleRecordAnnualFee = useCallback(
-        (item: IAnnualFeeItem) => {
+    // Phí thực tế có thể khác ước tính: mở form chi tiêu điền sẵn để người dùng sửa số rồi lưu.
+    // Khoản chi được đánh dấu phí thẻ nên không tính vào điều kiện miễn phí.
+    const handleRecordCardFee = useCallback(
+        (item: ICreditCardFeeItem, feeType: CardFeeType) => {
+            const cycle = `kỳ ${item.cycleStart.format("DD/MM")} – ${item.cycleEnd
+                .subtract(1, "day")
+                .format("DD/MM/YYYY")}`;
+            const byType: Record<CardFeeType, { label: string; period: string; amount?: number | null }> = {
+                [CardFeeType.ANNUAL_FEE]: {
+                    label: "Phí thường niên",
+                    period: String((item.nextAnnualFeeDate ?? dayjs()).year()),
+                    amount: item.annualFee,
+                },
+                [CardFeeType.MANAGEMENT_FEE]: {
+                    label: "Phí quản lý",
+                    period: cycle,
+                    amount: item.managementFee,
+                },
+                [CardFeeType.PAYMENT_FEE]: {
+                    label: "Phí thanh toán dư nợ",
+                    period: cycle,
+                    amount: item.paymentFee?.estimatedTotal,
+                },
+                [CardFeeType.FOREIGN_FEE]: { label: "Phí giao dịch quốc tế", period: cycle },
+                [CardFeeType.INTEREST]: {
+                    label: "Lãi thẻ",
+                    period: cycle,
+                    amount: item.latePenalty?.estimatedMonthlyInterest,
+                },
+                [CardFeeType.LATE_FEE]: {
+                    label: "Phí chậm thanh toán",
+                    period: cycle,
+                    amount: item.latePenalty?.lateFeeMin,
+                },
+            };
+            const { label, period, amount } = byType[feeType];
             const params = new URLSearchParams({
                 action: "create",
                 sourceOfMoneyId: item._id,
-                note: `Phí thường niên ${item.name} ${item.nextFeeDate.year()}`,
+                cardFeeType: feeType,
+                note: `${label} ${item.name} ${period}`,
             });
-            if (item.annualFee) params.set("amount", String(item.annualFee));
+            if (amount) params.set("amount", String(amount));
             router.push(`${MENU_KEY.EXPENSES}?${params.toString()}`);
         },
         [router],
@@ -103,12 +146,12 @@ export default function DashboardContextProvider({
                 isCashflowInitialLoading || (isCashflowFetching && isCashflowPlaceholder),
             creditCardDebts,
             totalCreditDebt,
-            annualFees,
+            creditCardFees,
             assets,
             isSourcesLoading,
             handleChangeMonth,
             handleCreateExpense,
-            handleRecordAnnualFee,
+            handleRecordCardFee,
             handleViewDay,
         }),
         [
@@ -123,12 +166,12 @@ export default function DashboardContextProvider({
             isCashflowPlaceholder,
             creditCardDebts,
             totalCreditDebt,
-            annualFees,
+            creditCardFees,
             assets,
             isSourcesLoading,
             handleChangeMonth,
             handleCreateExpense,
-            handleRecordAnnualFee,
+            handleRecordCardFee,
             handleViewDay,
         ],
     );

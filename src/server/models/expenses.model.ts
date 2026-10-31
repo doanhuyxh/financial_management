@@ -2,6 +2,7 @@ import { Schema, model, models, type Document, type Types } from "mongoose";
 import { modelUserName } from "./users.model";
 import { modelCategoriesName } from "./categories.model";
 import { modelSourcesOfMoneyName } from "./sources-of-money.model";
+import { CardFeeType } from "@/libs/interfaces/expensesData";
 
 export interface IExpense extends Document {
     userId: Types.ObjectId;
@@ -12,6 +13,8 @@ export interface IExpense extends Document {
     spentAt: Date;
     /** Phí chuyển tiền từ thẻ: chỉ ghi nhận, không điều chỉnh số dư/dư nợ */
     skipBalanceAdjust?: boolean;
+    /** Phí thường niên/quản lý của thẻ: không tính vào điều kiện miễn phí */
+    cardFeeType?: CardFeeType;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -55,6 +58,10 @@ const expensesSchema = new Schema<IExpense>(
         skipBalanceAdjust: {
             type: Boolean,
             default: false,
+        },
+        cardFeeType: {
+            type: String,
+            enum: Object.values(CardFeeType),
         },
     },
     { timestamps: true },

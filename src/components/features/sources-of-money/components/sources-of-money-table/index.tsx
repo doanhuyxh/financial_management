@@ -8,6 +8,7 @@ import type { ColumnsType } from "antd/es/table";
 import { History, Pencil, QrCode, Trash2 } from "lucide-react";
 import SortableTable from "@/components/common/sortable-table";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
+import CardFeeDetails from "@/components/features/sources-of-money/components/sources-of-money-table/components/card-fee-details";
 import {
     SOURCES_OF_MONEY_TYPE_LABELS,
     SourcesOfMoneyType,
@@ -21,17 +22,6 @@ const TYPE_COLORS: Record<SourcesOfMoneyType, string> = {
     [SourcesOfMoneyType.E_WALLET]: "cyan",
     [SourcesOfMoneyType.OTHER]: "default",
 };
-
-function getAnnualFeeText(record: ISourcesOfMoneyData) {
-    const { annualFee, annualFeeDay, annualFeeMonth } = record.creditDetails ?? {};
-    const parts: string[] = [];
-    if (annualFee != null) parts.push(`~${formatMoney(annualFee)}`);
-    if (annualFeeDay && annualFeeMonth) {
-        const pad = (value: number) => String(value).padStart(2, "0");
-        parts.push(`thu ngày ${pad(annualFeeDay)}/${pad(annualFeeMonth)}`);
-    }
-    return parts.length > 0 ? `Phí thường niên: ${parts.join(" · ")}` : null;
-}
 
 export default function SourcesOfMoneyTable() {
     const {
@@ -90,7 +80,6 @@ export default function SourcesOfMoneyTable() {
                         const debt = record.creditDetails?.currentDebt ?? 0;
                         const available =
                             record.availableCreditLimit ?? Math.max(0, limit - debt);
-                        const annualFeeText = getAnnualFeeText(record);
                         return (
                             <div className="text-sm leading-5">
                                 <div className="font-semibold text-orange-500">
@@ -100,11 +89,7 @@ export default function SourcesOfMoneyTable() {
                                     Hạn mức: {formatMoney(limit)} · Còn lại:{" "}
                                     {formatMoney(available)}
                                 </div>
-                                {annualFeeText ? (
-                                    <div className="text-xs text-blue-500">
-                                        {annualFeeText}
-                                    </div>
-                                ) : null}
+                                <CardFeeDetails record={record} />
                             </div>
                         );
                     }

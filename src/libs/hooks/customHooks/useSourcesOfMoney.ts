@@ -11,6 +11,7 @@ import {
     createSourcesOfMoney,
     getBalanceAdjustments,
     deleteSourcesOfMoney,
+    getCreditCardFeeProgress,
     getSourcesOfMoney,
     reorderSourcesOfMoney,
     updateSourcesOfMoney,
@@ -33,6 +34,18 @@ export const useGetBalanceAdjustments = (sourceId: string | null, page: number, 
         queryFn: () => getBalanceAdjustments(sourceId as string, { page, limit }),
         enabled: Boolean(sourceId),
         placeholderData: keepPreviousData,
+    });
+};
+
+/**
+ * Key nằm dưới SOURCES_OF_MONEY: sửa thẻ và mọi mutation chi tiêu (vốn invalidate
+ * SOURCES_OF_MONEY) đều làm mới tiến độ miễn phí.
+ */
+export const useGetCreditCardFeeProgress = () => {
+    return useQuery({
+        queryKey: [configQueryKey.SOURCES_OF_MONEY, "credit-card-fees"],
+        queryFn: () => getCreditCardFeeProgress(),
+        staleTime: QUERY_STALE_TIME.TRANSACTION,
     });
 };
 

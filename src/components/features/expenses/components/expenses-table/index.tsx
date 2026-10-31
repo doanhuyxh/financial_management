@@ -66,7 +66,7 @@ export default function ExpensesTable() {
                 render: (_value, record) => (
                     <div className="flex flex-col gap-0.5">
                         <span>{getExpenseCategory(record)?.name ?? "—"}</span>
-                        {record.skipBalanceAdjust && <FeeTag />}
+                        <FeeTag record={record} />
                     </div>
                 ),
             },
@@ -150,7 +150,7 @@ export default function ExpensesTable() {
                             <div className="flex items-start justify-between gap-3">
                                 <span className="flex flex-wrap items-center gap-1 font-semibold">
                                     {getExpenseCategory(record)?.name ?? "—"}
-                                    {record.skipBalanceAdjust && <FeeTag />}
+                                    <FeeTag record={record} />
                                 </span>
                                 <span className="font-semibold text-rose-600">
                                     {formatMoney(record.amount)}

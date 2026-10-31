@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { Avatar, DatePicker, Form, Input, Select } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { Avatar, Form, Input, Select } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import ResponsiveModal from "@/components/common/responsive-modal";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
@@ -13,64 +13,20 @@ import {
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 import { useVietQrBanks } from "@/libs/hooks/customHooks/useVietQrBanks";
-
-type FormValues = {
-    name: string;
-    type: SourcesOfMoneyType;
-    balance?: string | number | null;
-    creditLimit?: string | number | null;
-    currentDebt?: string | number | null;
-    statementDate?: string | number | null;
-    dueDate?: string | number | null;
-    annualFee?: string | number | null;
-    annualFeeDate?: Dayjs | null;
-    adjustmentNote?: string;
-    bankBin?: string;
-    accountNumber?: string;
-    accountName?: string;
-};
+import CreditCardFields from "@/components/features/sources-of-money/components/sources-of-money-form-modal/components/credit-card-fields";
+import {
+    getSectionsWithErrors,
+    numberMinRule,
+    RATE_FEE_FIELDS,
+    toNumber,
+    type CardFeeSectionKey,
+    type FormValues,
+} from "@/components/features/sources-of-money/components/sources-of-money-form-modal/utils";
 
 const typeOptions = Object.values(SourcesOfMoneyType).map((type) => ({
     value: type,
     label: SOURCES_OF_MONEY_TYPE_LABELS[type],
 }));
-
-/** DebouncedNumberInput uses stringMode — coerce before validate/submit. */
-function toNumber(value: string | number | null | undefined): number | undefined {
-    if (value === undefined || value === null || value === "") return undefined;
-    const num = typeof value === "number" ? value : Number(String(value).replace(/,/g, ""));
-    return Number.isFinite(num) ? num : undefined;
-}
-
-function numberMinRule(min: number, message: string) {
-    return {
-        validator(_: unknown, value: string | number | null | undefined) {
-            if (value === undefined || value === null || value === "") {
-                return Promise.resolve();
-            }
-            const num = toNumber(value);
-            if (num === undefined || num < min) {
-                return Promise.reject(new Error(message));
-            }
-            return Promise.resolve();
-        },
-    };
-}
-
-function numberRangeRule(min: number, max: number, message: string) {
-    return {
-        validator(_: unknown, value: string | number | null | undefined) {
-            if (value === undefined || value === null || value === "") {
-                return Promise.resolve();
-            }
-            const num = toNumber(value);
-            if (num === undefined || num < min || num > max) {
-                return Promise.reject(new Error(message));
-            }
-            return Promise.resolve();
-        },
-    };
-}
 
 /** Ngày thu phí chỉ có ngày/tháng; dùng năm nhuận để hiển thị được 29/02. */
 function toAnnualFeeDate(day?: number, month?: number): Dayjs | null {
@@ -88,6 +44,7 @@ export default function SourcesOfMoneyFormModal() {
     const isCreditCard = selectedType === SourcesOfMoneyType.CREDIT_CARD;
     const balanceWatch = Form.useWatch("balance", form);
     const currentDebtWatch = Form.useWatch("currentDebt", form);
+    const [activeFeeSections, setActiveFeeSections] = useState<CardFeeSectionKey[]>([]);
     const isBank = selectedType === SourcesOfMoneyType.BANK;
     const bankBinWatch = Form.useWatch("bankBin", form);
     const accountNumberWatch = Form.useWatch("accountNumber", form);
@@ -127,6 +84,7 @@ export default function SourcesOfMoneyFormModal() {
 
     useEffect(() => {
         if (!modalOpen) return;
+        setActiveFeeSections([]);
 
         if (editingItem) {
             form.setFieldsValue({
@@ -141,6 +99,18 @@ export default function SourcesOfMoneyFormModal() {
                 annualFeeDate: toAnnualFeeDate(
                     editingItem.creditDetails?.annualFeeDay,
                     editingItem.creditDetails?.annualFeeMonth,
+                ),
+                annualFeeWaiverPeriod: editingItem.creditDetails?.annualFeeWaiverPeriod,
+                annualFeeWaiverMinSpend: editingItem.creditDetails?.annualFeeWaiverMinSpend,
+                managementFee: editingItem.creditDetails?.managementFee,
+                managementFeeDay: editingItem.creditDetails?.managementFeeDay,
+                managementFeeWaiverMinTransactions:
+                    editingItem.creditDetails?.managementFeeWaiverMinTransactions,
+                managementFeeWaiverMinSpend: editingItem.creditDetails?.managementFeeWaiverMinSpend,
+                paymentFee: editingItem.creditDetails?.paymentFee,
+                freePaymentsPerCycle: editingItem.creditDetails?.freePaymentsPerCycle,
+                ...Object.fromEntries(
+                    RATE_FEE_FIELDS.map(({ name }) => [name, editingItem.creditDetails?.[name]]),
                 ),
                 bankBin: editingItem.bankAccount?.bin,
                 accountNumber: editingItem.bankAccount?.accountNumber,
@@ -158,7 +128,19 @@ export default function SourcesOfMoneyFormModal() {
     }, [modalOpen, editingItem, form]);
 
     const handleOk = async () => {
-        const values = await form.validateFields();
+        let values: FormValues;
+        try {
+            values = await form.validateFields();
+        } catch (error) {
+            // Mở các mục phí đang đóng có ô lỗi để người dùng thấy
+            const errorFields =
+                (error as { errorFields?: { name: (string | number)[] }[] }).errorFields ?? [];
+            const sections = getSectionsWithErrors(errorFields.map((field) => field.name[0]));
+            if (sections.length > 0) {
+                setActiveFeeSections((current) => Array.from(new Set([...current, ...sections])));
+            }
+            return;
+        }
         const payload: IFromSourcesOfMoneyData = {
             name: values.name.trim(),
             type: values.type,
@@ -173,6 +155,24 @@ export default function SourcesOfMoneyFormModal() {
                 annualFee: toNumber(values.annualFee),
                 annualFeeDay: values.annualFeeDate?.date(),
                 annualFeeMonth: values.annualFeeDate ? values.annualFeeDate.month() + 1 : undefined,
+                annualFeeWaiverPeriod: values.annualFeeWaiverPeriod ?? undefined,
+                annualFeeWaiverMinSpend: values.annualFeeWaiverPeriod
+                    ? toNumber(values.annualFeeWaiverMinSpend)
+                    : undefined,
+                managementFee: toNumber(values.managementFee),
+                managementFeeDay: toNumber(values.managementFeeDay),
+                managementFeeWaiverMinTransactions: toNumber(
+                    values.managementFeeWaiverMinTransactions,
+                ),
+                managementFeeWaiverMinSpend: toNumber(values.managementFeeWaiverMinSpend),
+                paymentFee: toNumber(values.paymentFee),
+                freePaymentsPerCycle:
+                    toNumber(values.paymentFee) != null
+                        ? toNumber(values.freePaymentsPerCycle)
+                        : undefined,
+                ...Object.fromEntries(
+                    RATE_FEE_FIELDS.map(({ name }) => [name, toNumber(values[name])]),
+                ),
             };
             payload.balance = 0;
         } else {
@@ -210,7 +210,7 @@ export default function SourcesOfMoneyFormModal() {
             destroyOnHidden
             okText={isEdit ? "Cập nhật" : "Tạo mới"}
             cancelText="Hủy"
-            width={520}
+            width={580}
         >
             <Form form={form} layout="vertical" className="mt-4">
                 <Form.Item
@@ -250,62 +250,10 @@ export default function SourcesOfMoneyFormModal() {
                         />
                     </Form.Item>
                 ) : (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <Form.Item
-                            name="creditLimit"
-                            label="Hạn mức tín dụng"
-                            rules={[
-                                { required: true, message: "Hạn mức là bắt buộc" },
-                                numberMinRule(0, "Hạn mức phải >= 0"),
-                            ]}
-                        >
-                            <DebouncedNumberInput className="w-full!" min={0} step={1000} />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="currentDebt"
-                            label="Dư nợ hiện tại"
-                            rules={[
-                                { required: true, message: "Dư nợ là bắt buộc" },
-                                numberMinRule(0, "Dư nợ phải >= 0"),
-                            ]}
-                        >
-                            <DebouncedNumberInput className="w-full!" min={0} step={1000} />
-                        </Form.Item>
-
-                        <div className="grid grid-cols-2 gap-3 w-full!">
-                            <Form.Item
-                                name="statementDate"
-                                label="Ngày sao kê"
-                                rules={[numberRangeRule(1, 31, "Từ 1 đến 31")]}
-                            >
-                                <DebouncedNumberInput className="w-full" min={1} max={31} placeholder="1-31" />
-                            </Form.Item>
-                            <Form.Item
-                                name="dueDate"
-                                label="Ngày đến hạn"
-                                rules={[numberRangeRule(1, 31, "Từ 1 đến 31")]}
-                            >
-                                <DebouncedNumberInput className="w-full" min={1} max={31} placeholder="1-31" />
-                            </Form.Item>
-                        </div>
-
-                        <Form.Item
-                            name="annualFee"
-                            label="Phí thường niên (ước tính)"
-                            tooltip="Số thực tế có thể khác; khi bị thu, ghi một khoản chi tiêu trên thẻ"
-                            rules={[numberMinRule(0, "Phí phải >= 0")]}
-                        >
-                            <DebouncedNumberInput className="w-full!" min={0} step={1000} placeholder="0" />
-                        </Form.Item>
-                        <Form.Item
-                            name="annualFeeDate"
-                            label="Ngày thu phí thường niên"
-                            tooltip="Lặp lại mỗi năm vào ngày/tháng này"
-                        >
-                            <DatePicker className="w-full" format="DD/MM" placeholder="Chọn ngày/tháng" />
-                        </Form.Item>
-                    </div>
+                    <CreditCardFields
+                        activeKeys={activeFeeSections}
+                        onActiveKeysChange={setActiveFeeSections}
+                    />
                 )}
 
                 {isBank ? (

@@ -1,8 +1,14 @@
 import dayjs, { type Dayjs } from "dayjs";
 import {
+    AnnualFeeWaiverPeriod,
     SourcesOfMoneyType,
+    type ICreditCardFeeProgress,
+    type ICreditDetails,
     type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import { getNextAnnualDate } from "@/libs/utils/annualFeeDate";
+import { getStatementCycle } from "@/libs/utils/statementCycle";
+import { estimateInterest } from "@/libs/utils/cardFee";
 
 /** Cards due within this many days are flagged as "sắp đến hạn". */
 export const DUE_SOON_DAYS = 7;
@@ -75,52 +81,179 @@ export function buildCreditCardDebts(
         .sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity));
 }
 
-export interface IAnnualFeeItem {
+/** Tiến độ một điều kiện miễn phí: `current` so với mức tối thiểu `target`. */
+export interface IFeeWaiverProgress {
+    current: number;
+    target: number;
+    achieved: boolean;
+}
+
+/** Miễn phí quản lý khi đạt một trong hai điều kiện trong kỳ sao kê. */
+export interface IManagementFeeWaiver {
+    transactions: IFeeWaiverProgress | null;
+    spend: IFeeWaiverProgress | null;
+    achieved: boolean;
+}
+
+/** Phí trả nợ thẻ trong kỳ sao kê hiện tại. */
+export interface IPaymentFeeStatus {
+    fee: number;
+    freePayments: number;
+    /** null khi chưa tải xong tiến độ */
+    payments: number | null;
+    /** Tổng phí ước tính đã phát sinh trong kỳ */
+    estimatedTotal: number;
+    /** Lần trả nợ tiếp theo trong kỳ có bị thu phí không */
+    nextPaymentCharged: boolean;
+}
+
+/** Lãi và phí chậm thanh toán: chỉ là quy tắc của thẻ, hệ thống không biết kỳ nào đã trả đủ. */
+export interface ILatePenalty {
+    /** Lãi suất %/năm */
+    interestRate: number | null;
+    /** Lãi ước tính 30 ngày trên dư nợ hiện tại nếu không trả hết */
+    estimatedMonthlyInterest: number | null;
+    lateFeePercentPerDay: number | null;
+    lateFeeMin: number | null;
+    lateFeeMax: number | null;
+}
+
+export interface ICreditCardFeeItem {
     _id: string;
     name: string;
-    /** Phí ước tính; số thực tế có thể khác khi ngân hàng thu. */
+    /** Kỳ sao kê hiện tại [cycleStart, cycleEnd) */
+    cycleStart: Dayjs;
+    cycleEnd: Dayjs;
+    /** Phí thường niên ước tính; số thực tế có thể khác khi ngân hàng thu. */
     annualFee: number | null;
-    nextFeeDate: Dayjs;
-    daysLeft: number;
-    status: Exclude<CreditDueStatus, "no-due-date">;
+    nextAnnualFeeDate: Dayjs | null;
+    daysLeft: number | null;
+    status: Exclude<CreditDueStatus, "no-due-date"> | null;
+    annualFeeWaiverPeriod: AnnualFeeWaiverPeriod | null;
+    /** Chi tiêu trong kỳ (năm thẻ hoặc kỳ sao kê) so với mức tối thiểu */
+    annualFeeWaiver: IFeeWaiverProgress | null;
+    /** Phí quản lý ước tính mỗi kỳ */
+    managementFee: number | null;
+    managementFeeDay: number | null;
+    managementFeeWaiver: IManagementFeeWaiver | null;
+    paymentFee: IPaymentFeeStatus | null;
+    latePenalty: ILatePenalty | null;
 }
 
-/** Next occurrence of `day`/`month` (yearly) from `today`; 29/02 falls back to 28/02. */
-export function getNextAnnualDate(day: number, month: number, today: Dayjs = dayjs()): Dayjs {
-    const start = today.startOf("day");
-    const inYear = (year: number) => {
-        const monthStart = dayjs(new Date(year, month - 1, 1));
-        return monthStart.date(Math.min(day, monthStart.daysInMonth()));
+function toWaiver(current: number | undefined, target: number | undefined) {
+    if (current == null || !target) return null;
+    return { current, target, achieved: current >= target };
+}
+
+function buildManagementWaiver(
+    details: Partial<ICreditDetails>,
+    progress: ICreditCardFeeProgress | undefined,
+): IManagementFeeWaiver | null {
+    const transactions = toWaiver(
+        progress?.cycleTransactions,
+        details.managementFeeWaiverMinTransactions,
+    );
+    const spend = toWaiver(progress?.cycleSpend, details.managementFeeWaiverMinSpend);
+    if (!transactions && !spend) return null;
+    return {
+        transactions,
+        spend,
+        achieved: Boolean(transactions?.achieved || spend?.achieved),
     };
-
-    const thisYear = inYear(start.year());
-    if (!thisYear.isBefore(start, "day")) return thisYear;
-    return inYear(start.year() + 1);
 }
 
-/** Credit cards with an annual fee date, nearest charge first. */
-export function buildAnnualFees(
+function buildPaymentFee(
+    details: Partial<ICreditDetails>,
+    progress: ICreditCardFeeProgress | undefined,
+): IPaymentFeeStatus | null {
+    if (details.paymentFee == null) return null;
+    const freePayments = details.freePaymentsPerCycle ?? 0;
+    const payments = progress?.cyclePayments ?? null;
+    return {
+        fee: details.paymentFee,
+        freePayments,
+        payments,
+        estimatedTotal: Math.max(0, (payments ?? 0) - freePayments) * details.paymentFee,
+        nextPaymentCharged: (payments ?? 0) >= freePayments,
+    };
+}
+
+function buildLatePenalty(details: Partial<ICreditDetails>): ILatePenalty | null {
+    const { interestRate, lateFeePercentPerDay, lateFeeMin, lateFeeMax } = details;
+    if (interestRate == null && lateFeePercentPerDay == null && lateFeeMin == null) return null;
+    const debt = details.currentDebt ?? 0;
+    return {
+        interestRate: interestRate ?? null,
+        estimatedMonthlyInterest:
+            interestRate != null && debt > 0 ? estimateInterest(debt, interestRate) : null,
+        lateFeePercentPerDay: lateFeePercentPerDay ?? null,
+        lateFeeMin: lateFeeMin ?? null,
+        lateFeeMax: lateFeeMax ?? null,
+    };
+}
+
+/**
+ * Thẻ có cấu hình phí (thường niên, quản lý, thanh toán dư nợ, lãi hoặc phí chậm trả), thẻ sắp thu phí thường niên trước.
+ * `progress` từ API; chưa tải xong thì phần tiến độ là null.
+ */
+export function buildCreditCardFees(
     sources: ISourcesOfMoneyData[],
+    progress: ICreditCardFeeProgress[] = [],
     today: Dayjs = dayjs(),
-): IAnnualFeeItem[] {
-    const items: IAnnualFeeItem[] = [];
+): ICreditCardFeeItem[] {
+    const progressById = new Map(progress.map((item) => [item.sourceOfMoneyId, item]));
+    const items: ICreditCardFeeItem[] = [];
+
     for (const source of sources) {
-        const { annualFee, annualFeeDay, annualFeeMonth } = source.creditDetails ?? {};
-        if (source.type !== SourcesOfMoneyType.CREDIT_CARD || !annualFeeDay || !annualFeeMonth) {
-            continue;
-        }
-        const nextFeeDate = getNextAnnualDate(annualFeeDay, annualFeeMonth, today);
-        const daysLeft = nextFeeDate.diff(today.startOf("day"), "day");
+        if (source.type !== SourcesOfMoneyType.CREDIT_CARD) continue;
+        const details: Partial<ICreditDetails> = source.creditDetails ?? {};
+        const hasAnnual =
+            details.annualFee != null || details.annualFeeDay != null || details.annualFeeWaiverPeriod;
+        const hasManagement =
+            details.managementFee != null ||
+            details.managementFeeWaiverMinTransactions != null ||
+            details.managementFeeWaiverMinSpend != null;
+        const latePenalty = buildLatePenalty(details);
+        if (!hasAnnual && !hasManagement && details.paymentFee == null && !latePenalty) continue;
+
+        const nextAnnualFeeDate =
+            details.annualFeeDay && details.annualFeeMonth
+                ? getNextAnnualDate(details.annualFeeDay, details.annualFeeMonth, today)
+                : null;
+        const daysLeft = nextAnnualFeeDate
+            ? nextAnnualFeeDate.diff(today.startOf("day"), "day")
+            : null;
+        const cardProgress = progressById.get(source._id);
+        const waiverSpend =
+            details.annualFeeWaiverPeriod === AnnualFeeWaiverPeriod.MONTH
+                ? cardProgress?.cycleSpend
+                : cardProgress?.yearSpend;
+        const cycle = getStatementCycle(details.statementDate, today);
+
         items.push({
             _id: source._id,
             name: source.name,
-            annualFee: annualFee ?? null,
-            nextFeeDate,
+            cycleStart: cycle.start,
+            cycleEnd: cycle.end,
+            annualFee: details.annualFee ?? null,
+            nextAnnualFeeDate,
             daysLeft,
-            status: getDueStatus(daysLeft) as IAnnualFeeItem["status"],
+            status:
+                daysLeft != null
+                    ? (getDueStatus(daysLeft) as ICreditCardFeeItem["status"])
+                    : null,
+            annualFeeWaiverPeriod: details.annualFeeWaiverPeriod ?? null,
+            annualFeeWaiver: details.annualFeeWaiverPeriod
+                ? toWaiver(waiverSpend, details.annualFeeWaiverMinSpend)
+                : null,
+            managementFee: details.managementFee ?? null,
+            managementFeeDay: details.managementFeeDay ?? null,
+            managementFeeWaiver: buildManagementWaiver(details, cardProgress),
+            paymentFee: buildPaymentFee(details, cardProgress),
+            latePenalty,
         });
     }
-    return items.sort((a, b) => a.daysLeft - b.daysLeft);
+    return items.sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity));
 }
 
 export type AssetGroup = "cash" | "credit";

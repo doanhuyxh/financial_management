@@ -11,10 +11,11 @@ import {
     useGetExpenses,
     useUpdateExpense,
 } from "@/libs/hooks/customHooks/useExpenses";
-import type {
-    IExpenseCreateDefaults,
-    IExpensesData,
-    IFromExpensesData,
+import {
+    CardFeeType,
+    type IExpenseCreateDefaults,
+    type IExpensesData,
+    type IFromExpensesData,
 } from "@/libs/interfaces/expensesData";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import type { IExpensesContextProps } from "./type";
@@ -62,7 +63,7 @@ export default function ExpensesContextProvider({
         () => searchParams.get("action") === "create",
     );
     const [editingItem, setEditingItem] = useState<IExpensesData | null>(null);
-    // `?action=create&sourceOfMoneyId=&amount=&note=` điền sẵn form (VD: ghi nhận phí thường niên thẻ)
+    // `?action=create&sourceOfMoneyId=&amount=&note=&cardFeeType=` điền sẵn form (VD: ghi nhận phí thẻ)
     const [createDefaults, setCreateDefaults] = useState<IExpenseCreateDefaults | null>(() => {
         if (searchParams.get("action") !== "create") return null;
         const amount = Number(searchParams.get("amount"));
@@ -70,6 +71,9 @@ export default function ExpensesContextProvider({
             sourceOfMoneyId: searchParams.get("sourceOfMoneyId") || undefined,
             amount: Number.isFinite(amount) && amount > 0 ? amount : undefined,
             note: searchParams.get("note") || undefined,
+            cardFeeType: Object.values(CardFeeType).find(
+                (value) => value === searchParams.get("cardFeeType"),
+            ),
         };
         return Object.values(defaults).some((value) => value !== undefined) ? defaults : null;
     });
@@ -141,7 +145,7 @@ export default function ExpensesContextProvider({
     // reopen the modal or re-apply the filter. Native history API syncs with
     // the Next router without a server round-trip.
     useEffect(() => {
-        const consumed = ["action", "date", "sourceOfMoneyId", "amount", "note"];
+        const consumed = ["action", "date", "sourceOfMoneyId", "amount", "note", "cardFeeType"];
         if (!consumed.some((key) => searchParams.has(key))) return;
         const params = new URLSearchParams(searchParams.toString());
         consumed.forEach((key) => params.delete(key));
