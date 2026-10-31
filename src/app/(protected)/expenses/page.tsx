@@ -7,7 +7,7 @@ export const metadata = {
   description: "Quản lý chi tiêu",
 }
 
-export default async function ExpensesPage() {
+export default function ExpensesPage() {
   return (
     <Suspense fallback={<LoadingComponent />}>
       <ExpensesComponent />

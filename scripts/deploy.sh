@@ -16,11 +16,34 @@ send_zalo_msg() {
     }" > /dev/null 2>&1 || true
 }
 
+APP_DIR="/home/rocky/financial_management"
+HEALTH_URL="http://127.0.0.1:3004/"
+SWAPPED=0
+
+# Build mới đã thay .next nhưng app không lên → trả lại bản cũ (.next-prev) để web không chết.
+rollback() {
+  echo "==> Rollback về bản build trước..."
+  cd "$APP_DIR"
+  if [ -d ".next-prev" ]; then
+    rm -rf .next
+    mv .next-prev .next
+    pm2 delete ecosystem.config.js > /dev/null 2>&1 || true
+    pm2 start ecosystem.config.js --update-env || true
+  fi
+}
+
 on_failure() {
   local exit_code=$?
   local failed_line=$1
   local err_msg="❌ [Finance Management] Deploy thất bại! Lỗi tại dòng $failed_line (Mã lỗi: $exit_code)"
-  
+
+  if [ "$SWAPPED" = "1" ]; then
+    rollback
+    err_msg="$err_msg. Đã rollback về bản trước."
+  else
+    err_msg="$err_msg. Bản cũ vẫn đang chạy."
+  fi
+
   echo "$err_msg"
   send_zalo_msg "$err_msg"
 }
@@ -41,36 +64,50 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 echo "==> Di chuyển đến thư mục project..."
-cd /home/rocky/financial_management
+cd "$APP_DIR"
+mkdir -p logs
 
-echo "==> Dừng service..."
-pm2 stop ecosystem.config.js
-
-echo "==> Xóa lock files..."
-if [ -f "package-lock.json" ]; then
-  rm -rf package-lock.json
-fi
-if [ -f "bun.lockb" ]; then
-  rm -rf bun.lockb
-fi
+echo "==> Xóa lock files cũ..."
+rm -f package-lock.json bun.lockb
 
 echo "==> Lấy mới nhất code..."
 git pull --rebase --autostash
 
-echo "==> Cài đặt dependencies..."
-if [ -d "node_modules" ]; then
-  rm -rf node_modules
-fi
-bun i
+# Từ đây tới bước đổi build, app cũ vẫn chạy bình thường: build lỗi thì web không bị gián đoạn.
+echo "==> Cài đặt dependencies (theo bun.lock)..."
+bun install --frozen-lockfile
 
-echo "==> Build dự án..."
+echo "==> Build vào thư mục tạm .next-build..."
+rm -rf .next-build
+NEXT_DIST_DIR=.next-build bun run build
+
+echo "==> Đổi sang bản build mới..."
+rm -rf .next-prev
 if [ -d ".next" ]; then
-  rm -rf .next
+  mv .next .next-prev
 fi
-bun run build
+mv .next-build .next
+SWAPPED=1
 
 echo "==> Khởi động lại service..."
-pm2 restart ecosystem.config.js --update-env
+# delete + start (không dùng restart) để thay đổi trong ecosystem.config.js (exec_mode...) luôn được áp dụng.
+pm2 delete ecosystem.config.js > /dev/null 2>&1 || true
+pm2 start ecosystem.config.js --update-env
+
+echo "==> Kiểm tra web đã lên..."
+healthy=0
+for _ in $(seq 1 30); do
+  if curl -fsS -o /dev/null "$HEALTH_URL"; then
+    healthy=1
+    break
+  fi
+  sleep 2
+done
+if [ "$healthy" != "1" ]; then
+  echo "Web không phản hồi tại $HEALTH_URL"
+  false
+fi
+pm2 save || true
 
 # ==================== GỬI THÀNH CÔNG ====================
 success_msg="🚀 [Finance Management] Deploy thành công"

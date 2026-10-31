@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ThemeConfig } from "antd";
-import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { ConfigProvider, App, theme as antdTheme } from "antd";
 import vi_VN from 'antd/locale/vi_VN';
 
-export default function AntdProvider({ children, initialTheme }: { children: React.ReactNode; initialTheme: "light" | "dark" }) {
-    const [theme, setTheme] = useState<"light" | "dark">(initialTheme);
+export default function AntdProvider({ children }: { children: React.ReactNode }) {
+    // Chỉ render trên client (xem ClientApp); class "dark" đã được inline script trong root layout gắn sẵn.
+    const [theme, setTheme] = useState<"light" | "dark">(() =>
+        document.documentElement.classList.contains("dark") ? "dark" : "light",
+    );
 
     useEffect(() => {
         const syncThemeFromDom = () => {
@@ -128,33 +130,31 @@ export default function AntdProvider({ children, initialTheme }: { children: Rea
     }), [theme]);
 
     return (
-        <AntdRegistry>
-            <ConfigProvider
-                locale={vi_VN}
-                theme={themeConfig}
-                tooltip={{
-                    className: "bg-red-500 rounded-lg text-white px-2 py-1 text-xs",
-                    arrow: {
-                        pointAtCenter: true,
-                    }
+        <ConfigProvider
+            locale={vi_VN}
+            theme={themeConfig}
+            tooltip={{
+                className: "bg-red-500 rounded-lg text-white px-2 py-1 text-xs",
+                arrow: {
+                    pointAtCenter: true,
+                }
+            }}
+        >
+            <App
+                message={{
+                    top: 80,
+                    duration: 3,
+                    maxCount: 10,
+                }}
+                notification={{
+                    placement: "bottomRight",
+                    duration: 3,
+                    maxCount: 10,
+                    showProgress: true,
                 }}
             >
-                <App
-                    message={{
-                        top: 80,
-                        duration: 3,
-                        maxCount: 10,
-                    }}
-                    notification={{
-                        placement: "bottomRight",
-                        duration: 3,
-                        maxCount: 10,
-                        showProgress: true,
-                    }}
-                >
-                    {children}
-                </App>
-            </ConfigProvider>
-        </AntdRegistry>
+                {children}
+            </App>
+        </ConfigProvider>
     )
 }

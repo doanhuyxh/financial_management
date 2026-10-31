@@ -7,7 +7,7 @@ export const metadata = {
   description: "So sánh phí và lãi giữa các thẻ tín dụng",
 }
 
-export default async function CreditCardComparePage() {
+export default function CreditCardComparePage() {
   return (
     <Suspense fallback={<LoadingComponent />}>
       <CreditCardCompareComponent />
