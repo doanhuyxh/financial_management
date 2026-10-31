@@ -46,6 +46,8 @@ export interface ICreditDetails {
     /** Phí mỗi lần trả nợ thẻ vượt quá `freePaymentsPerCycle` lần miễn phí trong kỳ sao kê */
     paymentFee?: number;
     freePaymentsPerCycle?: number;
+    /** Phí cố định mỗi kỳ sao kê, chỉ thu khi kỳ đó có ít nhất một giao dịch chi tiêu (VD: MoMo) */
+    usageFee?: number;
     /** Lãi suất %/năm trên dư nợ khi không trả đủ (rút tiền mặt bị tính ngay từ ngày rút) */
     interestRate?: number;
     /** Phí rút tiền mặt: max(% × số tiền, tối thiểu); áp dụng khi chuyển tiền có phí từ thẻ */

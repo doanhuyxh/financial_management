@@ -107,6 +107,15 @@ export interface IPaymentFeeStatus {
     nextPaymentCharged: boolean;
 }
 
+/** Phí sử dụng: thu một lần trong kỳ sao kê nếu kỳ đó có chi tiêu. */
+export interface IUsageFeeStatus {
+    fee: number;
+    /** Số giao dịch chi tiêu trong kỳ; null khi chưa tải xong tiến độ */
+    transactions: number | null;
+    /** Kỳ này đã phát sinh phí (đã có chi tiêu) */
+    charged: boolean;
+}
+
 /** Lãi và phí chậm thanh toán: chỉ là quy tắc của thẻ, hệ thống không biết kỳ nào đã trả đủ. */
 export interface ILatePenalty {
     /** Lãi suất %/năm */
@@ -137,6 +146,7 @@ export interface ICreditCardFeeItem {
     managementFeeDay: number | null;
     managementFeeWaiver: IManagementFeeWaiver | null;
     paymentFee: IPaymentFeeStatus | null;
+    usageFee: IUsageFeeStatus | null;
     latePenalty: ILatePenalty | null;
 }
 
@@ -193,7 +203,7 @@ function buildLatePenalty(details: Partial<ICreditDetails>): ILatePenalty | null
 }
 
 /**
- * Thẻ có cấu hình phí (thường niên, quản lý, thanh toán dư nợ, lãi hoặc phí chậm trả), thẻ sắp thu phí thường niên trước.
+ * Thẻ có cấu hình phí (thường niên, quản lý, thanh toán dư nợ, phí sử dụng, lãi hoặc phí chậm trả), thẻ sắp thu phí thường niên trước.
  * `progress` từ API; chưa tải xong thì phần tiến độ là null.
  */
 export function buildCreditCardFees(
@@ -214,7 +224,15 @@ export function buildCreditCardFees(
             details.managementFeeWaiverMinTransactions != null ||
             details.managementFeeWaiverMinSpend != null;
         const latePenalty = buildLatePenalty(details);
-        if (!hasAnnual && !hasManagement && details.paymentFee == null && !latePenalty) continue;
+        if (
+            !hasAnnual &&
+            !hasManagement &&
+            details.paymentFee == null &&
+            details.usageFee == null &&
+            !latePenalty
+        ) {
+            continue;
+        }
 
         const nextAnnualFeeDate =
             details.annualFeeDay && details.annualFeeMonth
@@ -250,6 +268,14 @@ export function buildCreditCardFees(
             managementFeeDay: details.managementFeeDay ?? null,
             managementFeeWaiver: buildManagementWaiver(details, cardProgress),
             paymentFee: buildPaymentFee(details, cardProgress),
+            usageFee:
+                details.usageFee != null
+                    ? {
+                          fee: details.usageFee,
+                          transactions: cardProgress?.cycleTransactions ?? null,
+                          charged: (cardProgress?.cycleTransactions ?? 0) > 0,
+                      }
+                    : null,
             latePenalty,
         });
     }

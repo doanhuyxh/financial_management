@@ -29,6 +29,7 @@ export interface ISourcesOfMoney extends Document {
     managementFeeWaiverMinSpend?: number;          // Hoặc chi tiêu tối thiểu/kỳ sao kê để miễn phí quản lý
     paymentFee?: number;                           // Phí mỗi lần trả nợ thẻ vượt số lần miễn phí
     freePaymentsPerCycle?: number;                 // Số lần trả nợ miễn phí mỗi kỳ sao kê
+    usageFee?: number;                             // Phí mỗi kỳ có phát sinh chi tiêu
     interestRate?: number;                         // Lãi suất %/năm
     cashAdvanceFeePercent?: number;                // Phí rút tiền mặt (%)
     cashAdvanceFeeMin?: number;                    // Phí rút tiền mặt tối thiểu
@@ -97,6 +98,7 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
       managementFeeWaiverMinSpend: { type: Number, min: 0 },
       paymentFee: { type: Number, min: 0 },
       freePaymentsPerCycle: { type: Number, min: 0 },
+      usageFee: { type: Number, min: 0 },
       interestRate: { type: Number, min: 0, max: 100 },
       cashAdvanceFeePercent: { type: Number, min: 0, max: 100 },
       cashAdvanceFeeMin: { type: Number, min: 0 },

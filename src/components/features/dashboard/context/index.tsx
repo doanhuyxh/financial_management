@@ -100,6 +100,11 @@ export default function DashboardContextProvider({
                     period: cycle,
                     amount: item.paymentFee?.estimatedTotal,
                 },
+                [CardFeeType.USAGE_FEE]: {
+                    label: "Phí sử dụng",
+                    period: cycle,
+                    amount: item.usageFee?.fee,
+                },
                 [CardFeeType.FOREIGN_FEE]: { label: "Phí giao dịch quốc tế", period: cycle },
                 [CardFeeType.INTEREST]: {
                     label: "Lãi thẻ",

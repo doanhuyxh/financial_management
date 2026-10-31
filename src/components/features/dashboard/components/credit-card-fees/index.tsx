@@ -10,6 +10,7 @@ import AnnualFeeInfo from "@/components/features/dashboard/components/credit-car
 import ManagementFeeInfo from "@/components/features/dashboard/components/credit-card-fees/components/management-fee-info";
 import ManagementWaiver from "@/components/features/dashboard/components/credit-card-fees/components/management-waiver";
 import LatePenaltyInfo from "@/components/features/dashboard/components/credit-card-fees/components/late-penalty-info";
+import UsageFeeInfo from "@/components/features/dashboard/components/credit-card-fees/components/usage-fee-info";
 import PaymentFeeInfo from "@/components/features/dashboard/components/credit-card-fees/components/payment-fee-info";
 import WaiverProgress from "@/components/features/dashboard/components/credit-card-fees/components/waiver-progress";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
@@ -63,6 +64,15 @@ export default function CreditCardFees() {
                     onClick={() => handleRecordCardFee(item, CardFeeType.PAYMENT_FEE)}
                 >
                     Ghi phí thanh toán
+                </Button>
+            ) : null}
+            {item.usageFee?.charged ? (
+                <Button
+                    size="small"
+                    icon={<Receipt className="size-4" />}
+                    onClick={() => handleRecordCardFee(item, CardFeeType.USAGE_FEE)}
+                >
+                    Ghi phí sử dụng
                 </Button>
             ) : null}
             {item.latePenalty?.interestRate != null ? (
@@ -125,6 +135,11 @@ export default function CreditCardFees() {
             render: (_, item) => <PaymentFeeInfo status={item.paymentFee} />,
         },
         {
+            title: "Phí sử dụng",
+            key: "usageFee",
+            render: (_, item) => <UsageFeeInfo status={item.usageFee} />,
+        },
+        {
             title: "Lãi & chậm trả",
             key: "latePenalty",
             render: (_, item) => <LatePenaltyInfo penalty={item.latePenalty} />,
@@ -179,6 +194,12 @@ export default function CreditCardFees() {
                                         Phí thanh toán dư nợ
                                     </p>
                                     <PaymentFeeInfo status={item.paymentFee} />
+                                </div>
+                            ) : null}
+                            {item.usageFee ? (
+                                <div className="text-sm">
+                                    <p className="text-xs text-muted-foreground">Phí sử dụng</p>
+                                    <UsageFeeInfo status={item.usageFee} />
                                 </div>
                             ) : null}
                             {item.latePenalty ? (

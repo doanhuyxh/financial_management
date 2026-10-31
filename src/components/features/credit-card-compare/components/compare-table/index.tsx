@@ -54,6 +54,8 @@ function renderCell(key: string, m: ICardMetrics): ReactNode {
             return <YearlyFeeCell fee={m.managementFee} />;
         case "paymentFee":
             return formatMoney(m.paymentFeeYear);
+        case "usageFee":
+            return formatMoney(m.usageFeeYear);
         case "interest":
             return m.interestCost != null ? (
                 <>

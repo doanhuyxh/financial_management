@@ -111,6 +111,7 @@ const CARD_RATE_KEYS = [
 
 /** Số tiền ≥ 0, làm tròn. */
 const CARD_MONEY_KEYS = [
+    "usageFee",
     "cashAdvanceFeeMin",
     "foreignFxFeeMin",
     "foreignVndFeeMin",
@@ -246,7 +247,11 @@ function normalizeCardFees(data: IFromSourcesOfMoneyData["creditDetails"]) {
     for (const key of CARD_MONEY_KEYS) {
         const value = optionalNumber(data?.[key]);
         if (value == null) continue;
-        if (!isMoney(value)) throw new Error("Phí tối thiểu/tối đa phải >= 0");
+        if (!isMoney(value)) {
+            throw new Error(
+                key === "usageFee" ? "Phí sử dụng phải >= 0" : "Phí tối thiểu/tối đa phải >= 0",
+            );
+        }
         minimums[key] = Math.round(value);
     }
     if (
@@ -591,6 +596,7 @@ export class SourcesOfMoneyService {
                 { "creditDetails.managementFeeWaiverMinTransactions": { $exists: true } },
                 { "creditDetails.managementFeeWaiverMinSpend": { $exists: true } },
                 { "creditDetails.paymentFee": { $exists: true } },
+                { "creditDetails.usageFee": { $exists: true } },
             ],
         })
             .select("creditDetails")

@@ -6,6 +6,7 @@ import ResponsiveModal from "@/components/common/responsive-modal";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
+import CardUsageFeeAlert from "@/components/features/expenses/components/expenses-form-modal/components/card-usage-fee-alert";
 import { useExpensesContext } from "@/components/features/expenses/context";
 import {
     formatMoney,
@@ -68,6 +69,7 @@ export default function ExpensesFormModal() {
     const selectedCategoryId = Form.useWatch("categoryId", form);
     const amountWatch = Form.useWatch("amount", form);
     const foreignFeeTypeWatch = Form.useWatch("foreignFeeType", form);
+    const spentAtWatch = Form.useWatch("spentAt", form);
     const isEdit = Boolean(editingItem?._id);
 
     const { data: categoriesData, isLoading: categoriesLoading } = useGetCategories({
@@ -327,6 +329,11 @@ export default function ExpensesFormModal() {
                 >
                     <DebouncedNumberInput min={0} placeholder="0" delay={300} />
                 </Form.Item>
+
+                {/* Ghi chính khoản phí thẻ thì không tính là chi tiêu của kỳ */}
+                {!isEdit && !createDefaults?.cardFeeType ? (
+                    <CardUsageFeeAlert source={selectedSource} date={spentAtWatch} />
+                ) : null}
 
                 {foreignFeeOptions.length > 0 && !createDefaults?.cardFeeType ? (
                     <Form.Item

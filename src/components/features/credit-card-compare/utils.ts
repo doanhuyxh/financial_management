@@ -48,7 +48,9 @@ export interface ICardMetrics {
     annualFee: IYearlyFee;
     managementFee: IYearlyFee;
     paymentFeeYear: number;
-    /** Tổng phí cố định một năm theo kịch bản (thường niên + quản lý + thanh toán) */
+    /** Phí sử dụng 12 kỳ; 0 nếu kịch bản không có giao dịch */
+    usageFeeYear: number;
+    /** Tổng phí cố định một năm theo kịch bản (thường niên + quản lý + thanh toán + sử dụng) */
     fixedYear: number;
     interestRate: number | null;
     /** Lãi 30 ngày trên `carriedDebt`; null nếu thẻ chưa nhập lãi suất */
@@ -70,7 +72,7 @@ function percentFeeOrNull(amount: number, percent?: number, min?: number) {
 }
 
 /**
- * Phí thường niên, phí quản lý và phí thanh toán bỏ trống được coi là 0 (thẻ không có
+ * Phí thường niên, phí quản lý, phí thanh toán và phí sử dụng bỏ trống được coi là 0 (thẻ không có
  * loại phí đó). Lãi suất và phí theo % bỏ trống là "chưa biết" và không được xếp hạng.
  */
 export function buildCardMetrics(
@@ -116,6 +118,9 @@ export function buildCardMetrics(
               12
             : 0;
 
+    const usageFeeYear =
+        details.usageFee != null && scenario.monthlyTransactions > 0 ? details.usageFee * 12 : 0;
+
     const annualFee: IYearlyFee = {
         amount: annualWaived ? 0 : annualRaw,
         waived: annualWaived,
@@ -159,7 +164,8 @@ export function buildCardMetrics(
         annualFee,
         managementFee,
         paymentFeeYear,
-        fixedYear: annualFee.amount + managementFee.amount + paymentFeeYear,
+        usageFeeYear,
+        fixedYear: annualFee.amount + managementFee.amount + paymentFeeYear + usageFeeYear,
         interestRate,
         interestCost:
             interestRate != null ? estimateInterest(scenario.carriedDebt, interestRate) : null,
@@ -209,7 +215,7 @@ export const COMPARE_CRITERIA: ICompareCriterion[] = [
         key: "fixedYear",
         label: "Phí cố định/năm",
         short: "phí cố định/năm",
-        hint: "Thường niên + quản lý + thanh toán dư nợ, theo kịch bản (đã trừ phần được miễn)",
+        hint: "Thường niên + quản lý + thanh toán dư nợ + phí sử dụng, theo kịch bản (đã trừ phần được miễn)",
         value: (m) => m.fixedYear,
     },
     {
@@ -229,6 +235,13 @@ export const COMPARE_CRITERIA: ICompareCriterion[] = [
         label: "Phí thanh toán dư nợ/năm",
         short: "phí trả nợ",
         value: (m) => m.paymentFeeYear,
+    },
+    {
+        key: "usageFee",
+        label: "Phí sử dụng/năm",
+        short: "phí sử dụng",
+        hint: "Thu mỗi kỳ có chi tiêu",
+        value: (m) => m.usageFeeYear,
     },
     {
         key: "interest",

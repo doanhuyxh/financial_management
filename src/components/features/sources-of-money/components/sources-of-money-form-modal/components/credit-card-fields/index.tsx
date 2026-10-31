@@ -195,6 +195,17 @@ export default function CreditCardFields({
                 </Grid>
             </>
         ),
+        usage: (
+            <>
+                <SectionNote>
+                    Một số thẻ (VD: MoMo) không có phí thường niên/quản lý nhưng thu một khoản cố
+                    định trong kỳ sao kê nào có ít nhất một giao dịch chi tiêu.
+                </SectionNote>
+                <Grid>
+                    <RateFeeItems names={["usageFee"]} />
+                </Grid>
+            </>
+        ),
         interest: (
             <Grid>
                 <RateFeeItems

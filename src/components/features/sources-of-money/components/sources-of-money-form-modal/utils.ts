@@ -7,8 +7,9 @@ import {
 
 type NumberValue = string | number | null;
 
-/** Lãi và các phí theo % (kèm mức tối thiểu/tối đa) của thẻ. */
+/** Lãi, các phí theo % (kèm mức tối thiểu/tối đa) và phí sử dụng của thẻ. */
 export const RATE_FEE_FIELDS = [
+    { name: "usageFee", label: "Phí mỗi kỳ có chi tiêu", kind: "money", tooltip: "Không chi tiêu trong kỳ thì không mất phí" },
     { name: "interestRate", label: "Lãi suất (%/năm)", kind: "percent", tooltip: "Tính trên dư nợ khi không trả hết; rút tiền mặt bị tính lãi ngay từ ngày rút" },
     { name: "lateFeePercentPerDay", label: "Phí chậm trả (%/ngày)", kind: "percent", tooltip: "Tính trên số tiền thanh toán tối thiểu chưa trả" },
     { name: "lateFeeMin", label: "Phí chậm trả tối thiểu", kind: "money" },
@@ -66,6 +67,7 @@ export const CARD_FEE_SECTIONS = [
         ],
     },
     { key: "payment", title: "Phí thanh toán dư nợ", fields: ["paymentFee", "freePaymentsPerCycle"] },
+    { key: "usage", title: "Phí sử dụng", fields: ["usageFee"] },
     {
         key: "interest",
         title: "Lãi & phí chậm trả",

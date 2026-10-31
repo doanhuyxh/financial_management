@@ -74,6 +74,13 @@ function getCardFeeGroups(record: ISourcesOfMoneyData): CardFeeGroup[] {
         });
     }
 
+    if (details.usageFee != null) {
+        groups.push({
+            title: `Phí sử dụng: ~${formatMoney(details.usageFee)}/kỳ`,
+            items: ["Chỉ thu khi kỳ sao kê có chi tiêu"],
+        });
+    }
+
     const percentFee = (label: string, percent?: number, min?: number) => {
         if (percent == null && min == null) return null;
         const parts = [
