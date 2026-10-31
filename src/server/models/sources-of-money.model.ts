@@ -14,6 +14,9 @@ export interface ISourcesOfMoney extends Document {
     currentDebt: number;    // Dư nợ đang nợ ngân hàng (VD: 15,000,000)
     statementDate?: number; // Ngày sao kê (1 - 31)
     dueDate?: number;       // Ngày đến hạn thanh toán (1 - 31)
+    annualFee?: number;      // Phí thường niên ước tính
+    annualFeeDay?: number;   // Ngày thu phí thường niên (1 - 31)
+    annualFeeMonth?: number; // Tháng thu phí thường niên (1 - 12)
   };
   // Tài khoản nhận tiền (chỉ loại BANK) để tạo mã VietQR
   bankAccount?: IBankAccount;
@@ -61,6 +64,9 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
       currentDebt: { type: Number, default: 0, min: 0 },
       statementDate: { type: Number, min: 1, max: 31 },
       dueDate: { type: Number, min: 1, max: 31 },
+      annualFee: { type: Number, min: 0 },
+      annualFeeDay: { type: Number, min: 1, max: 31 },
+      annualFeeMonth: { type: Number, min: 1, max: 12 },
     },
     bankAccount: {
       type: new Schema<IBankAccount>(

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { Avatar, Form, Input, Select } from "antd";
+import { Avatar, DatePicker, Form, Input, Select } from "antd";
+import dayjs, { type Dayjs } from "dayjs";
 import ResponsiveModal from "@/components/common/responsive-modal";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import {
@@ -21,6 +22,8 @@ type FormValues = {
     currentDebt?: string | number | null;
     statementDate?: string | number | null;
     dueDate?: string | number | null;
+    annualFee?: string | number | null;
+    annualFeeDate?: Dayjs | null;
     adjustmentNote?: string;
     bankBin?: string;
     accountNumber?: string;
@@ -69,6 +72,12 @@ function numberRangeRule(min: number, max: number, message: string) {
     };
 }
 
+/** Ngày thu phí chỉ có ngày/tháng; dùng năm nhuận để hiển thị được 29/02. */
+function toAnnualFeeDate(day?: number, month?: number): Dayjs | null {
+    if (!day || !month) return null;
+    return dayjs(new Date(2024, month - 1, day));
+}
+
 export default function SourcesOfMoneyFormModal() {
     const { modalOpen, editingItem, isSubmitting, closeModal, handleSubmit } =
         useSourcesOfMoneyContext();
@@ -111,12 +120,10 @@ export default function SourcesOfMoneyFormModal() {
     }, [banks, editingItem]);
 
     // Số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form; server dùng để phát hiện ghi đè
-    const wasCreditCard = editingItem?.type === SourcesOfMoneyType.CREDIT_CARD;
     const expectedAmount = editingItem ? getTrackedAmount(editingItem) : undefined;
-    const sameKindAsOriginal = isEdit && wasCreditCard === isCreditCard;
     const enteredAmount = toNumber(isCreditCard ? currentDebtWatch : balanceWatch);
     const amountChanged =
-        sameKindAsOriginal && enteredAmount !== undefined && enteredAmount !== expectedAmount;
+        isEdit && enteredAmount !== undefined && enteredAmount !== expectedAmount;
 
     useEffect(() => {
         if (!modalOpen) return;
@@ -130,6 +137,11 @@ export default function SourcesOfMoneyFormModal() {
                 currentDebt: editingItem.creditDetails?.currentDebt,
                 statementDate: editingItem.creditDetails?.statementDate,
                 dueDate: editingItem.creditDetails?.dueDate,
+                annualFee: editingItem.creditDetails?.annualFee,
+                annualFeeDate: toAnnualFeeDate(
+                    editingItem.creditDetails?.annualFeeDay,
+                    editingItem.creditDetails?.annualFeeMonth,
+                ),
                 bankBin: editingItem.bankAccount?.bin,
                 accountNumber: editingItem.bankAccount?.accountNumber,
                 accountName: editingItem.bankAccount?.accountName,
@@ -158,6 +170,9 @@ export default function SourcesOfMoneyFormModal() {
                 currentDebt: toNumber(values.currentDebt) ?? 0,
                 statementDate: toNumber(values.statementDate),
                 dueDate: toNumber(values.dueDate),
+                annualFee: toNumber(values.annualFee),
+                annualFeeDay: values.annualFeeDate?.date(),
+                annualFeeMonth: values.annualFeeDate ? values.annualFeeDate.month() + 1 : undefined,
             };
             payload.balance = 0;
         } else {
@@ -177,7 +192,7 @@ export default function SourcesOfMoneyFormModal() {
             payload.bankAccount = null;
         }
 
-        if (sameKindAsOriginal) {
+        if (isEdit) {
             payload.expectedAmount = expectedAmount;
             if (amountChanged) payload.adjustmentNote = values.adjustmentNote?.trim();
         }
@@ -213,8 +228,9 @@ export default function SourcesOfMoneyFormModal() {
                     name="type"
                     label="Loại"
                     rules={[{ required: true, message: "Loại là bắt buộc" }]}
+                    tooltip={isEdit ? "Không đổi được loại sau khi tạo" : undefined}
                 >
-                    <Select options={typeOptions} placeholder="Chọn loại" />
+                    <Select options={typeOptions} placeholder="Chọn loại" disabled={isEdit} />
                 </Form.Item>
 
                 {!isCreditCard ? (
@@ -273,6 +289,22 @@ export default function SourcesOfMoneyFormModal() {
                                 <DebouncedNumberInput className="w-full" min={1} max={31} placeholder="1-31" />
                             </Form.Item>
                         </div>
+
+                        <Form.Item
+                            name="annualFee"
+                            label="Phí thường niên (ước tính)"
+                            tooltip="Số thực tế có thể khác; khi bị thu, ghi một khoản chi tiêu trên thẻ"
+                            rules={[numberMinRule(0, "Phí phải >= 0")]}
+                        >
+                            <DebouncedNumberInput className="w-full!" min={0} step={1000} placeholder="0" />
+                        </Form.Item>
+                        <Form.Item
+                            name="annualFeeDate"
+                            label="Ngày thu phí thường niên"
+                            tooltip="Lặp lại mỗi năm vào ngày/tháng này"
+                        >
+                            <DatePicker className="w-full" format="DD/MM" placeholder="Chọn ngày/tháng" />
+                        </Form.Item>
                     </div>
                 )}
 

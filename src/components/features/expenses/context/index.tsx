@@ -11,7 +11,11 @@ import {
     useGetExpenses,
     useUpdateExpense,
 } from "@/libs/hooks/customHooks/useExpenses";
-import type { IExpensesData, IFromExpensesData } from "@/libs/interfaces/expensesData";
+import type {
+    IExpenseCreateDefaults,
+    IExpensesData,
+    IFromExpensesData,
+} from "@/libs/interfaces/expensesData";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import type { IExpensesContextProps } from "./type";
 
@@ -58,6 +62,17 @@ export default function ExpensesContextProvider({
         () => searchParams.get("action") === "create",
     );
     const [editingItem, setEditingItem] = useState<IExpensesData | null>(null);
+    // `?action=create&sourceOfMoneyId=&amount=&note=` điền sẵn form (VD: ghi nhận phí thường niên thẻ)
+    const [createDefaults, setCreateDefaults] = useState<IExpenseCreateDefaults | null>(() => {
+        if (searchParams.get("action") !== "create") return null;
+        const amount = Number(searchParams.get("amount"));
+        const defaults: IExpenseCreateDefaults = {
+            sourceOfMoneyId: searchParams.get("sourceOfMoneyId") || undefined,
+            amount: Number.isFinite(amount) && amount > 0 ? amount : undefined,
+            note: searchParams.get("note") || undefined,
+        };
+        return Object.values(defaults).some((value) => value !== undefined) ? defaults : null;
+    });
 
     const query = useMemo(
         () => ({
@@ -113,6 +128,7 @@ export default function ExpensesContextProvider({
 
     const openCreateModal = useCallback(() => {
         setEditingItem(null);
+        setCreateDefaults(null);
         setModalOpen(true);
     }, []);
 
@@ -125,10 +141,10 @@ export default function ExpensesContextProvider({
     // reopen the modal or re-apply the filter. Native history API syncs with
     // the Next router without a server round-trip.
     useEffect(() => {
-        if (!searchParams.has("action") && !searchParams.has("date")) return;
+        const consumed = ["action", "date", "sourceOfMoneyId", "amount", "note"];
+        if (!consumed.some((key) => searchParams.has(key))) return;
         const params = new URLSearchParams(searchParams.toString());
-        params.delete("action");
-        params.delete("date");
+        consumed.forEach((key) => params.delete(key));
         const qs = params.toString();
         window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
     }, [searchParams]);
@@ -136,6 +152,7 @@ export default function ExpensesContextProvider({
     const closeModal = useCallback(() => {
         setModalOpen(false);
         setEditingItem(null);
+        setCreateDefaults(null);
     }, []);
 
     const handleSubmit = useCallback(
@@ -204,6 +221,7 @@ export default function ExpensesContextProvider({
             isLoading: isLoading || (isFetching && isPlaceholderData),
             modalOpen,
             editingItem,
+            createDefaults,
             isSubmitting: isCreating || isUpdating,
             handleSearch,
             handleCategoryFilter,
@@ -231,6 +249,7 @@ export default function ExpensesContextProvider({
             isPlaceholderData,
             modalOpen,
             editingItem,
+            createDefaults,
             isCreating,
             isUpdating,
             handleSearch,

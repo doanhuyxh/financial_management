@@ -29,6 +29,13 @@ export interface IExpensesData {
     updatedAt?: string;
 }
 
+/** Giá trị điền sẵn khi mở form tạo chi tiêu từ màn hình khác. */
+export interface IExpenseCreateDefaults {
+    sourceOfMoneyId?: string;
+    amount?: number;
+    note?: string;
+}
+
 export interface IFromExpensesData {
     categoryId: string;
     sourceOfMoneyId: string;

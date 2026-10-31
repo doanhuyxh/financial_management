@@ -19,6 +19,7 @@ Có hai cách theo dõi tiền:
 
 - **Nguồn thường** (BANK/CASH/E_WALLET/OTHER): theo dõi bằng `balance`, luôn ≥ 0.
 - **Thẻ tín dụng**: `balance` luôn = 0. Theo dõi bằng `creditDetails.currentDebt` (dư nợ) và `creditLimit` (hạn mức). Ràng buộc `0 ≤ currentDebt ≤ creditLimit`. `statementDate` và `dueDate` là ngày 1–31, hiện chỉ để hiển thị.
+- **Phí thường niên** (tùy chọn, chỉ thẻ): `annualFee` là số **ước tính** (≥ 0, làm tròn), `annualFeeDay` + `annualFeeMonth` là ngày thu, lặp lại mỗi năm; ngày và tháng phải nhập cùng nhau, cho phép 29/02 (năm thường thu vào 28/02). Các trường này **không tự động trừ** gì: khi ngân hàng thu, người dùng ghi một Expense trên thẻ với số thực tế (dư nợ tăng như chi tiêu thường). Sửa theo từng trường, bỏ trống thì `$unset`.
 
 Quy tắc CRUD:
 
@@ -26,12 +27,10 @@ Quy tắc CRUD:
   - Tạo nguồn với số dư/dư nợ ≠ 0 thì ghi bản ghi "Số dư ban đầu" (0 → giá trị).
   - Khi sửa, client gửi `expectedAmount` = số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form. Nếu giá trị mới **bằng** `expectedAmount` (người dùng không sửa số) thì server **giữ nguyên** số trong DB, kể cả khi giao dịch khác đã làm nó đổi. Với thẻ thì khi đó thêm điều kiện hạn mức mới ≥ dư nợ hiện tại ("Hạn mức mới không được thấp hơn dư nợ hiện tại"); thẻ cũ thiếu `currentDebt` được coi là 0. Quy tắc "dư nợ với thẻ, số dư với nguồn thường" nằm ở `getTrackedAmount` (`src/libs/utils/trackedAmount.ts`), dùng chung cho server và form.
   - Nếu giá trị mới **khác**, server chỉ ghi đè khi DB vẫn bằng `expectedAmount` (điều kiện nằm trong filter). Ngược lại trả 409 "Số dư/Dư nợ vừa thay đổi do giao dịch khác..."; client tải lại danh sách, cập nhật bản ghi đang sửa (form nhận số và `expectedAmount` mới) và báo người dùng kiểm tra rồi lưu lại. Ghi đè thành công thì ghi BalanceAdjustment kèm `adjustmentNote` (tối đa 200 ký tự). Nếu ghi lịch sử lỗi thì hoàn số cũ.
-  - Đổi giữa thẻ và loại thường (chỉ được khi chưa có giao dịch) là thiết lập lại, không ghi điều chỉnh.
   - Thẻ tín dụng cập nhật theo từng trường (`creditDetails.creditLimit`, ...), nên sửa tên/hạn mức không ghi đè dư nợ.
   - Xem lịch sử: `GET /api/sources-of-money/[id]/adjustments?page=&limit=` (xem được cả nguồn đã lưu trữ); UI là nút "Lịch sử điều chỉnh" trên bảng nguồn tiền. Query key nằm dưới `SOURCES_OF_MONEY`.
-- Khi đổi từ thẻ tín dụng sang loại khác, hệ thống `$unset creditDetails`.
-- **Tài khoản nhận tiền / VietQR** (chỉ loại `BANK`, tùy chọn): `bankAccount` gồm `bin` (6 số NAPAS), `bankName` (tên ngắn, lưu kèm để hiển thị không cần API), `accountNumber` (chữ/số, ≤ 19 ký tự), `accountName` (server chuẩn hóa in hoa, không dấu, ≤ 50). Bỏ trống số tài khoản hoặc đổi sang loại khác thì `$unset bankAccount`. Danh sách ngân hàng trong form lấy thẳng từ `https://api.vietqr.io/v2/banks` phía client (`useVietQrBanks`, cache cả phiên). Nút QR trên bảng mở modal tạo mã ngay trên trình duyệt (`buildVietQrPayload` trong `src/libs/utils/vietQr.ts`, chuẩn EMVCo/NAPAS, hiển thị bằng `QRCode` của antd): không nhập số tiền là QR tĩnh, có số tiền là QR động; nội dung bị bỏ dấu, chỉ giữ chữ/số, ≤ 50 ký tự. Quét QR không tự tạo Thu nhập — tiền về thì người dùng vẫn ghi giao dịch như bình thường.
-- **Không cho đổi giữa thẻ tín dụng và loại thường** (theo cả hai chiều) khi nguồn đã có Expense/Income/Transfer, vì logic hoàn số dư phụ thuộc loại hiện tại. Đổi giữa các loại thường (BANK/CASH/E_WALLET/OTHER) vẫn được.
+- **Tài khoản nhận tiền / VietQR** (chỉ loại `BANK`, tùy chọn): `bankAccount` gồm `bin` (6 số NAPAS), `bankName` (tên ngắn, lưu kèm để hiển thị không cần API), `accountNumber` (chữ/số, ≤ 19 ký tự), `accountName` (server chuẩn hóa in hoa, không dấu, ≤ 50). Bỏ trống số tài khoản thì `$unset bankAccount`. Danh sách ngân hàng trong form lấy thẳng từ `https://api.vietqr.io/v2/banks` phía client (`useVietQrBanks`, cache cả phiên). Nút QR trên bảng mở modal tạo mã ngay trên trình duyệt (`buildVietQrPayload` trong `src/libs/utils/vietQr.ts`, chuẩn EMVCo/NAPAS, hiển thị bằng `QRCode` của antd): không nhập số tiền là QR tĩnh, có số tiền là QR động; nội dung bị bỏ dấu, chỉ giữ chữ/số, ≤ 50 ký tự. Quét QR không tự tạo Thu nhập — tiền về thì người dùng vẫn ghi giao dịch như bình thường.
+- **Không đổi được loại** sau khi tạo (kể cả giữa các loại thường, kể cả khi chưa có giao dịch): server trả 400 "Không được đổi loại nguồn tiền", form khóa ô Loại khi sửa. Muốn đổi loại thì tạo nguồn mới.
 - Có sắp xếp kéo-thả (`sortOrder`, API `/reorder`). API yêu cầu `orderedIds` gồm **toàn bộ** nguồn tiền của user; UI ẩn tay kéo khi đang tìm kiếm, lọc loại hoặc bật "Ẩn nguồn trống".
 - Công tắc **"Ẩn nguồn trống"** (lọc phía client, nhớ trong localStorage `sources-of-money-hide-empty`): ẩn nguồn thường có số dư = 0 và thẻ tín dụng có dư nợ = 0 (`getTrackedAmount(source) === 0`). Chỉ ảnh hưởng trang Nguồn tiền, không ảnh hưởng ô chọn nguồn ở các form hay dashboard. Bản ghi mới nhận `sortOrder = max + 1`. Nếu dữ liệu cũ thiếu `sortOrder`, hệ thống tự backfill khi GET.
 - **Xóa nguồn tiền (xóa mềm):**
@@ -125,6 +124,8 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 
 **Dư nợ thẻ tín dụng** (tính phía client, `features/dashboard/utils.ts`): lấy các nguồn `CREDIT_CARD` có `currentDebt > 0`. Ngày đến hạn kế tiếp là lần gần nhất (tính từ hôm nay) có ngày = `dueDate`; nếu tháng ngắn hơn thì lấy ngày cuối tháng. Trạng thái: hôm nay → "Đến hạn hôm nay" (đỏ); ≤ 3 ngày → đỏ; ≤ 7 ngày → cam; còn lại → xanh; không có `dueDate` → "Chưa đặt ngày đến hạn". Hệ thống không theo dõi việc đã thanh toán kỳ nào: còn dư nợ là còn hiện cảnh báo.
 
+**Phí thường niên thẻ tín dụng** (tính phía client, `buildAnnualFees` trong `features/dashboard/utils.ts`): mọi thẻ có ngày thu phí (kể cả không có dư nợ), sắp xếp theo lần thu kế tiếp gần nhất (`getNextAnnualDate`: hôm nay tính là kỳ này, đã qua thì sang năm sau). Trạng thái dùng chung ngưỡng với dư nợ (≤ 3 ngày đỏ, ≤ 7 ngày cam). Không có thẻ nào đặt ngày thì ẩn cả khối. Nút "Ghi nhận phí" mở `/expenses?action=create&sourceOfMoneyId=&amount=&note=`; trang Chi tiêu điền sẵn thẻ, số tiền ước tính và ghi chú "Phí thường niên <tên thẻ> <năm>", người dùng chọn danh mục và sửa số thực tế rồi lưu. Không lưu trạng thái "đã thu": khối chỉ chuyển sang năm sau khi qua ngày thu.
+
 Nút "Thêm chi tiêu" trên dashboard điều hướng tới `/expenses?action=create`. Trang chi tiêu mở sẵn modal tạo mới, sau đó xóa query param.
 
 ## 7. Xác thực
@@ -163,8 +164,8 @@ Cách form dùng:
 | URL | Feature folder | Nội dung |
 |---|---|---|
 | `/` | `auth-login` | Đăng nhập |
-| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; header hiện tổng chi tiêu tháng và tổng dư nợ thẻ tín dụng hiện tại; phần Tài sản (4 ô: tổng tài sản, tiền mặt, tín dụng có thể dùng, tài sản ròng + bảng chi tiết theo nguồn); khối Dòng tiền (thu nhập, chi tiêu, dòng tiền ròng, tỷ lệ tiết kiệm + biểu đồ cột thu/chi 6 tháng); donut thu nhập theo danh mục; bảng dư nợ thẻ tín dụng và hạn thanh toán; donut chart theo danh mục và theo nguồn tiền (số tiền + %), bar chart theo ngày |
-| `/expenses` | `expenses` | Bảng và form chi tiêu (có tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal |
+| `/dashboard` | `dashboard` | Chọn tháng; nút thêm chi tiêu; header hiện tổng chi tiêu tháng và tổng dư nợ thẻ tín dụng hiện tại; phần Tài sản (4 ô: tổng tài sản, tiền mặt, tín dụng có thể dùng, tài sản ròng + bảng chi tiết theo nguồn); khối Dòng tiền (thu nhập, chi tiêu, dòng tiền ròng, tỷ lệ tiết kiệm + biểu đồ cột thu/chi 6 tháng); donut thu nhập theo danh mục; bảng dư nợ thẻ tín dụng và hạn thanh toán; bảng phí thường niên thẻ (nút ghi nhận phí); donut chart theo danh mục và theo nguồn tiền (số tiền + %), bar chart theo ngày |
+| `/expenses` | `expenses` | Bảng và form chi tiêu (có tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal, kèm `sourceOfMoneyId`/`amount`/`note` thì điền sẵn form |
 | `/incomes` | `incomes` | Bảng và form thu nhập (có tùy chọn "tiếp tục tạo") |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
 | `/sources-of-money` | `sources-of-money` | Quản lý nguồn tiền, kéo-thả sắp xếp, chuyển tiền nhanh |

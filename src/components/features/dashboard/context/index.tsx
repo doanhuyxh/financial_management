@@ -9,7 +9,12 @@ import {
 } from "@/libs/hooks/customHooks/useDashboard";
 import { useGetSourcesOfMoney } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { MENU_KEY } from "@/libs/constants/menuKey";
-import { buildAssetsSummary, buildCreditCardDebts } from "@/components/features/dashboard/utils";
+import {
+    buildAnnualFees,
+    buildAssetsSummary,
+    buildCreditCardDebts,
+    type IAnnualFeeItem,
+} from "@/components/features/dashboard/utils";
 import type { IDashboardContextProps } from "./type";
 
 interface IDashboardContextProviderProps {
@@ -48,6 +53,7 @@ export default function DashboardContextProvider({
     const sources = sourcesData?.data?.items;
 
     const creditCardDebts = useMemo(() => buildCreditCardDebts(sources ?? []), [sources]);
+    const annualFees = useMemo(() => buildAnnualFees(sources ?? []), [sources]);
     const assets = useMemo(() => buildAssetsSummary(sources ?? []), [sources]);
     const totalCreditDebt = useMemo(
         () => creditCardDebts.reduce((sum, item) => sum + item.currentDebt, 0),
@@ -61,6 +67,20 @@ export default function DashboardContextProvider({
     const handleCreateExpense = useCallback(() => {
         router.push(`${MENU_KEY.EXPENSES}?action=create`);
     }, [router]);
+
+    // Phí thực tế có thể khác ước tính: mở form chi tiêu điền sẵn để người dùng sửa số rồi lưu
+    const handleRecordAnnualFee = useCallback(
+        (item: IAnnualFeeItem) => {
+            const params = new URLSearchParams({
+                action: "create",
+                sourceOfMoneyId: item._id,
+                note: `Phí thường niên ${item.name} ${item.nextFeeDate.year()}`,
+            });
+            if (item.annualFee) params.set("amount", String(item.annualFee));
+            router.push(`${MENU_KEY.EXPENSES}?${params.toString()}`);
+        },
+        [router],
+    );
 
     // Bấm vào một cột trong biểu đồ theo ngày -> mở trang Chi tiêu đã lọc đúng ngày đó
     const handleViewDay = useCallback(
@@ -83,10 +103,12 @@ export default function DashboardContextProvider({
                 isCashflowInitialLoading || (isCashflowFetching && isCashflowPlaceholder),
             creditCardDebts,
             totalCreditDebt,
+            annualFees,
             assets,
             isSourcesLoading,
             handleChangeMonth,
             handleCreateExpense,
+            handleRecordAnnualFee,
             handleViewDay,
         }),
         [
@@ -101,10 +123,12 @@ export default function DashboardContextProvider({
             isCashflowPlaceholder,
             creditCardDebts,
             totalCreditDebt,
+            annualFees,
             assets,
             isSourcesLoading,
             handleChangeMonth,
             handleCreateExpense,
+            handleRecordAnnualFee,
             handleViewDay,
         ],
     );

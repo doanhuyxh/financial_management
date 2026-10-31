@@ -4,6 +4,7 @@ import type {
     IDashboardExpensesSummary,
 } from "@/libs/interfaces/dashboardData";
 import type {
+    IAnnualFeeItem,
     IAssetsSummary,
     ICreditCardDebtItem,
 } from "@/components/features/dashboard/utils";
@@ -16,9 +17,11 @@ export interface IDashboardContextProps {
     isCashflowLoading: boolean;
     creditCardDebts: ICreditCardDebtItem[];
     totalCreditDebt: number;
+    annualFees: IAnnualFeeItem[];
     assets: IAssetsSummary;
     isSourcesLoading: boolean;
     handleChangeMonth: (value: Dayjs | null) => void;
     handleCreateExpense: () => void;
+    handleRecordAnnualFee: (item: IAnnualFeeItem) => void;
     handleViewDay: (day: number) => void;
 }

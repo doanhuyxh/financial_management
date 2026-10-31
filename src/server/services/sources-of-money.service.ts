@@ -57,6 +57,7 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
         if (dueDate != null && (dueDate < 1 || dueDate > 31)) {
             throw new Error("Ngày đến hạn phải từ 1 đến 31");
         }
+        const annual = normalizeAnnualFee(data.creditDetails);
 
         return {
             name,
@@ -67,6 +68,7 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
                 currentDebt,
                 ...(statementDate != null ? { statementDate } : {}),
                 ...(dueDate != null ? { dueDate } : {}),
+                ...annual,
             },
             bankAccount: undefined,
             metadata: data.metadata ?? {},
@@ -86,6 +88,35 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
         bankAccount:
             type === SourcesOfMoneyType.BANK ? normalizeBankAccount(data.bankAccount) : undefined,
         metadata: data.metadata ?? {},
+    };
+}
+
+/** Phí thường niên chỉ là ước tính; ngày và tháng thu phí phải đi cùng nhau. */
+function normalizeAnnualFee(data: IFromSourcesOfMoneyData["creditDetails"]) {
+    const annualFee = data?.annualFee != null ? Number(data.annualFee) : undefined;
+    const annualFeeDay = data?.annualFeeDay != null ? Number(data.annualFeeDay) : undefined;
+    const annualFeeMonth = data?.annualFeeMonth != null ? Number(data.annualFeeMonth) : undefined;
+
+    if (annualFee != null && !(Number.isFinite(annualFee) && annualFee >= 0)) {
+        throw new Error("Phí thường niên phải >= 0");
+    }
+    if ((annualFeeDay == null) !== (annualFeeMonth == null)) {
+        throw new Error("Cần nhập đủ ngày và tháng thu phí thường niên");
+    }
+    if (annualFeeDay != null && annualFeeMonth != null) {
+        if (!Number.isInteger(annualFeeMonth) || annualFeeMonth < 1 || annualFeeMonth > 12) {
+            throw new Error("Tháng thu phí thường niên phải từ 1 đến 12");
+        }
+        // Năm nhuận để chấp nhận 29/02; năm thường sẽ thu vào ngày cuối tháng
+        const maxDay = new Date(2024, annualFeeMonth, 0).getDate();
+        if (!Number.isInteger(annualFeeDay) || annualFeeDay < 1 || annualFeeDay > maxDay) {
+            throw new Error("Ngày thu phí thường niên không hợp lệ");
+        }
+    }
+
+    return {
+        ...(annualFee != null ? { annualFee: Math.round(annualFee) } : {}),
+        ...(annualFeeDay != null ? { annualFeeDay, annualFeeMonth } : {}),
     };
 }
 
@@ -266,16 +297,11 @@ export class SourcesOfMoneyService {
                 return errorResponseWithStatusCode("Không tìm thấy nguồn tiền", 404);
             }
 
-            // Balance reversal logic depends on CC vs non-CC, so history must not cross that line.
-            const wasCreditCard = existing.type === SourcesOfMoneyType.CREDIT_CARD;
-            const isCreditCard = payload.type === SourcesOfMoneyType.CREDIT_CARD;
-            const sameKind = wasCreditCard === isCreditCard;
-            if (!sameKind && (await hasTransactions(user.userId, id))) {
-                return errorResponseWithStatusCode(
-                    "Không thể đổi giữa thẻ tín dụng và loại khác khi nguồn tiền đã có giao dịch",
-                    400,
-                );
+            // Loại cố định sau khi tạo: logic số dư/dư nợ và lịch sử phụ thuộc vào loại
+            if (payload.type !== existing.type) {
+                return errorResponseWithStatusCode("Không được đổi loại nguồn tiền", 400);
             }
+            const isCreditCard = payload.type === SourcesOfMoneyType.CREDIT_CARD;
 
             const newAmount = getTrackedAmount(payload);
             const expected = Number(data.expectedAmount);
@@ -284,7 +310,7 @@ export class SourcesOfMoneyService {
                     ? expected
                     : getTrackedAmount(existing);
             // Người dùng không sửa số này → giữ số trong DB (có thể đã đổi do giao dịch khác)
-            const amountChanged = !sameKind || newAmount !== expectedAmount;
+            const amountChanged = newAmount !== expectedAmount;
             const trackedPath = getTrackedPath(payload.type);
 
             const filter: Record<string, unknown> = {
@@ -295,32 +321,33 @@ export class SourcesOfMoneyService {
             };
             const $set: Record<string, unknown> = {
                 name: payload.name,
-                type: payload.type,
                 metadata: payload.metadata,
             };
             const $unset: Record<string, 1> = {};
 
             if (payload.creditDetails) {
                 const { creditLimit, statementDate, dueDate } = payload.creditDetails;
-                $set.balance = 0;
                 $set["creditDetails.creditLimit"] = creditLimit;
                 if (statementDate != null) $set["creditDetails.statementDate"] = statementDate;
                 else $unset["creditDetails.statementDate"] = 1;
                 if (dueDate != null) $set["creditDetails.dueDate"] = dueDate;
                 else $unset["creditDetails.dueDate"] = 1;
+                for (const key of ["annualFee", "annualFeeDay", "annualFeeMonth"] as const) {
+                    const value = payload.creditDetails[key];
+                    if (value != null) $set[`creditDetails.${key}`] = value;
+                    else $unset[`creditDetails.${key}`] = 1;
+                }
                 if (!amountChanged) {
                     // Giữ dư nợ hiện tại: hạn mức mới không được thấp hơn nó
                     // `$not: $gt` cũng khớp thẻ cũ thiếu currentDebt (coi như 0)
                     filter["creditDetails.currentDebt"] = { $not: { $gt: creditLimit } };
                 }
-            } else {
-                $unset.creditDetails = 1;
             }
             if (payload.bankAccount) $set.bankAccount = payload.bankAccount;
             else $unset.bankAccount = 1;
             if (amountChanged) {
                 $set[trackedPath] = newAmount;
-                if (sameKind) filter[trackedPath] = expectedAmount;
+                filter[trackedPath] = expectedAmount;
             }
 
             const updated = await SourcesOfMoneyModel.findOneAndUpdate(
@@ -330,7 +357,7 @@ export class SourcesOfMoneyService {
             );
 
             if (!updated) {
-                if (amountChanged && sameKind) {
+                if (amountChanged) {
                     return errorResponseWithStatusCode(
                         `${isCreditCard ? "Dư nợ" : "Số dư"} vừa thay đổi do giao dịch khác. Hãy tải lại và thử lại`,
                         409,
@@ -345,8 +372,7 @@ export class SourcesOfMoneyService {
                 return errorResponseWithStatusCode("Không tìm thấy nguồn tiền", 404);
             }
 
-            // Đổi loại (chỉ khi chưa có giao dịch) là thiết lập lại, không tính là điều chỉnh
-            if (amountChanged && sameKind) {
+            if (amountChanged) {
                 try {
                     await BalanceAdjustmentsModel.create({
                         userId: user.userId,

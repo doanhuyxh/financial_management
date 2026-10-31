@@ -13,6 +13,11 @@ export interface ICreditDetails {
     currentDebt: number;
     statementDate?: number;
     dueDate?: number;
+    /** Phí thường niên ước tính; số thực tế ghi bằng một khoản chi tiêu trên thẻ */
+    annualFee?: number;
+    /** Ngày (1–31) và tháng (1–12) thu phí thường niên, lặp lại mỗi năm */
+    annualFeeDay?: number;
+    annualFeeMonth?: number;
 }
 
 /** Tài khoản nhận tiền của nguồn loại BANK, dùng để tạo mã VietQR. */

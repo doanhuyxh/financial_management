@@ -22,6 +22,17 @@ const TYPE_COLORS: Record<SourcesOfMoneyType, string> = {
     [SourcesOfMoneyType.OTHER]: "default",
 };
 
+function getAnnualFeeText(record: ISourcesOfMoneyData) {
+    const { annualFee, annualFeeDay, annualFeeMonth } = record.creditDetails ?? {};
+    const parts: string[] = [];
+    if (annualFee != null) parts.push(`~${formatMoney(annualFee)}`);
+    if (annualFeeDay && annualFeeMonth) {
+        const pad = (value: number) => String(value).padStart(2, "0");
+        parts.push(`thu ngày ${pad(annualFeeDay)}/${pad(annualFeeMonth)}`);
+    }
+    return parts.length > 0 ? `Phí thường niên: ${parts.join(" · ")}` : null;
+}
+
 export default function SourcesOfMoneyTable() {
     const {
         items,
@@ -79,6 +90,7 @@ export default function SourcesOfMoneyTable() {
                         const debt = record.creditDetails?.currentDebt ?? 0;
                         const available =
                             record.availableCreditLimit ?? Math.max(0, limit - debt);
+                        const annualFeeText = getAnnualFeeText(record);
                         return (
                             <div className="text-sm leading-5">
                                 <div className="font-semibold text-orange-500">
@@ -88,6 +100,11 @@ export default function SourcesOfMoneyTable() {
                                     Hạn mức: {formatMoney(limit)} · Còn lại:{" "}
                                     {formatMoney(available)}
                                 </div>
+                                {annualFeeText ? (
+                                    <div className="text-xs text-muted-foreground">
+                                        {annualFeeText}
+                                    </div>
+                                ) : null}
                             </div>
                         );
                     }

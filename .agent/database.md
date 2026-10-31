@@ -9,7 +9,7 @@ MongoDB qua Mongoose 9. Kết nối: `src/server/connectDb.ts` (cache trên `glo
 | User | `user` | fullName, email, password (**bcrypt**), phoneNumber, avatarUrl, tokenVersion | |
 | LoginAttempt | `loginAttempt` | key (IP + email, unique), failCount, lockedUntil | `key` unique |
 | Category | `categories` | userId, name, kind (`EXPENSE`/`INCOME`), sortOrder, archivedAt | `{userId, sortOrder}` |
-| SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate}, bankAccount{bin, bankName, accountNumber, accountName} (chỉ BANK), metadata, archivedAt; virtual `availableCreditLimit = max(0, limit − debt)` | `{userId, sortOrder}` |
+| SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, creditDetails{creditLimit, currentDebt, statementDate, dueDate, annualFee, annualFeeDay, annualFeeMonth}, bankAccount{bin, bankName, accountNumber, accountName} (chỉ BANK), metadata, archivedAt; virtual `availableCreditLimit = max(0, limit − debt)` | `{userId, sortOrder}` |
 | Expense | `expenses` | userId, categoryId, sourceOfMoneyId, amount (>0), note, spentAt, skipBalanceAdjust | `{userId, spentAt: -1}` |
 | Income | `incomes` | userId, categoryId, sourceOfMoneyId, amount (>0), note, receivedAt | `{userId, receivedAt: -1}` |
 | BalanceAdjustment | `balanceAdjustments` | userId, sourceOfMoneyId, field (`BALANCE`/`CREDIT_DEBT`), previousValue, newValue, delta, note, adjustedAt | `{userId, sourceOfMoneyId, adjustedAt: -1}` |
@@ -23,7 +23,7 @@ MongoDB qua Mongoose 9. Kết nối: `src/server/connectDb.ts` (cache trên `glo
 2. **Không dùng Mongo transaction.** Số dư cập nhật bằng `$inc` atomic, **điều kiện nằm ngay trong filter** của `findOneAndUpdate` (ví dụ `balance: { $gte: amount }`, điều kiện hạn mức/dư nợ của thẻ). Không chỉ kiểm tra trên bản đọc trước, vì request đồng thời có thể vượt.
 3. Mỗi bước nhiều-ghi có **rollback thủ công** (try/catch, bù trừ ngược). Khi sửa service phải giữ nguyên thứ tự rollback.
 4. **Xóa mềm** bằng `archivedAt` cho Category/SourceOfMoney đã có giao dịch; chưa có giao dịch thì xóa hẳn. Truy vấn danh sách/chọn phải loại bản ghi có `archivedAt`.
-5. Thẻ tín dụng cập nhật theo **từng trường** (`creditDetails.creditLimit`, ...), không ghi đè cả object `creditDetails`. Đổi từ thẻ sang loại thường thì `$unset creditDetails`.
+5. Thẻ tín dụng cập nhật theo **từng trường** (`creditDetails.creditLimit`, ...), không ghi đè cả object `creditDetails`.
 6. Tiền là số nguyên VND; phí làm tròn bằng `Math.round`.
 
 ## Migration

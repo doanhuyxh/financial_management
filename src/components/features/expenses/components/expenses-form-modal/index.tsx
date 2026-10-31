@@ -55,7 +55,7 @@ function resetCreateForm(form: ReturnType<typeof Form.useForm<FormValues>>[0]) {
 }
 
 export default function ExpensesFormModal() {
-    const { modalOpen, editingItem, isSubmitting, closeModal, handleSubmit } =
+    const { modalOpen, editingItem, createDefaults, isSubmitting, closeModal, handleSubmit } =
         useExpensesContext();
 
     const [form] = Form.useForm<FormValues>();
@@ -155,8 +155,15 @@ export default function ExpensesFormModal() {
             });
         } else {
             resetCreateForm(form);
+            if (createDefaults) {
+                form.setFieldsValue({
+                    sourceOfMoneyId: createDefaults.sourceOfMoneyId,
+                    amount: createDefaults.amount != null ? String(createDefaults.amount) : "",
+                    note: createDefaults.note ?? "",
+                });
+            }
         }
-    }, [modalOpen, editingItem, form]);
+    }, [modalOpen, editingItem, createDefaults, form]);
 
     const handleOk = async () => {
         const values = await form.validateFields();

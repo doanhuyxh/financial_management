@@ -75,6 +75,54 @@ export function buildCreditCardDebts(
         .sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity));
 }
 
+export interface IAnnualFeeItem {
+    _id: string;
+    name: string;
+    /** Phí ước tính; số thực tế có thể khác khi ngân hàng thu. */
+    annualFee: number | null;
+    nextFeeDate: Dayjs;
+    daysLeft: number;
+    status: Exclude<CreditDueStatus, "no-due-date">;
+}
+
+/** Next occurrence of `day`/`month` (yearly) from `today`; 29/02 falls back to 28/02. */
+export function getNextAnnualDate(day: number, month: number, today: Dayjs = dayjs()): Dayjs {
+    const start = today.startOf("day");
+    const inYear = (year: number) => {
+        const monthStart = dayjs(new Date(year, month - 1, 1));
+        return monthStart.date(Math.min(day, monthStart.daysInMonth()));
+    };
+
+    const thisYear = inYear(start.year());
+    if (!thisYear.isBefore(start, "day")) return thisYear;
+    return inYear(start.year() + 1);
+}
+
+/** Credit cards with an annual fee date, nearest charge first. */
+export function buildAnnualFees(
+    sources: ISourcesOfMoneyData[],
+    today: Dayjs = dayjs(),
+): IAnnualFeeItem[] {
+    const items: IAnnualFeeItem[] = [];
+    for (const source of sources) {
+        const { annualFee, annualFeeDay, annualFeeMonth } = source.creditDetails ?? {};
+        if (source.type !== SourcesOfMoneyType.CREDIT_CARD || !annualFeeDay || !annualFeeMonth) {
+            continue;
+        }
+        const nextFeeDate = getNextAnnualDate(annualFeeDay, annualFeeMonth, today);
+        const daysLeft = nextFeeDate.diff(today.startOf("day"), "day");
+        items.push({
+            _id: source._id,
+            name: source.name,
+            annualFee: annualFee ?? null,
+            nextFeeDate,
+            daysLeft,
+            status: getDueStatus(daysLeft) as IAnnualFeeItem["status"],
+        });
+    }
+    return items.sort((a, b) => a.daysLeft - b.daysLeft);
+}
+
 export type AssetGroup = "cash" | "credit";
 
 export interface IAssetSourceItem {

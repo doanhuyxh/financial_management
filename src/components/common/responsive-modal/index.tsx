@@ -93,10 +93,11 @@ export default function ResponsiveModal({
             footer={footer}
             destroyOnHidden={destroyOnHidden}
             width={width}
-            // Căn giữa để cả modal (tiêu đề + thân + footer ≈ thân + 116px) nằm gọn trong
-            // màn hình; chỉ thân modal cuộn, tránh cuộn đôi cùng trang trên màn hình thấp.
-            centered
-            styles={{ body: { maxHeight: "calc(100dvh - 160px)", overflowY: "auto" } }}
+            // Cách mép trên 20% màn hình. Thân modal giới hạn chiều cao để cả modal
+            // (tiêu đề + thân + footer ≈ thân + 116px) nằm gọn trong 80% còn lại;
+            // chỉ thân modal cuộn, tránh cuộn đôi cùng trang trên màn hình thấp.
+            style={{ top: "10dvh" }}
+            styles={{ body: { maxHeight: "calc(80dvh - 140px)", overflowY: "auto" } }}
         >
             {children}
         </Modal>
