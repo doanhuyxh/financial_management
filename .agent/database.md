@@ -15,7 +15,7 @@ MongoDB qua Mongoose 9. Kết nối: `src/server/connectDb.ts` (cache trên `glo
 | BalanceAdjustment | `balanceAdjustments` | userId, sourceOfMoneyId, field (`BALANCE`/`CREDIT_DEBT`), previousValue, newValue, delta, note, adjustedAt | `{userId, sourceOfMoneyId, adjustedAt: -1}` |
 | Transfer | `transfers` | userId, fromSourceId, toSourceId, amount, feePercent, feeAmount, feeCategoryId, feeExpenseId, note, transferredAt | `{userId, transferredAt: -1}` |
 
-`SourceOfMoney.type`: `BANK`, `CASH`, `E_WALLET`, `CREDIT_CARD`, `OTHER`. Ý nghĩa nghiệp vụ của từng trường: [business-logic.md](business-logic.md).
+`SourceOfMoney.type`: `BANK`, `CASH`, `E_WALLET`, `CREDIT_CARD`, `OTHER`. Ý nghĩa nghiệp vụ của từng trường: [business/sources-of-money.md](business/sources-of-money.md), phí thẻ: [business/credit-card-fees.md](business/credit-card-fees.md).
 
 ## Quy tắc ghi (bắt buộc)
 
@@ -43,4 +43,4 @@ Code đọc phải chịu được dữ liệu cũ thiếu trường (ví dụ t
 - Idempotent: chạy lại không làm hỏng dữ liệu.
 - Thêm vào bảng script ở [commands.md](commands.md#script-một-lần-scripts).
 
-Thêm/đổi trường trong schema thì cập nhật bảng ở trên, `src/libs/interfaces/`, và [business-logic.md](business-logic.md) nếu đổi nghiệp vụ.
+Thêm/đổi trường trong schema thì cập nhật bảng ở trên, `src/libs/interfaces/`, và file tương ứng trong [business/](business/README.md) nếu đổi nghiệp vụ.

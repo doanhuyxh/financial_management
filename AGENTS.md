@@ -15,7 +15,15 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 | Viết/sửa component, hook, đặt tên, cấu trúc feature | [.agent/conventions.md](.agent/conventions.md) |
 | Hiểu cây thư mục, ranh giới client/server, luồng dữ liệu, cache React Query | [.agent/architecture.md](.agent/architecture.md) |
 | Sửa model, schema, query ghi số dư, viết migration | [.agent/database.md](.agent/database.md) |
-| Sửa services, số dư, chuyển tiền, danh mục, dashboard, auth | [.agent/business-logic.md](.agent/business-logic.md) |
+| Nguyên tắc nghiệp vụ chung, nợ kỹ thuật | [.agent/business/README.md](.agent/business/README.md) |
+| Sửa expense / income / transfer, cập nhật số dư | [.agent/business/balance-rules.md](.agent/business/balance-rules.md) |
+| Sửa nguồn tiền (CRUD, điều chỉnh số dư, VietQR) | [.agent/business/sources-of-money.md](.agent/business/sources-of-money.md) |
+| Sửa phí thẻ, kỳ sao kê, lãi | [.agent/business/credit-card-fees.md](.agent/business/credit-card-fees.md) |
+| Sửa danh mục | [.agent/business/categories.md](.agent/business/categories.md) |
+| Sửa dashboard | [.agent/business/dashboard.md](.agent/business/dashboard.md) |
+| Sửa trang so sánh thẻ | [.agent/business/card-compare.md](.agent/business/card-compare.md) |
+| Sửa đăng nhập, JWT, proxy | [.agent/business/auth.md](.agent/business/auth.md) |
+| Sửa gợi ý "thường dùng" trong form | [.agent/business/suggestions.md](.agent/business/suggestions.md) |
 
 ## Luật không được vi phạm
 
@@ -29,5 +37,6 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 ## Giữ tài liệu đúng
 
 - `.agent/` là nguồn sự thật duy nhất cho agent. Không tạo tài liệu song song ở chỗ khác.
-- Đổi business rule → cập nhật `.agent/business-logic.md`. Đổi schema → `.agent/database.md`. Thêm lệnh/script/env → `.agent/commands.md`. Đổi cấu trúc thư mục hoặc luồng dữ liệu → `.agent/architecture.md`.
+- Đổi business rule → cập nhật file tương ứng trong `.agent/business/`. Đổi schema → `.agent/database.md`. Thêm lệnh/script/env → `.agent/commands.md`. Đổi cấu trúc thư mục hoặc luồng dữ liệu → `.agent/architecture.md`.
+- Mỗi file trong `.agent/` giữ ≤ ~8 KB, chỉ đọc file cần cho task. Vượt thì tách theo domain con và thêm dòng vào bảng trên.
 - Nếu tài liệu khác code, tin code và sửa tài liệu trong cùng commit.
