@@ -25,7 +25,7 @@ Có hai cách theo dõi tiền:
   - **Kỳ sao kê** (`getStatementCycle` trong `src/libs/utils/statementCycle.ts`, dùng chung server và dashboard): [ngày sau lần chốt trước, ngày sau lần chốt kế tiếp); ngày chốt thuộc kỳ kết thúc vào ngày đó; tháng ngắn hơn thì chốt vào ngày cuối tháng. Thẻ chưa đặt `statementDate` thì kỳ = tháng dương lịch (giờ VN).
   - **Phí quản lý:** `managementFee` mỗi tháng, `managementFeeDay` (1–31, chỉ hiển thị).
   - **Miễn phí quản lý:** đạt **một trong hai** trong kỳ sao kê hiện tại: `managementFeeWaiverMinTransactions` (số nguyên ≥ 1) = số Expense trên thẻ, **hoặc** `managementFeeWaiverMinSpend` (> 0) = tổng chi tiêu. Nhập một hay cả hai đều được.
-  - **Phí thanh toán dư nợ:** `paymentFee` (≥ 0) mỗi lần trả nợ thẻ vượt `freePaymentsPerCycle` (số nguyên ≥ 0, mặc định 0; chỉ nhập được khi có `paymentFee`) lần miễn phí trong kỳ sao kê. **Lần trả nợ** = Transfer có `toSourceId` là thẻ (theo `transferredAt`) + Income vào thẻ (theo `receivedAt`). Không tự thu: form chuyển tiền và form tạo thu nhập hiện cảnh báo (`components/common/card-payment-fee-alert`) khi nguồn đích là thẻ có `paymentFee` và ngày giao dịch thuộc kỳ hiện tại — vàng nếu lần này mất phí, xanh nếu là lần miễn phí cuối.
+  - **Phí thanh toán dư nợ:** `paymentFee` (≥ 0) mỗi lần trả nợ thẻ vượt `freePaymentsPerCycle` (số nguyên ≥ 0, mặc định 0; chỉ nhập được khi có `paymentFee`) lần miễn phí trong kỳ sao kê. **Lần trả nợ** = Transfer có `toSourceId` là thẻ (theo `transferredAt`); Income vào thẻ cũ (theo `receivedAt`) vẫn được đếm để khớp dữ liệu trước khi chặn thu nhập vào thẻ. Không tự thu: form chuyển tiền hiện cảnh báo (`components/common/card-payment-fee-alert`) khi nguồn đích là thẻ có `paymentFee` và ngày giao dịch thuộc kỳ hiện tại — vàng nếu lần này mất phí, xanh nếu là lần miễn phí cuối.
   - **Phí sử dụng:** `usageFee` (≥ 0) thu một lần trong kỳ sao kê nào có ít nhất một Expense chi tiêu trên thẻ (không tính phí thẻ, phí chuyển tiền); kỳ không chi tiêu thì không mất phí (VD: MoMo). Form tạo chi tiêu cảnh báo khi khoản chi là giao dịch đầu tiên của kỳ hiện tại (`expenses-form-modal/components/card-usage-fee-alert`, dựa trên `cycleTransactions`).
   - **Lãi và phí theo %** (tùy chọn): tỷ lệ % (0–100, giữ 2 chữ số thập phân) gồm `interestRate` (%/năm), `cashAdvanceFeePercent`, `foreignFxFeePercent`, `foreignVndFeePercent`, `lateFeePercentPerDay`; số tiền ≥ 0 gồm `cashAdvanceFeeMin`, `foreignFxFeeMin`, `foreignVndFeeMin`, `lateFeeMin`, `lateFeeMax` (min ≤ max). Phí có tối thiểu tính bằng `calcPercentFee` (`src/libs/utils/cardFee.ts`, dùng chung server/client) = max(round(số tiền × % / 100), tối thiểu).
   - **Lãi & phí chậm trả chỉ để hiển thị và ghi tay:** hệ thống không biết dư nợ sao kê hay kỳ nào đã trả đủ, nên không tự tính lãi/phạt. Dashboard hiện lãi ước tính 30 ngày trên dư nợ hiện tại (`estimateInterest`, năm 365 ngày) và quy tắc phí chậm trả.
@@ -68,11 +68,13 @@ Mọi giao dịch đều cập nhật số dư bằng `$inc` atomic với điề
 
 ### 4.2 Thu nhập (Income) — `incomes.service.ts`
 
-| | Nguồn thường | Thẻ tín dụng |
+**Không ghi thu nhập vào thẻ tín dụng.** Tạo, hoặc sửa mà nguồn (mới hay giữ nguyên) là thẻ, đều trả 400 "Không ghi thu nhập vào thẻ tín dụng. Hãy dùng Chuyển tiền từ nguồn khác để trả nợ thẻ". Trả nợ thẻ chỉ đi qua Transfer thường → thẻ (4.3). Form thu nhập ẩn thẻ khỏi ô chọn nguồn; thu nhập cũ đã gắn với thẻ chỉ xóa được hoặc phải chuyển sang nguồn khác khi sửa (form báo lỗi ở ô nguồn).
+
+| | Nguồn thường | Thẻ tín dụng (chỉ thu nhập cũ) |
 |---|---|---|
-| Tạo (apply) | `balance += amount` | **Trả nợ thẻ:** `currentDebt −= amount`, yêu cầu amount ≤ dư nợ ("Số tiền thanh toán vượt dư nợ hiện tại") |
-| Xóa (revert) | `balance −= amount`, yêu cầu `balance ≥ amount` (nếu đã tiêu hết thì không xóa được) | `currentDebt += amount` |
-| Sửa | revert cũ rồi apply mới, có rollback | |
+| Tạo (apply) | `balance += amount` | ❌ bị chặn |
+| Xóa (revert) | `balance −= amount`, yêu cầu `balance ≥ amount` (nếu đã tiêu hết thì không xóa được) | `currentDebt += amount` (trong hạn mức) |
+| Sửa | revert cũ rồi apply mới, có rollback | phải chuyển sang nguồn thường |
 
 ### 4.3 Chuyển tiền (Transfer) — `transfers.service.ts`
 
@@ -122,7 +124,7 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 - Cạnh tổng chi tiêu, header còn hiện **Tổng dư nợ thẻ tín dụng**: tổng `currentDebt` của các thẻ đang có dư nợ (cùng số với "Tổng dư nợ" ở bảng dư nợ phía dưới). Đây là dư nợ hiện tại, không đổi khi chọn tháng khác.
 
 **Dòng tiền** — `GET /api/dashboard/cashflow?year=&month=` (`DashboardService.getCashflowSummary`), khối "Dòng tiền" và donut "Thu nhập theo danh mục":
-- `totalIncome` = tổng Income theo `receivedAt`; `totalExpense` = tổng Expense theo `spentAt` (**gồm phí chuyển tiền**), cùng khoảng tháng +07:00 như trên. Income vào thẻ tín dụng (trả nợ thẻ từ bên ngoài) vẫn tính là thu nhập.
+- `totalIncome` = tổng Income theo `receivedAt`; `totalExpense` = tổng Expense theo `spentAt` (**gồm phí chuyển tiền**), cùng khoảng tháng +07:00 như trên. Income cũ vào thẻ tín dụng (trước khi bị chặn) vẫn tính là thu nhập.
 - `net = totalIncome − totalExpense`; `savingsRate = net / totalIncome`, là `null` khi tháng không có thu nhập (UI hiện "—").
 - `trend`: 6 tháng tính lùi từ tháng đang chọn (gồm tháng đó), mỗi tháng có `income, expense, net`, nhóm theo tháng giờ VN. `previous` = tháng liền trước, để UI hiện % thay đổi; nếu tháng trước bằng 0 thì không so (hiện "chưa có số liệu").
 - `incomeByCategory`: giống `byCategory` của chi tiêu, danh mục đã xóa hẳn thì gom vào "Không xác định".

@@ -7,7 +7,7 @@ import { SourcesOfMoneyType, type ISourcesOfMoneyData } from "@/libs/interfaces/
 import { formatMoney } from "@/libs/utils/formatMoney";
 
 /**
- * Cảnh báo khi trả nợ thẻ (chuyển tiền/thu nhập vào thẻ) sẽ vượt số lần miễn phí trong
+ * Cảnh báo khi trả nợ thẻ (chuyển tiền vào thẻ) sẽ vượt số lần miễn phí trong
  * kỳ sao kê hiện tại. Chỉ xét ngày thuộc kỳ hiện tại; ngày ở kỳ khác thì không cảnh báo.
  */
 export default function CardPaymentFeeAlert({

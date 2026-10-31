@@ -71,8 +71,11 @@ async function assertOwnedRefs(
     return { category, source, sourceActive: !source.archivedAt };
 }
 
+const CREDIT_CARD_INCOME_MESSAGE =
+    "Không ghi thu nhập vào thẻ tín dụng. Hãy dùng Chuyển tiền từ nguồn khác để trả nợ thẻ";
+
 /**
- * Apply income: tăng số dư / giảm dư nợ thẻ.
+ * Apply income: tăng số dư / giảm dư nợ thẻ (thẻ chỉ còn ở thu nhập cũ, xem CREDIT_CARD_INCOME_MESSAGE).
  * Revert income: giảm số dư / tăng lại dư nợ thẻ.
  */
 async function adjustSourceBalance(
@@ -214,11 +217,14 @@ export class IncomesService {
 
         try {
             const payload = normalizePayload(data);
-            await assertOwnedRefs(
+            const { source } = await assertOwnedRefs(
                 user.userId,
                 payload.categoryId,
                 payload.sourceOfMoneyId,
             );
+            if (source.type === SourcesOfMoneyType.CREDIT_CARD) {
+                throw new Error(CREDIT_CARD_INCOME_MESSAGE);
+            }
 
             await adjustSourceBalance(
                 user.userId,
@@ -275,12 +281,16 @@ export class IncomesService {
             const payload = normalizePayload(data);
             const oldSourceId = existing.sourceOfMoneyId.toString();
             const oldAmount = existing.amount;
-            const { sourceActive: newSourceActive } = await assertOwnedRefs(
+            const { source: newSource, sourceActive: newSourceActive } = await assertOwnedRefs(
                 user.userId,
                 payload.categoryId,
                 payload.sourceOfMoneyId,
                 { categoryId: existing.categoryId.toString(), sourceOfMoneyId: oldSourceId },
             );
+            // Thu nhập cũ trên thẻ chỉ được xóa hoặc chuyển sang nguồn khác
+            if (newSource.type === SourcesOfMoneyType.CREDIT_CARD) {
+                throw new Error(CREDIT_CARD_INCOME_MESSAGE);
+            }
             // Nguồn đã xóa hoặc lưu trữ: bỏ qua phía đó, không hoàn số dư
             const oldSourceExists = Boolean(
                 await SourcesOfMoneyModel.exists({
