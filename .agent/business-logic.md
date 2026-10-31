@@ -138,6 +138,12 @@ Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển
 
 **Phí thẻ tín dụng** (tính phía client, `buildCreditCardFees` trong `features/dashboard/utils.ts`, kết hợp nguồn tiền và API tiến độ): mọi thẻ có cấu hình phí thường niên, phí quản lý, phí thanh toán dư nợ, lãi suất hoặc phí chậm trả (kể cả không có dư nợ), kèm kỳ sao kê hiện tại, thẻ có lần thu phí thường niên gần nhất đứng trước (`getNextAnnualDate` trong `src/libs/utils/annualFeeDate.ts`, dùng chung với server: hôm nay tính là kỳ này, đã qua thì sang năm sau). Trạng thái ngày thu dùng chung ngưỡng với dư nợ (≤ 3 ngày đỏ, ≤ 7 ngày cam). Mỗi điều kiện miễn phí hiện thanh tiến độ "đã đạt / mức tối thiểu" và tag "Đạt" (miễn phí quản lý hiện hai thanh nối bằng "hoặc"). Cột phí thanh toán dư nợ hiện số lần đã trả trong kỳ và phí ước tính = max(0, số lần − số lần miễn phí) × `paymentFee`. Không có thẻ nào cấu hình phí thì ẩn cả khối. Cột "Lãi & chậm trả" hiện lãi suất, lãi ước tính 30 ngày trên dư nợ hiện tại và quy tắc phí chậm trả. Nút "Ghi phí thường niên"/"Ghi phí quản lý"/"Ghi phí thanh toán" (chỉ hiện khi phí ước tính > 0)/"Ghi lãi" (điền lãi ước tính)/"Ghi phí chậm trả" (điền `lateFeeMin`) mở `/expenses?action=create&sourceOfMoneyId=&amount=&note=&cardFeeType=`; trang Chi tiêu điền sẵn thẻ, số tiền ước tính và ghi chú, người dùng chọn danh mục và sửa số thực tế rồi lưu. `cardFeeType` chỉ được gửi khi vẫn chọn đúng thẻ đó. Không lưu trạng thái "đã thu".
 
+**So sánh thẻ** (`/credit-card-compare`, tính phía client trong `features/credit-card-compare/utils.ts` từ danh sách nguồn tiền, không có API riêng):
+- **Kịch bản** (lưu localStorage `credit-card-compare-scenario`): chi tiêu/tháng, số giao dịch/tháng, số lần trả nợ/kỳ, dư nợ chưa trả, một lần rút tiền mặt, một lần chi tiêu nước ngoài. Mọi phí được quy ra số tiền theo kịch bản.
+- **Phí cố định/năm** = thường niên (0 nếu đạt điều kiện miễn: `YEAR` so chi tiêu/tháng × 12, `MONTH` so chi tiêu/tháng) + quản lý × 12 (0 nếu đạt số giao dịch hoặc chi tiêu) + max(0, số lần trả nợ − số lần miễn phí) × `paymentFee` × 12. Phí thường niên/quản lý/thanh toán bỏ trống = 0.
+- **Lãi** = `estimateInterest(dư nợ chưa trả, interestRate)` 30 ngày. **Rút tiền mặt** = `calcPercentFee` + lãi 30 ngày trên số tiền rút. **Ngoại tệ / VND nước ngoài** = `calcPercentFee` theo cấu hình. Lãi suất và phí theo % bỏ trống = "Chưa nhập", không xếp hạng.
+- **Xếp hạng** mỗi tiêu chí (`rankCriterion`): cần ≥ 2 thẻ có giá trị và không bằng nhau; thẻ tốt nhất tô xanh, tệ nhất tô đỏ (hạn mức còn lại: cao là tốt; còn lại: thấp là tốt). Điểm mạnh/yếu của thẻ = các tiêu chí thẻ đó đứng đầu/cuối. "Nên dùng thẻ nào" chọn thẻ chi phí thấp nhất cho chi tiêu hằng ngày, khi chưa trả hết dư nợ, rút tiền mặt, chi tiêu ngoại tệ.
+
 Nút "Thêm chi tiêu" trên dashboard điều hướng tới `/expenses?action=create`. Trang chi tiêu mở sẵn modal tạo mới, sau đó xóa query param.
 
 ## 7. Xác thực
@@ -181,6 +187,7 @@ Cách form dùng:
 | `/incomes` | `incomes` | Bảng và form thu nhập (có tùy chọn "tiếp tục tạo") |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
 | `/sources-of-money` | `sources-of-money` | Quản lý nguồn tiền, kéo-thả sắp xếp, chuyển tiền nhanh |
+| `/credit-card-compare` | `credit-card-compare` | So sánh thẻ tín dụng: kịch bản sử dụng, thẻ nên dùng cho từng nhu cầu, bảng so sánh tô xanh/đỏ, điểm mạnh/yếu (xem mục So sánh thẻ) |
 | `/categories` | `categories` | Quản lý danh mục, kéo-thả sắp xếp |
 
 Menu, cache React Query và invalidate: xem [architecture.md](architecture.md#cache-react-query).
