@@ -7,19 +7,23 @@ export default function PaymentFeeInfo({ status }: { status: IPaymentFeeStatus |
     if (!status) return <span className="text-muted-foreground">—</span>;
     return (
         <div className="flex flex-col gap-1">
-            <span>
-                ~{formatMoney(status.fee)}/lần
+            <span className={status.estimatedTotal > 0 ? "font-semibold text-red-500" : undefined}>
+                ≈{formatMoney(status.fee)}/lần
                 {status.freePayments > 0 ? ` từ lần ${status.freePayments + 1}` : ""}
             </span>
             {status.payments != null ? (
                 <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                     Kỳ này đã trả {status.payments} lần
                     {status.estimatedTotal > 0 ? (
-                        <Tag color="orange" className="m-0">
-                            Phí ~{formatMoney(status.estimatedTotal)}
+                        <Tag color="red" variant="solid" className="m-0">
+                            Phí ≈{formatMoney(status.estimatedTotal)}
                         </Tag>
                     ) : (
-                        <Tag color={status.nextPaymentCharged ? "orange" : "green"} className="m-0">
+                        <Tag
+                            color={status.nextPaymentCharged ? "orange" : "green"}
+                            variant="solid"
+                            className="m-0"
+                        >
                             {status.nextPaymentCharged ? "Lần tới mất phí" : "Lần tới miễn phí"}
                         </Tag>
                     )}

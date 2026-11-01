@@ -1,7 +1,7 @@
 # Phí thẻ tín dụng
 
 > Nguồn sự thật là code; nếu code khác tài liệu, tin code và sửa tài liệu. Nguyên tắc chung: [README.md](README.md).
-> CRUD nguồn tiền, dư nợ, hạn mức: [sources-of-money.md](sources-of-money.md). Bảng phí trên dashboard: [dashboard.md](dashboard.md).
+> CRUD nguồn tiền, dư nợ, hạn mức: [sources-of-money.md](sources-of-money.md). Bảng phí trên dashboard: [dashboard-card-fees.md](dashboard-card-fees.md).
 
 - **Phí thẻ** (tùy chọn, chỉ thẻ; mọi số tiền là **ước tính**, ≥ 0, làm tròn). Các trường này **không tự động trừ** gì: khi ngân hàng thu, người dùng ghi một Expense trên thẻ với số thực tế (dư nợ tăng như chi tiêu thường), có `cardFeeType` (xem [balance-rules.md](balance-rules.md)). Sửa theo từng trường (`CARD_FEE_KEYS` trong service), bỏ trống thì `$unset`.
   - **Phí thường niên:** `annualFee`; `annualFeeDay` + `annualFeeMonth` là ngày thu, lặp lại mỗi năm, phải nhập cùng nhau, cho phép 29/02 (năm thường thu vào 28/02).

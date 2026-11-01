@@ -21,6 +21,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 | Sửa phí thẻ, kỳ sao kê, lãi | [.agent/business/credit-card-fees.md](.agent/business/credit-card-fees.md) |
 | Sửa danh mục | [.agent/business/categories.md](.agent/business/categories.md) |
 | Sửa dashboard | [.agent/business/dashboard.md](.agent/business/dashboard.md) |
+| Sửa bảng phí thẻ trên dashboard | [.agent/business/dashboard-card-fees.md](.agent/business/dashboard-card-fees.md) |
 | Sửa trang so sánh thẻ | [.agent/business/card-compare.md](.agent/business/card-compare.md) |
 | Sửa đăng nhập, JWT, proxy | [.agent/business/auth.md](.agent/business/auth.md) |
 | Sửa gợi ý "thường dùng" trong form | [.agent/business/suggestions.md](.agent/business/suggestions.md) |

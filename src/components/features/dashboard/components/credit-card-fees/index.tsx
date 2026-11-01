@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, Table } from "antd";
+import { Button, Dropdown, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { Receipt } from "lucide-react";
+import { ChevronDown, Receipt } from "lucide-react";
 import MobileRecordList from "@/components/common/mobile-record-list";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import type { ICreditCardFeeItem } from "@/components/features/dashboard/utils";
@@ -13,10 +13,24 @@ import LatePenaltyInfo from "@/components/features/dashboard/components/credit-c
 import UsageFeeInfo from "@/components/features/dashboard/components/credit-card-fees/components/usage-fee-info";
 import PaymentFeeInfo from "@/components/features/dashboard/components/credit-card-fees/components/payment-fee-info";
 import WaiverProgress from "@/components/features/dashboard/components/credit-card-fees/components/waiver-progress";
+import ColumnSettings from "@/components/features/dashboard/components/credit-card-fees/components/column-settings";
+import useLocalStorage from "@/libs/hooks/useLocalStorage";
+import { configLocalStorageKey } from "@/libs/constants/configKey";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import { CardFeeType } from "@/libs/interfaces/expensesData";
 import { AnnualFeeWaiverPeriod } from "@/libs/interfaces/sourcesOfMoneyData";
+
+// Các cột người dùng được ẩn/hiện; "Thẻ" và nút "Ghi phí" luôn hiện
+const FEE_COLUMNS = [
+    { key: "annualFee", label: "Phí thường niên" },
+    { key: "annualFeeWaiver", label: "Miễn phí thường niên" },
+    { key: "managementFee", label: "Phí quản lý" },
+    { key: "managementFeeWaiver", label: "Miễn phí quản lý" },
+    { key: "paymentFee", label: "Phí thanh toán dư nợ" },
+    { key: "usageFee", label: "Phí sử dụng" },
+    { key: "latePenalty", label: "Lãi & chậm trả" },
+];
 
 function renderAnnualWaiver(item: ICreditCardFeeItem) {
     const label =
@@ -26,6 +40,9 @@ function renderAnnualWaiver(item: ICreditCardFeeItem) {
     return <WaiverProgress waiver={item.annualFeeWaiver} label={label} format={formatMoney} />;
 }
 
+// Kỳ sao kê cần dễ thấy; xanh dương để không trùng màu trạng thái phí
+const CYCLE_CLASS = "text-xs font-medium text-sky-600 dark:text-sky-400";
+
 function renderCycle(item: ICreditCardFeeItem) {
     return `${item.cycleStart.format("DD/MM")} – ${item.cycleEnd.subtract(1, "day").format("DD/MM")}`;
 }
@@ -33,71 +50,72 @@ function renderCycle(item: ICreditCardFeeItem) {
 export default function CreditCardFees() {
     const { creditCardFees, isSourcesLoading, handleRecordCardFee } = useDashboardContext();
     const isMobile = useIsMobile();
+    const [hiddenColumns, setHiddenColumns] = useLocalStorage<string[]>(
+        configLocalStorageKey.DASHBOARD_CARD_FEE_HIDDEN_COLUMNS,
+        [],
+    );
+    const isShown = (key: string) => !hiddenColumns.includes(key);
 
     // Chỉ hiện khi có thẻ đã cấu hình phí
     if (isSourcesLoading || creditCardFees.length === 0) return null;
 
-    const renderActions = (item: ICreditCardFeeItem) => (
-        <div className="flex flex-wrap justify-end gap-2">
-            {item.annualFee != null || item.nextAnnualFeeDate ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.ANNUAL_FEE)}
-                >
-                    Ghi phí thường niên
-                </Button>
-            ) : null}
-            {item.managementFee != null ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.MANAGEMENT_FEE)}
-                >
-                    Ghi phí quản lý
-                </Button>
-            ) : null}
-            {item.paymentFee && item.paymentFee.estimatedTotal > 0 ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.PAYMENT_FEE)}
-                >
-                    Ghi phí thanh toán
-                </Button>
-            ) : null}
-            {item.usageFee?.charged ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.USAGE_FEE)}
-                >
-                    Ghi phí sử dụng
-                </Button>
-            ) : null}
-            {item.latePenalty?.interestRate != null ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.INTEREST)}
-                >
-                    Ghi lãi
-                </Button>
-            ) : null}
-            {item.latePenalty &&
-            (item.latePenalty.lateFeePercentPerDay != null || item.latePenalty.lateFeeMin != null) ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.LATE_FEE)}
-                >
-                    Ghi phí chậm trả
-                </Button>
-            ) : null}
-        </div>
-    );
+    const renderActions = (item: ICreditCardFeeItem) => {
+        const { latePenalty } = item;
+        const actions = [
+            {
+                type: CardFeeType.ANNUAL_FEE,
+                label: "Phí thường niên",
+                visible: item.annualFee != null || Boolean(item.nextAnnualFeeDate),
+            },
+            {
+                type: CardFeeType.MANAGEMENT_FEE,
+                label: "Phí quản lý",
+                visible: item.managementFee != null,
+            },
+            {
+                type: CardFeeType.PAYMENT_FEE,
+                label: "Phí thanh toán",
+                visible: Boolean(item.paymentFee && item.paymentFee.estimatedTotal > 0),
+            },
+            {
+                type: CardFeeType.USAGE_FEE,
+                label: "Phí sử dụng",
+                visible: Boolean(item.usageFee?.charged),
+            },
+            {
+                type: CardFeeType.INTEREST,
+                label: "Lãi",
+                visible: latePenalty?.interestRate != null,
+            },
+            {
+                type: CardFeeType.LATE_FEE,
+                label: "Phí chậm trả",
+                visible: Boolean(
+                    latePenalty &&
+                    (latePenalty.lateFeePercentPerDay != null || latePenalty.lateFeeMin != null),
+                ),
+            },
+        ].filter((action) => action.visible);
 
-    const columns: ColumnsType<ICreditCardFeeItem> = [
+        if (actions.length === 0) return null;
+
+        return (
+            <Dropdown
+                trigger={["click"]}
+                placement="bottomRight"
+                menu={{
+                    items: actions.map((action) => ({ key: action.type, label: action.label })),
+                    onClick: ({ key }) => handleRecordCardFee(item, key as CardFeeType),
+                }}
+            >
+                <Button size="small" icon={<Receipt className="size-4" />}>
+                    Ghi phí <ChevronDown className="size-3.5" />
+                </Button>
+            </Dropdown>
+        );
+    };
+
+    const allColumns: ColumnsType<ICreditCardFeeItem> = [
         {
             title: "Thẻ",
             dataIndex: "name",
@@ -105,7 +123,7 @@ export default function CreditCardFees() {
             render: (name: string, item) => (
                 <div className="flex flex-col">
                     <span className="font-medium">{name}</span>
-                    <span className="text-xs text-muted-foreground">Kỳ {renderCycle(item)}</span>
+                    <span className={CYCLE_CLASS}>Kỳ {renderCycle(item)}</span>
                 </div>
             ),
         },
@@ -152,14 +170,24 @@ export default function CreditCardFees() {
         },
     ];
 
+    const columns = allColumns.filter((column) => isShown(String(column.key)));
+
     return (
         <div className="rounded-xl border border-border bg-background p-4">
-            <div className="mb-3">
-                <h2 className="text-base font-semibold">Phí thẻ tín dụng</h2>
-                <p className="text-xs text-muted-foreground">
-                    Phí là ước tính. Khi ngân hàng thu, bấm &quot;Ghi phí&quot; và sửa số tiền thực
-                    tế; khoản phí được cộng vào dư nợ thẻ và không tính vào điều kiện miễn phí.
-                </p>
+            <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-base font-semibold">Phí thẻ tín dụng</h2>
+                    <p className="text-xs text-muted-foreground">
+                        Phí là ước tính. Khi ngân hàng thu, bấm &quot;Ghi phí&quot; và sửa số tiền
+                        thực tế; khoản phí được cộng vào dư nợ thẻ và không tính vào điều kiện miễn
+                        phí.
+                    </p>
+                </div>
+                <ColumnSettings
+                    options={FEE_COLUMNS}
+                    hiddenKeys={hiddenColumns}
+                    onChange={setHiddenColumns}
+                />
             </div>
 
             {isMobile ? (
@@ -170,25 +198,33 @@ export default function CreditCardFees() {
                         <div className="flex flex-col gap-3">
                             <div className="flex flex-col">
                                 <span className="font-semibold">{item.name}</span>
-                                <span className="text-xs text-muted-foreground">
+                                <span className={CYCLE_CLASS}>
                                     Kỳ {renderCycle(item)}
                                 </span>
                             </div>
                             <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Phí thường niên</p>
-                                    <AnnualFeeInfo item={item} />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Phí quản lý</p>
-                                    <ManagementFeeInfo item={item} />
-                                </div>
+                                {isShown("annualFee") ? (
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Phí thường niên
+                                        </p>
+                                        <AnnualFeeInfo item={item} />
+                                    </div>
+                                ) : null}
+                                {isShown("managementFee") ? (
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Phí quản lý</p>
+                                        <ManagementFeeInfo item={item} />
+                                    </div>
+                                ) : null}
                             </div>
-                            {item.annualFeeWaiver ? renderAnnualWaiver(item) : null}
-                            {item.managementFeeWaiver ? (
+                            {isShown("annualFeeWaiver") && item.annualFeeWaiver
+                                ? renderAnnualWaiver(item)
+                                : null}
+                            {isShown("managementFeeWaiver") && item.managementFeeWaiver ? (
                                 <ManagementWaiver waiver={item.managementFeeWaiver} />
                             ) : null}
-                            {item.paymentFee ? (
+                            {isShown("paymentFee") && item.paymentFee ? (
                                 <div className="text-sm">
                                     <p className="text-xs text-muted-foreground">
                                         Phí thanh toán dư nợ
@@ -196,13 +232,13 @@ export default function CreditCardFees() {
                                     <PaymentFeeInfo status={item.paymentFee} />
                                 </div>
                             ) : null}
-                            {item.usageFee ? (
+                            {isShown("usageFee") && item.usageFee ? (
                                 <div className="text-sm">
                                     <p className="text-xs text-muted-foreground">Phí sử dụng</p>
                                     <UsageFeeInfo status={item.usageFee} />
                                 </div>
                             ) : null}
-                            {item.latePenalty ? (
+                            {isShown("latePenalty") && item.latePenalty ? (
                                 <div className="text-sm">
                                     <p className="text-xs text-muted-foreground">Lãi & chậm trả</p>
                                     <LatePenaltyInfo penalty={item.latePenalty} />

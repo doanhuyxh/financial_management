@@ -30,6 +30,7 @@ export const configSessionKey = {
 export const configLocalStorageKey = {
 	SOURCES_HIDE_EMPTY: "sources-of-money-hide-empty",
 	CREDIT_CARD_COMPARE_SCENARIO: "credit-card-compare-scenario",
+	DASHBOARD_CARD_FEE_HIDDEN_COLUMNS: "dashboard-card-fee-hidden-columns",
 }
 
 export const configCookieKey = {
