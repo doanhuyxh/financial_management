@@ -13,7 +13,7 @@ import LatePenaltyInfo from "@/components/features/dashboard/components/credit-c
 import UsageFeeInfo from "@/components/features/dashboard/components/credit-card-fees/components/usage-fee-info";
 import PaymentFeeInfo from "@/components/features/dashboard/components/credit-card-fees/components/payment-fee-info";
 import WaiverProgress from "@/components/features/dashboard/components/credit-card-fees/components/waiver-progress";
-import ColumnSettings from "@/components/features/dashboard/components/credit-card-fees/components/column-settings";
+import VisibilitySettings from "@/components/common/visibility-settings";
 import useLocalStorage from "@/libs/hooks/useLocalStorage";
 import { configLocalStorageKey } from "@/libs/constants/configKey";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
@@ -183,10 +183,13 @@ export default function CreditCardFees() {
                         phí.
                     </p>
                 </div>
-                <ColumnSettings
+                <VisibilitySettings
                     options={FEE_COLUMNS}
                     hiddenKeys={hiddenColumns}
                     onChange={setHiddenColumns}
+                    buttonLabel="Cột"
+                    title="Chọn cột hiển thị"
+                    note='Cột "Thẻ" và nút "Ghi phí" luôn hiển thị.'
                 />
             </div>
 

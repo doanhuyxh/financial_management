@@ -11,7 +11,7 @@ import { MENU_KEY } from "@/libs/constants/menuKey";
 
 /** Nội dung trang: trạng thái tải/trống, rồi các khối so sánh. */
 export default function CompareContent() {
-    const { cards, isLoading } = useCreditCardCompareContext();
+    const { allCards, cards, isLoading } = useCreditCardCompareContext();
 
     if (isLoading) {
         return (
@@ -34,7 +34,11 @@ export default function CompareContent() {
                 <Alert
                     type="info"
                     showIcon
-                    message="Cần ít nhất 2 thẻ tín dụng để so sánh điểm mạnh/yếu"
+                    message={
+                        allCards.length > 1
+                            ? 'Đang chọn 1 thẻ. Bấm nút "Thẻ" ở bảng so sánh để chọn thêm thẻ'
+                            : "Cần ít nhất 2 thẻ tín dụng để so sánh điểm mạnh/yếu"
+                    }
                 />
             ) : null}
             <ScenarioForm />

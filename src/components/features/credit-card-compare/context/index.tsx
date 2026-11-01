@@ -35,13 +35,24 @@ export default function CreditCardCompareContextProvider({
         [storedScenario],
     );
 
-    const cards = useMemo(
+    const [hiddenCardIds, setHiddenCardIds] = useLocalStorage<string[]>(
+        configLocalStorageKey.CREDIT_CARD_COMPARE_HIDDEN_CARDS,
+        [],
+    );
+
+    const allCards = useMemo(
         () =>
             getCreditCards(data?.data?.items ?? []).map((source) =>
                 buildCardMetrics(source, scenario),
             ),
         [data, scenario],
     );
+    // Xếp hạng, gợi ý và điểm mạnh/yếu chỉ tính trên thẻ đang chọn.
+    // Ẩn hết (vd. thẻ còn lại bị xóa) thì quay về toàn bộ thẻ.
+    const cards = useMemo(() => {
+        const visible = allCards.filter((card) => !hiddenCardIds.includes(card._id));
+        return visible.length > 0 ? visible : allCards;
+    }, [allCards, hiddenCardIds]);
     const bestPicks = useMemo(() => buildBestPicks(cards, scenario), [cards, scenario]);
     const verdicts = useMemo(() => buildVerdicts(cards), [cards]);
 
@@ -58,14 +69,28 @@ export default function CreditCardCompareContextProvider({
     const value = useMemo<ICreditCardCompareContextProps>(
         () => ({
             scenario,
+            allCards,
             cards,
+            hiddenCardIds,
             bestPicks,
             verdicts,
             isLoading,
             handleScenarioChange,
             handleResetScenario,
+            handleHiddenCardsChange: setHiddenCardIds,
         }),
-        [scenario, cards, bestPicks, verdicts, isLoading, handleScenarioChange, handleResetScenario],
+        [
+            scenario,
+            allCards,
+            cards,
+            hiddenCardIds,
+            bestPicks,
+            verdicts,
+            isLoading,
+            handleScenarioChange,
+            handleResetScenario,
+            setHiddenCardIds,
+        ],
     );
 
     return (

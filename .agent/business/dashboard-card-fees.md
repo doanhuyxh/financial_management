@@ -35,6 +35,6 @@ Code: `src/components/features/dashboard/components/credit-card-fees/`. Số li�
 
 ## Cấu hình cột
 
-- Nút "Cột" cạnh tiêu đề mở modal chọn cột hiển thị. Cột "Thẻ" và nút "Ghi phí" luôn hiện.
+- Nút "Cột" cạnh tiêu đề mở modal chọn cột hiển thị (`VisibilitySettings` trong `components/common/`, dùng chung với trang so sánh thẻ). Cột "Thẻ" và nút "Ghi phí" luôn hiện.
 - Lưu danh sách cột **bị ẩn** ở localStorage `dashboard-card-fee-hidden-columns` (`configLocalStorageKey.DASHBOARD_CARD_FEE_HIDDEN_COLUMNS`), nên cột mới mặc định hiện.
 - Áp dụng cho cả bảng desktop và danh sách mobile.

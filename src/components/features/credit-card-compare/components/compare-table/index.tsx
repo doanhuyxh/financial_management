@@ -13,6 +13,7 @@ import {
     type IYearlyFee,
     type RankResult,
 } from "@/components/features/credit-card-compare/utils";
+import VisibilitySettings from "@/components/common/visibility-settings";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
 const RANK_CLASS: Record<NonNullable<RankResult>, string> = {
@@ -94,7 +95,8 @@ type Row = ICompareCriterion & { ranks: Map<string, RankResult> };
 
 /** Hàng = tiêu chí, cột = thẻ; ô xanh là thẻ tốt nhất, đỏ là tệ nhất của tiêu chí đó. */
 export default function CompareTable() {
-    const { cards } = useCreditCardCompareContext();
+    const { allCards, cards, hiddenCardIds, handleHiddenCardsChange } =
+        useCreditCardCompareContext();
 
     const rows: Row[] = COMPARE_CRITERIA.map((criterion) => ({
         ...criterion,
@@ -132,14 +134,27 @@ export default function CompareTable() {
 
     return (
         <div className="rounded-xl border border-border bg-background p-4">
-            <div className="mb-3">
-                <h2 className="text-base font-semibold">Bảng so sánh</h2>
-                <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600 dark:text-green-400">Xanh</span>: tốt nhất ·{" "}
-                    <span className="text-red-600 dark:text-red-400">Đỏ</span>: tệ nhất. Ô
-                    &quot;Chưa nhập&quot; không được xếp hạng. Phí thường niên/quản lý/thanh toán
-                    bỏ trống được coi là không có phí.
-                </p>
+            <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-base font-semibold">Bảng so sánh</h2>
+                    <p className="text-xs text-muted-foreground">
+                        <span className="text-green-600 dark:text-green-400">Xanh</span>: tốt nhất
+                        · <span className="text-red-600 dark:text-red-400">Đỏ</span>: tệ nhất. Ô
+                        &quot;Chưa nhập&quot; không được xếp hạng. Phí thường niên/quản lý/thanh
+                        toán bỏ trống được coi là không có phí.
+                    </p>
+                </div>
+                {allCards.length > 1 ? (
+                    <VisibilitySettings
+                        options={allCards.map((card) => ({ key: card._id, label: card.name }))}
+                        hiddenKeys={hiddenCardIds}
+                        onChange={handleHiddenCardsChange}
+                        buttonLabel={`Thẻ (${cards.length}/${allCards.length})`}
+                        title="Chọn thẻ so sánh"
+                        note="Áp dụng cho cả trang: bảng, xếp hạng xanh/đỏ, thẻ nên dùng và điểm mạnh/yếu."
+                        minVisible={1}
+                    />
+                ) : null}
             </div>
             <Table<Row>
                 rowKey="key"
