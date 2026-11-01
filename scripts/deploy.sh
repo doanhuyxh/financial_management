@@ -20,7 +20,7 @@ APP_DIR="/home/rocky/financial_management"
 HEALTH_URL="http://127.0.0.1:3004/"
 SWAPPED=0
 
-# Build mới đã thay .next nhưng app không lên → trả lại bản cũ (.next-prev) để web không chết.
+# Build lỗi hoặc app không lên → trả lại bản cũ (.next-prev) để web không chết.
 rollback() {
   echo "==> Rollback về bản build trước..."
   cd "$APP_DIR"
@@ -73,27 +73,23 @@ rm -f package-lock.json bun.lockb
 echo "==> Lấy mới nhất code..."
 git pull --rebase --autostash
 
-# Từ đây tới bước đổi build, app cũ vẫn chạy bình thường: build lỗi thì web không bị gián đoạn.
 echo "==> Cài đặt dependencies (theo bun.lock)..."
 bun install --frozen-lockfile
 
-echo "==> Build vào thư mục tạm .next-build..."
-rm -rf .next-build
-# tsconfig include cả .next/types của bản đang chạy: route đã xoá vẫn nằm trong validator.ts cũ → type check lỗi.
-# Types/dev cache không dùng lúc runtime nên xoá được mà bản cũ vẫn chạy bình thường.
-rm -rf .next/types .next/dev
-NEXT_DIST_DIR=.next-build bun run build
-
-echo "==> Đổi sang bản build mới..."
-rm -rf .next-prev
+echo "==> Xóa .next cũ (giữ bản sao ở .next-prev để rollback)..."
+# Build sạch: .next cũ còn types của route đã xoá → type check lỗi.
+rm -rf .next-prev .next-build
 if [ -d ".next" ]; then
   mv .next .next-prev
 fi
-mv .next-build .next
 SWAPPED=1
+
+echo "==> Build..."
+bun run build
 
 echo "==> Khởi động lại service..."
 # delete + start (không dùng restart) để thay đổi trong ecosystem.config.js (exec_mode...) luôn được áp dụng.
+pm2 stop ecosystem.config.js > /dev/null 2>&1 || true
 pm2 delete ecosystem.config.js > /dev/null 2>&1 || true
 pm2 start ecosystem.config.js --update-env
 
