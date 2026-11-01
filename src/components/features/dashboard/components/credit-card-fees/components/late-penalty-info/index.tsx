@@ -13,10 +13,12 @@ export default function LatePenaltyInfo({ penalty }: { penalty: ILatePenalty | n
 
     return (
         <div className="flex flex-col gap-1">
-            {interestRate != null ? <span>Lãi {interestRate}%/năm</span> : null}
+            {interestRate != null ? (
+                <span className="font-semibold text-amber-500">Lãi {interestRate}%/năm</span>
+            ) : null}
             {estimatedMonthlyInterest ? (
                 <span className="text-xs text-muted-foreground">
-                    Không trả hết dư nợ: ~{formatMoney(estimatedMonthlyInterest)}/30 ngày
+                    Không trả hết dư nợ: ≈{formatMoney(estimatedMonthlyInterest)}/30 ngày
                 </span>
             ) : null}
             {lateFeePercentPerDay != null || lateRange.length > 0 ? (

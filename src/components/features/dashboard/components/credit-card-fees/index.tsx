@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, Table } from "antd";
+import { Button, Dropdown, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { Receipt } from "lucide-react";
+import { ChevronDown, Receipt } from "lucide-react";
 import MobileRecordList from "@/components/common/mobile-record-list";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import type { ICreditCardFeeItem } from "@/components/features/dashboard/utils";
@@ -37,65 +37,61 @@ export default function CreditCardFees() {
     // Chỉ hiện khi có thẻ đã cấu hình phí
     if (isSourcesLoading || creditCardFees.length === 0) return null;
 
-    const renderActions = (item: ICreditCardFeeItem) => (
-        <div className="flex flex-wrap justify-end gap-2">
-            {item.annualFee != null || item.nextAnnualFeeDate ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.ANNUAL_FEE)}
-                >
-                    Ghi phí thường niên
+    const renderActions = (item: ICreditCardFeeItem) => {
+        const { latePenalty } = item;
+        const actions = [
+            {
+                type: CardFeeType.ANNUAL_FEE,
+                label: "Phí thường niên",
+                visible: item.annualFee != null || Boolean(item.nextAnnualFeeDate),
+            },
+            {
+                type: CardFeeType.MANAGEMENT_FEE,
+                label: "Phí quản lý",
+                visible: item.managementFee != null,
+            },
+            {
+                type: CardFeeType.PAYMENT_FEE,
+                label: "Phí thanh toán",
+                visible: Boolean(item.paymentFee && item.paymentFee.estimatedTotal > 0),
+            },
+            {
+                type: CardFeeType.USAGE_FEE,
+                label: "Phí sử dụng",
+                visible: Boolean(item.usageFee?.charged),
+            },
+            {
+                type: CardFeeType.INTEREST,
+                label: "Lãi",
+                visible: latePenalty?.interestRate != null,
+            },
+            {
+                type: CardFeeType.LATE_FEE,
+                label: "Phí chậm trả",
+                visible: Boolean(
+                    latePenalty &&
+                    (latePenalty.lateFeePercentPerDay != null || latePenalty.lateFeeMin != null),
+                ),
+            },
+        ].filter((action) => action.visible);
+
+        if (actions.length === 0) return null;
+
+        return (
+            <Dropdown
+                trigger={["click"]}
+                placement="bottomRight"
+                menu={{
+                    items: actions.map((action) => ({ key: action.type, label: action.label })),
+                    onClick: ({ key }) => handleRecordCardFee(item, key as CardFeeType),
+                }}
+            >
+                <Button size="small" icon={<Receipt className="size-4" />}>
+                    Ghi phí <ChevronDown className="size-3.5" />
                 </Button>
-            ) : null}
-            {item.managementFee != null ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.MANAGEMENT_FEE)}
-                >
-                    Ghi phí quản lý
-                </Button>
-            ) : null}
-            {item.paymentFee && item.paymentFee.estimatedTotal > 0 ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.PAYMENT_FEE)}
-                >
-                    Ghi phí thanh toán
-                </Button>
-            ) : null}
-            {item.usageFee?.charged ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.USAGE_FEE)}
-                >
-                    Ghi phí sử dụng
-                </Button>
-            ) : null}
-            {item.latePenalty?.interestRate != null ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.INTEREST)}
-                >
-                    Ghi lãi
-                </Button>
-            ) : null}
-            {item.latePenalty &&
-            (item.latePenalty.lateFeePercentPerDay != null || item.latePenalty.lateFeeMin != null) ? (
-                <Button
-                    size="small"
-                    icon={<Receipt className="size-4" />}
-                    onClick={() => handleRecordCardFee(item, CardFeeType.LATE_FEE)}
-                >
-                    Ghi phí chậm trả
-                </Button>
-            ) : null}
-        </div>
-    );
+            </Dropdown>
+        );
+    };
 
     const columns: ColumnsType<ICreditCardFeeItem> = [
         {
