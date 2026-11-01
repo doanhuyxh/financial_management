@@ -79,6 +79,9 @@ bun install --frozen-lockfile
 
 echo "==> Build vào thư mục tạm .next-build..."
 rm -rf .next-build
+# tsconfig include cả .next/types của bản đang chạy: route đã xoá vẫn nằm trong validator.ts cũ → type check lỗi.
+# Types/dev cache không dùng lúc runtime nên xoá được mà bản cũ vẫn chạy bình thường.
+rm -rf .next/types .next/dev
 NEXT_DIST_DIR=.next-build bun run build
 
 echo "==> Đổi sang bản build mới..."
