@@ -6,7 +6,6 @@ import ResponsiveModal from "@/components/common/responsive-modal";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
-import CardPaymentFeeAlert from "@/components/common/card-payment-fee-alert";
 import { useIncomesContext } from "@/components/features/incomes/context";
 import {
     formatMoney,
@@ -24,7 +23,6 @@ import type { IFromIncomesData } from "@/libs/interfaces/incomesData";
 import {
     SOURCES_OF_MONEY_TYPE_LABELS,
     SourcesOfMoneyType,
-    type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import { groupSuggestedOptions } from "@/libs/utils/suggestionOptions";
 
@@ -36,13 +34,8 @@ type FormValues = {
     receivedAt: dayjs.Dayjs;
 };
 
-function getSourceDisplayAmount(source?: ISourcesOfMoneyData | null) {
-    if (!source) return null;
-    if (source.type === SourcesOfMoneyType.CREDIT_CARD) {
-        return source.creditDetails?.currentDebt ?? 0;
-    }
-    return source.balance ?? 0;
-}
+const CREDIT_CARD_SOURCE_MESSAGE =
+    "Không ghi thu nhập vào thẻ tín dụng. Hãy dùng Chuyển tiền để trả nợ thẻ";
 
 function resetCreateForm(form: ReturnType<typeof Form.useForm<FormValues>>[0]) {
     form.resetFields();
@@ -62,7 +55,6 @@ export default function IncomesFormModal() {
     const selectedSourceId = Form.useWatch("sourceOfMoneyId", form);
     const selectedCategoryId = Form.useWatch("categoryId", form);
     const amountWatch = Form.useWatch("amount", form);
-    const receivedAtWatch = Form.useWatch("receivedAt", form);
     const isEdit = Boolean(editingItem?._id);
 
     const { data: categoriesData, isLoading: categoriesLoading } = useGetCategories({
@@ -76,25 +68,22 @@ export default function IncomesFormModal() {
     const { data: suggestionsData } = useGetIncomeSuggestions(modalOpen);
     const suggestions = suggestionsData?.data;
 
-    const sources = sourcesData?.data?.items ?? [];
+    // Thu nhập không được ghi vào thẻ tín dụng; trả nợ thẻ đi qua Chuyển tiền
+    const allSources = sourcesData?.data?.items ?? [];
+    const sources = allSources.filter((item) => item.type !== SourcesOfMoneyType.CREDIT_CARD);
     const selectedSource = useMemo(
         () => sources.find((item) => item._id === selectedSourceId) ?? null,
         [sources, selectedSourceId],
     );
 
     const displayAmount = useMemo(() => {
-        const base = getSourceDisplayAmount(selectedSource);
-        if (base == null) return null;
-        // When editing same source, income already applied — undo for display
+        if (!selectedSource) return null;
+        const base = selectedSource.balance ?? 0;
+        // When editing same source, income already increased balance — subtract it back for display
         if (
             editingItem &&
             getRefId(editingItem.sourceOfMoneyId) === selectedSourceId
         ) {
-            if (selectedSource?.type === SourcesOfMoneyType.CREDIT_CARD) {
-                // Income reduced debt → add amount back to show original debt
-                return base + editingItem.amount;
-            }
-            // Income increased balance → subtract amount back
             return Math.max(0, base - editingItem.amount);
         }
         return base;
@@ -169,20 +158,6 @@ export default function IncomesFormModal() {
         const amount = Number(values.amount);
         if (!Number.isFinite(amount) || amount <= 0) {
             form.setFields([{ name: "amount", errors: ["Số tiền phải lớn hơn 0"] }]);
-            return;
-        }
-
-        if (
-            selectedSource?.type === SourcesOfMoneyType.CREDIT_CARD &&
-            displayAmount != null &&
-            amount > displayAmount
-        ) {
-            form.setFields([
-                {
-                    name: "amount",
-                    errors: ["Số tiền thanh toán không được vượt dư nợ hiện tại"],
-                },
-            ]);
             return;
         }
 
@@ -262,12 +237,21 @@ export default function IncomesFormModal() {
                 <Form.Item
                     name="sourceOfMoneyId"
                     label="Nguồn tiền"
-                    rules={[{ required: true, message: "Nguồn tiền là bắt buộc" }]}
+                    rules={[
+                        { required: true, message: "Nguồn tiền là bắt buộc" },
+                        {
+                            // Thu nhập cũ đang gắn với thẻ: phải chọn nguồn khác mới lưu được
+                            validator(_, value) {
+                                const source = allSources.find((item) => item._id === value);
+                                return source?.type === SourcesOfMoneyType.CREDIT_CARD
+                                    ? Promise.reject(new Error(CREDIT_CARD_SOURCE_MESSAGE))
+                                    : Promise.resolve();
+                            },
+                        },
+                    ]}
                     extra={
                         selectedSource
-                            ? selectedSource.type === SourcesOfMoneyType.CREDIT_CARD
-                                ? `Dư nợ hiện tại: ${formatMoney(displayAmount)} (thu nhập = thanh toán dư nợ)`
-                                : `Số dư hiện có: ${formatMoney(displayAmount)} (thu nhập sẽ tăng số dư)`
+                            ? `Số dư hiện có: ${formatMoney(displayAmount)} (thu nhập sẽ tăng số dư)`
                             : undefined
                     }
                 >
@@ -279,11 +263,6 @@ export default function IncomesFormModal() {
                         options={sourceOptions}
                     />
                 </Form.Item>
-
-                {/* Khi sửa, lần trả nợ này đã được tính trong kỳ */}
-                {!isEdit ? (
-                    <CardPaymentFeeAlert source={selectedSource} date={receivedAtWatch} />
-                ) : null}
 
                 <Form.Item
                     name="amount"

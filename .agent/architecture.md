@@ -8,7 +8,7 @@
 
 ```
 src/
-  proxy.ts                    # Thay middleware: chặn route chưa đăng nhập (xem business-logic.md §7)
+  proxy.ts                    # Thay middleware: chặn route chưa đăng nhập (xem business/auth.md)
   app/
     (protected)/<page>/       # Các trang cần đăng nhập; mỗi page chỉ render features/<feature>
     api/<resource>/route.ts   # API route: parse request → gọi Service → trả response
@@ -89,14 +89,14 @@ Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; 
 |---|---|---|
 | `/` | `auth-login` | Đăng nhập |
 | `/dashboard` | `dashboard` | Thống kê tháng, tài sản, dòng tiền, dư nợ thẻ |
-| `/expenses` | `expenses` | Bảng + form chi tiêu; `?action=create` mở sẵn modal |
-| `/incomes` | `incomes` | Bảng + form thu nhập |
+| `/expenses` | `expenses` | Bảng + form chi tiêu (tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal, kèm `sourceOfMoneyId`/`amount`/`note`/`cardFeeType` thì điền sẵn form |
+| `/incomes` | `incomes` | Bảng + form thu nhập (tùy chọn "tiếp tục tạo") |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
 | `/sources-of-money` | `sources-of-money` | Nguồn tiền, kéo-thả, chuyển tiền nhanh, lịch sử điều chỉnh |
 | `/credit-card-compare` | `credit-card-compare` | So sánh thẻ tín dụng theo kịch bản sử dụng (chỉ tính phía client từ danh sách nguồn tiền) |
 | `/categories` | `categories` | Danh mục, kéo-thả, lọc theo loại |
 
-Menu: `src/components/layout/navigation-config.tsx` — Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục). Chi tiết từng trang: [business-logic.md](business-logic.md).
+Menu: `src/components/layout/navigation-config.tsx` — Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục). Nghiệp vụ từng trang: [business/README.md](business/README.md).
 
 ## Thêm một tính năng CRUD mới (checklist)
 
@@ -106,4 +106,4 @@ Menu: `src/components/layout/navigation-config.tsx` — Dashboard; nhóm "Giao d
 4. Route: `src/app/api/<entity>/route.ts` và `[id]/route.ts`.
 5. Client: `networkApi/<entity>.api.ts` → `customHooks/use<Entity>.ts` → query key mới trong `configQueryKey`.
 6. UI: `components/features/<entity>/` theo [conventions.md](conventions.md), page ở `app/(protected)/<entity>/`, thêm menu + `menuKey`.
-7. Cập nhật [business-logic.md](business-logic.md).
+7. Thêm file nghiệp vụ trong [business/](business/README.md) và dòng định tuyến tương ứng trong `AGENTS.md`.

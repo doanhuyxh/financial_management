@@ -62,4 +62,4 @@ features/<feature>/
 
 - Commit theo Conventional Commits: `feat(scope): ...`, `fix: ...`, `chore(scripts): ...`.
 - Làm việc trên nhánh `developer`; push `main` sẽ deploy (xem [commands.md](commands.md#deploy)).
-- **Đổi business rule thì cập nhật [business-logic.md](business-logic.md) trong cùng commit.**
+- **Đổi business rule thì cập nhật file tương ứng trong [business/](business/README.md) trong cùng commit.**
