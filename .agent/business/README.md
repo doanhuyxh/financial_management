@@ -11,7 +11,8 @@
 | CRUD nguồn tiền, điều chỉnh số dư, VietQR, xóa mềm nguồn | [sources-of-money.md](sources-of-money.md) |
 | Phí thẻ, kỳ sao kê, miễn phí, lãi, `credit-card-fees` API | [credit-card-fees.md](credit-card-fees.md) |
 | Danh mục, `kind` | [categories.md](categories.md) |
-| Dashboard (chi tiêu, dòng tiền, tài sản, dư nợ, bảng phí) | [dashboard.md](dashboard.md) |
+| Dashboard (chi tiêu, dòng tiền, tài sản, dư nợ) | [dashboard.md](dashboard.md) |
+| Bảng phí thẻ trên dashboard | [dashboard-card-fees.md](dashboard-card-fees.md) |
 | Trang so sánh thẻ | [card-compare.md](card-compare.md) |
 | Đăng nhập, JWT, proxy, phiên | [auth.md](auth.md) |
 | Gợi ý "thường dùng" trong form | [suggestions.md](suggestions.md) |

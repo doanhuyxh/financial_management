@@ -13,10 +13,24 @@ import LatePenaltyInfo from "@/components/features/dashboard/components/credit-c
 import UsageFeeInfo from "@/components/features/dashboard/components/credit-card-fees/components/usage-fee-info";
 import PaymentFeeInfo from "@/components/features/dashboard/components/credit-card-fees/components/payment-fee-info";
 import WaiverProgress from "@/components/features/dashboard/components/credit-card-fees/components/waiver-progress";
+import ColumnSettings from "@/components/features/dashboard/components/credit-card-fees/components/column-settings";
+import useLocalStorage from "@/libs/hooks/useLocalStorage";
+import { configLocalStorageKey } from "@/libs/constants/configKey";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import { CardFeeType } from "@/libs/interfaces/expensesData";
 import { AnnualFeeWaiverPeriod } from "@/libs/interfaces/sourcesOfMoneyData";
+
+// Các cột người dùng được ẩn/hiện; "Thẻ" và nút "Ghi phí" luôn hiện
+const FEE_COLUMNS = [
+    { key: "annualFee", label: "Phí thường niên" },
+    { key: "annualFeeWaiver", label: "Miễn phí thường niên" },
+    { key: "managementFee", label: "Phí quản lý" },
+    { key: "managementFeeWaiver", label: "Miễn phí quản lý" },
+    { key: "paymentFee", label: "Phí thanh toán dư nợ" },
+    { key: "usageFee", label: "Phí sử dụng" },
+    { key: "latePenalty", label: "Lãi & chậm trả" },
+];
 
 function renderAnnualWaiver(item: ICreditCardFeeItem) {
     const label =
@@ -33,6 +47,11 @@ function renderCycle(item: ICreditCardFeeItem) {
 export default function CreditCardFees() {
     const { creditCardFees, isSourcesLoading, handleRecordCardFee } = useDashboardContext();
     const isMobile = useIsMobile();
+    const [hiddenColumns, setHiddenColumns] = useLocalStorage<string[]>(
+        configLocalStorageKey.DASHBOARD_CARD_FEE_HIDDEN_COLUMNS,
+        [],
+    );
+    const isShown = (key: string) => !hiddenColumns.includes(key);
 
     // Chỉ hiện khi có thẻ đã cấu hình phí
     if (isSourcesLoading || creditCardFees.length === 0) return null;
@@ -93,7 +112,7 @@ export default function CreditCardFees() {
         );
     };
 
-    const columns: ColumnsType<ICreditCardFeeItem> = [
+    const allColumns: ColumnsType<ICreditCardFeeItem> = [
         {
             title: "Thẻ",
             dataIndex: "name",
@@ -148,14 +167,24 @@ export default function CreditCardFees() {
         },
     ];
 
+    const columns = allColumns.filter((column) => isShown(String(column.key)));
+
     return (
         <div className="rounded-xl border border-border bg-background p-4">
-            <div className="mb-3">
-                <h2 className="text-base font-semibold">Phí thẻ tín dụng</h2>
-                <p className="text-xs text-muted-foreground">
-                    Phí là ước tính. Khi ngân hàng thu, bấm &quot;Ghi phí&quot; và sửa số tiền thực
-                    tế; khoản phí được cộng vào dư nợ thẻ và không tính vào điều kiện miễn phí.
-                </p>
+            <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-base font-semibold">Phí thẻ tín dụng</h2>
+                    <p className="text-xs text-muted-foreground">
+                        Phí là ước tính. Khi ngân hàng thu, bấm &quot;Ghi phí&quot; và sửa số tiền
+                        thực tế; khoản phí được cộng vào dư nợ thẻ và không tính vào điều kiện miễn
+                        phí.
+                    </p>
+                </div>
+                <ColumnSettings
+                    options={FEE_COLUMNS}
+                    hiddenKeys={hiddenColumns}
+                    onChange={setHiddenColumns}
+                />
             </div>
 
             {isMobile ? (
@@ -171,20 +200,28 @@ export default function CreditCardFees() {
                                 </span>
                             </div>
                             <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Phí thường niên</p>
-                                    <AnnualFeeInfo item={item} />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Phí quản lý</p>
-                                    <ManagementFeeInfo item={item} />
-                                </div>
+                                {isShown("annualFee") ? (
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Phí thường niên
+                                        </p>
+                                        <AnnualFeeInfo item={item} />
+                                    </div>
+                                ) : null}
+                                {isShown("managementFee") ? (
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Phí quản lý</p>
+                                        <ManagementFeeInfo item={item} />
+                                    </div>
+                                ) : null}
                             </div>
-                            {item.annualFeeWaiver ? renderAnnualWaiver(item) : null}
-                            {item.managementFeeWaiver ? (
+                            {isShown("annualFeeWaiver") && item.annualFeeWaiver
+                                ? renderAnnualWaiver(item)
+                                : null}
+                            {isShown("managementFeeWaiver") && item.managementFeeWaiver ? (
                                 <ManagementWaiver waiver={item.managementFeeWaiver} />
                             ) : null}
-                            {item.paymentFee ? (
+                            {isShown("paymentFee") && item.paymentFee ? (
                                 <div className="text-sm">
                                     <p className="text-xs text-muted-foreground">
                                         Phí thanh toán dư nợ
@@ -192,13 +229,13 @@ export default function CreditCardFees() {
                                     <PaymentFeeInfo status={item.paymentFee} />
                                 </div>
                             ) : null}
-                            {item.usageFee ? (
+                            {isShown("usageFee") && item.usageFee ? (
                                 <div className="text-sm">
                                     <p className="text-xs text-muted-foreground">Phí sử dụng</p>
                                     <UsageFeeInfo status={item.usageFee} />
                                 </div>
                             ) : null}
-                            {item.latePenalty ? (
+                            {isShown("latePenalty") && item.latePenalty ? (
                                 <div className="text-sm">
                                     <p className="text-xs text-muted-foreground">Lãi & chậm trả</p>
                                     <LatePenaltyInfo penalty={item.latePenalty} />
