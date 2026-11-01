@@ -40,6 +40,9 @@ function renderAnnualWaiver(item: ICreditCardFeeItem) {
     return <WaiverProgress waiver={item.annualFeeWaiver} label={label} format={formatMoney} />;
 }
 
+// Kỳ sao kê cần dễ thấy; xanh dương để không trùng màu trạng thái phí
+const CYCLE_CLASS = "text-xs font-medium text-sky-600 dark:text-sky-400";
+
 function renderCycle(item: ICreditCardFeeItem) {
     return `${item.cycleStart.format("DD/MM")} – ${item.cycleEnd.subtract(1, "day").format("DD/MM")}`;
 }
@@ -120,7 +123,7 @@ export default function CreditCardFees() {
             render: (name: string, item) => (
                 <div className="flex flex-col">
                     <span className="font-medium">{name}</span>
-                    <span className="text-xs text-muted-foreground">Kỳ {renderCycle(item)}</span>
+                    <span className={CYCLE_CLASS}>Kỳ {renderCycle(item)}</span>
                 </div>
             ),
         },
@@ -195,7 +198,7 @@ export default function CreditCardFees() {
                         <div className="flex flex-col gap-3">
                             <div className="flex flex-col">
                                 <span className="font-semibold">{item.name}</span>
-                                <span className="text-xs text-muted-foreground">
+                                <span className={CYCLE_CLASS}>
                                     Kỳ {renderCycle(item)}
                                 </span>
                             </div>

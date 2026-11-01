@@ -18,6 +18,7 @@ Code: `src/components/features/dashboard/components/credit-card-fees/`. Số li�
 
 - Thanh tiến độ miễn phí: đỏ < 50%, vàng ≥ 50%, xanh khi đạt.
 - Số tiền phí sẽ bị thu: đỏ, in đậm. Phí đã đạt miễn phí (hoặc phí = 0): xanh, gạch ngang.
+- Kỳ sao kê dưới tên thẻ: xanh dương (`text-sky-600 dark:text-sky-400`), không trùng màu trạng thái.
 - Tag cảnh báo dùng `variant="solid"` cho dễ thấy ở dark mode.
 - Số ước tính dùng ký hiệu "≈" (font hiện tại vẽ "~" giống dấu trừ).
 
