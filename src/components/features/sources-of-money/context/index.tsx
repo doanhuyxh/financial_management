@@ -8,8 +8,11 @@ import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 import {
     useCreateSourcesOfMoney,
     useDeleteSourcesOfMoney,
-    useGetBalanceAdjustments,
+    useCreateShareLink,
+    useGetShareLinks,
+    useGetSourceTransactions,
     useGetSourcesOfMoney,
+    useRevokeShareLink,
     useReorderSourcesOfMoney,
     useUpdateSourcesOfMoney,
 } from "@/libs/hooks/customHooks/useSourcesOfMoney";
@@ -20,9 +23,16 @@ import type {
     SourcesOfMoneyType,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
-import type { ISourcesOfMoneyContextProps } from "./type";
+import type { SourceTransactionFilter } from "@/libs/interfaces/sourceTransactionsData";
+import type {
+    ICreatedShareLinkData,
+    IFromShareLinkData,
+    IShareLinkData,
+} from "@/libs/interfaces/shareLinksData";
+import type { HistoryDateRange, ISourcesOfMoneyContextProps } from "./type";
 
 const LIST_LIMIT = 100;
+const HISTORY_LIMIT = 20;
 
 interface ISourcesOfMoneyContextProviderProps {
     children: React.ReactNode;
@@ -63,6 +73,12 @@ export default function SourcesOfMoneyContextProvider({
     const [transferModalOpen, setTransferModalOpen] = useState(false);
     const [historySource, setHistorySource] = useState<ISourcesOfMoneyData | null>(null);
     const [historyPage, setHistoryPage] = useState(1);
+    const [historyKind, setHistoryKind] = useState<SourceTransactionFilter | "">("");
+    const [historyRange, setHistoryRange] = useState<HistoryDateRange>({});
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [createdShareLink, setCreatedShareLink] = useState<ICreatedShareLinkData | null>(
+        null,
+    );
     const [qrSource, setQrSource] = useState<ISourcesOfMoneyData | null>(null);
 
     const query = useMemo(
@@ -84,12 +100,28 @@ export default function SourcesOfMoneyContextProvider({
         useReorderSourcesOfMoney();
     const { mutateAsync: createTransfer, isPending: isTransferSubmitting } =
         useCreateTransfer();
+    const historyQuery = useMemo(
+        () => ({
+            page: historyPage,
+            limit: HISTORY_LIMIT,
+            kind: historyKind || undefined,
+            from: historyRange.from,
+            to: historyRange.to,
+        }),
+        [historyPage, historyKind, historyRange],
+    );
     const {
         data: historyData,
         isLoading: isHistoryInitialLoading,
         isFetching: isHistoryFetching,
         isPlaceholderData: isHistoryPlaceholder,
-    } = useGetBalanceAdjustments(historySource?._id ?? null, historyPage);
+    } = useGetSourceTransactions(historySource?._id ?? null, historyQuery);
+    const { data: shareLinksData, isLoading: isShareLinksLoading } = useGetShareLinks(
+        shareModalOpen ? (historySource?._id ?? null) : null,
+    );
+    const { mutateAsync: createShareLink, isPending: isCreatingShareLink } =
+        useCreateShareLink();
+    const { mutateAsync: revokeShareLink } = useRevokeShareLink();
 
     useEffect(() => {
         setTimeout(() => {
@@ -134,6 +166,8 @@ export default function SourcesOfMoneyContextProvider({
 
     const openHistory = useCallback((record: ISourcesOfMoneyData) => {
         setHistoryPage(1);
+        setHistoryKind("");
+        setHistoryRange({});
         setHistorySource(record);
     }, []);
 
@@ -144,6 +178,68 @@ export default function SourcesOfMoneyContextProvider({
     const handleHistoryPageChange = useCallback((page: number) => {
         setHistoryPage(page);
     }, []);
+
+    const handleHistoryKindChange = useCallback((kind: SourceTransactionFilter | "") => {
+        setHistoryKind(kind);
+        setHistoryPage(1);
+    }, []);
+
+    const handleHistoryRangeChange = useCallback((range: HistoryDateRange) => {
+        setHistoryRange(range);
+        setHistoryPage(1);
+    }, []);
+
+    const openShareModal = useCallback(() => {
+        setCreatedShareLink(null);
+        setShareModalOpen(true);
+    }, []);
+
+    const closeShareModal = useCallback(() => {
+        setShareModalOpen(false);
+        setCreatedShareLink(null);
+    }, []);
+
+    const handleCreateShareLink = useCallback(
+        async (values: IFromShareLinkData) => {
+            if (!historySource?._id) return;
+            try {
+                const res = await createShareLink({ sourceId: historySource._id, body: values });
+                setCreatedShareLink(res.data);
+                notification.success({ title: "Tạo link chia sẻ thành công" });
+            } catch (error: unknown) {
+                notification.error({
+                    title: getErrorMessage(error, "Tạo link chia sẻ thất bại"),
+                });
+            }
+        },
+        [historySource, createShareLink, notification],
+    );
+
+    const handleRevokeShareLink = useCallback(
+        (link: IShareLinkData) => {
+            modal.confirm({
+                title: "Thu hồi link chia sẻ",
+                content: "Người đang giữ link này sẽ không xem được nữa. Không hoàn tác được.",
+                okText: "Thu hồi",
+                okType: "danger",
+                cancelText: "Hủy",
+                onOk: async () => {
+                    try {
+                        await revokeShareLink(link._id);
+                        setCreatedShareLink((current) =>
+                            current?._id === link._id ? null : current,
+                        );
+                        notification.success({ title: "Đã thu hồi link chia sẻ" });
+                    } catch (error: unknown) {
+                        notification.error({
+                            title: getErrorMessage(error, "Thu hồi link thất bại"),
+                        });
+                    }
+                },
+            });
+        },
+        [modal, revokeShareLink, notification],
+    );
 
     const openQr = useCallback((record: ISourcesOfMoneyData) => {
         setQrSource(record);
@@ -275,10 +371,18 @@ export default function SourcesOfMoneyContextProvider({
             transferModalOpen,
             isTransferSubmitting,
             historySource,
+            historyKind,
+            historyRange,
             historyItems: historyData?.data?.items ?? [],
             historyPagination: historyData?.data?.pagination,
+            historySummary: historyData?.data?.summary,
             isHistoryLoading:
                 isHistoryInitialLoading || (isHistoryFetching && isHistoryPlaceholder),
+            shareModalOpen,
+            shareLinks: shareLinksData?.data ?? [],
+            isShareLinksLoading,
+            isCreatingShareLink,
+            createdShareLink,
             qrSource,
             handleSearch,
             handleTypeFilter,
@@ -292,6 +396,12 @@ export default function SourcesOfMoneyContextProvider({
             openHistory,
             closeHistory,
             handleHistoryPageChange,
+            handleHistoryKindChange,
+            handleHistoryRangeChange,
+            openShareModal,
+            closeShareModal,
+            handleCreateShareLink,
+            handleRevokeShareLink,
             openQr,
             closeQr,
             openTransferModal,
@@ -316,10 +426,17 @@ export default function SourcesOfMoneyContextProvider({
             transferModalOpen,
             isTransferSubmitting,
             historySource,
+            historyKind,
+            historyRange,
             historyData,
             isHistoryInitialLoading,
             isHistoryFetching,
             isHistoryPlaceholder,
+            shareModalOpen,
+            shareLinksData,
+            isShareLinksLoading,
+            isCreatingShareLink,
+            createdShareLink,
             qrSource,
             handleSearch,
             handleTypeFilter,
@@ -333,6 +450,12 @@ export default function SourcesOfMoneyContextProvider({
             openHistory,
             closeHistory,
             handleHistoryPageChange,
+            handleHistoryKindChange,
+            handleHistoryRangeChange,
+            openShareModal,
+            closeShareModal,
+            handleCreateShareLink,
+            handleRevokeShareLink,
             openQr,
             closeQr,
             openTransferModal,

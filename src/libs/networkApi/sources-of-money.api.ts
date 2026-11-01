@@ -1,7 +1,14 @@
 import { fetcherBackEnd } from "@/libs/fetchFromBackEnd";
 import type ApiResponse from "@/libs/interfaces/ApiResponseData";
-import type { IBalanceAdjustmentData } from "@/libs/interfaces/balanceAdjustmentsData";
-import type { IDefaultQuery } from "@/libs/interfaces/DefaultQuery";
+import type {
+    ICreatedShareLinkData,
+    IFromShareLinkData,
+    IShareLinkData,
+} from "@/libs/interfaces/shareLinksData";
+import type {
+    ISourceTransactionQuery,
+    ISourceTransactionsResponse,
+} from "@/libs/interfaces/sourceTransactionsData";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 import type {
     ICreditCardFeeProgress,
@@ -54,15 +61,38 @@ export const deleteSourcesOfMoney = async (id: string) => {
     });
 };
 
-export const getBalanceAdjustments = async (sourceId: string, query: IDefaultQuery = {}) => {
+export const getSourceTransactions = async (
+    sourceId: string,
+    query: ISourceTransactionQuery = {},
+) => {
     const params = new URLSearchParams();
     if (query.page) params.set("page", String(query.page));
     if (query.limit) params.set("limit", String(query.limit));
+    if (query.kind) params.set("kind", query.kind);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
     const qs = params.toString();
-    return fetcherBackEnd<ApiResponse<PaginatedResponse<IBalanceAdjustmentData>>>(
-        `/sources-of-money/${sourceId}/adjustments${qs ? `?${qs}` : ""}`,
+    return fetcherBackEnd<ApiResponse<ISourceTransactionsResponse>>(
+        `/sources-of-money/${sourceId}/transactions${qs ? `?${qs}` : ""}`,
         { method: "GET" },
     );
+};
+
+export const getShareLinks = async (sourceId: string) => {
+    return fetcherBackEnd<ApiResponse<IShareLinkData[]>>(`/sources-of-money/${sourceId}/shares`, {
+        method: "GET",
+    });
+};
+
+export const createShareLink = async (sourceId: string, body: IFromShareLinkData) => {
+    return fetcherBackEnd<ApiResponse<ICreatedShareLinkData>>(
+        `/sources-of-money/${sourceId}/shares`,
+        { method: "POST", body },
+    );
+};
+
+export const revokeShareLink = async (shareId: string) => {
+    return fetcherBackEnd<ApiResponse<null>>(`/shares/${shareId}`, { method: "DELETE" });
 };
 
 export const getCreditCardFeeProgress = async () => {

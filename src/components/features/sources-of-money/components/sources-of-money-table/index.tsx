@@ -117,8 +117,8 @@ export default function SourcesOfMoneyTable() {
                         <Button
                             type="text"
                             size={isMobile ? "middle" : "small"}
-                            aria-label="Lịch sử điều chỉnh"
-                            title="Lịch sử điều chỉnh"
+                            aria-label="Lịch sử giao dịch"
+                            title="Lịch sử giao dịch"
                             className={isMobile ? "size-10" : undefined}
                             icon={<History className="size-4" />}
                             onClick={() => openHistory(record)}

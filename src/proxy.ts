@@ -108,5 +108,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!api/auth|public|_next|favicon|robots.txt|sitemap.xml|images|static).*)"],
+    // api/public/ và share/: link chia sẻ lịch sử nguồn tiền, xem không cần đăng nhập
+    matcher: [
+        "/((?!api/auth|api/public/|share/|public|_next|favicon|robots.txt|sitemap.xml|images|static).*)",
+    ],
 };

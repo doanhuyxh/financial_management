@@ -68,6 +68,8 @@ const expensesSchema = new Schema<IExpense>(
 );
 
 expensesSchema.index({ userId: 1, spentAt: -1 });
+// Lịch sử giao dịch theo nguồn tiền
+expensesSchema.index({ userId: 1, sourceOfMoneyId: 1, spentAt: -1 });
 
 export const modelExpensesName = "expenses";
 const ExpensesModel =

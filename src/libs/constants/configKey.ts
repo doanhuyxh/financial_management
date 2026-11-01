@@ -21,6 +21,7 @@ export const configQueryKey = {
 	DASHBOARD_EXPENSES_SUMMARY: "dashboard-expenses-summary",
 	DASHBOARD_CASHFLOW: "dashboard-cashflow",
 	VIETQR_BANKS: "vietqr-banks",
+	PUBLIC_SHARE: "public-share",
 }
 
 export const configSessionKey = {

@@ -5,7 +5,8 @@ import SourcesOfMoneyHeader from "@/components/features/sources-of-money/compone
 import SourcesOfMoneyTable from "@/components/features/sources-of-money/components/sources-of-money-table";
 import SourcesOfMoneyFormModal from "@/components/features/sources-of-money/components/sources-of-money-form-modal";
 import SourcesTransferFormModal from "@/components/features/sources-of-money/components/transfer-form-modal";
-import BalanceHistoryModal from "@/components/features/sources-of-money/components/balance-history-modal";
+import SourceHistoryModal from "@/components/features/sources-of-money/components/source-history-modal";
+import ShareLinksModal from "@/components/features/sources-of-money/components/share-links-modal";
 import BankQrModal from "@/components/features/sources-of-money/components/bank-qr-modal";
 
 export default function SourcesOfMoneyComponent() {
@@ -16,7 +17,8 @@ export default function SourcesOfMoneyComponent() {
                 <SourcesOfMoneyTable />
                 <SourcesOfMoneyFormModal />
                 <SourcesTransferFormModal />
-                <BalanceHistoryModal />
+                <SourceHistoryModal />
+                <ShareLinksModal />
                 <BankQrModal />
             </div>
         </SourcesOfMoneyContextProvider>

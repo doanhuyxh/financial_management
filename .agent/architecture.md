@@ -81,7 +81,7 @@ Key ở `configQueryKey`. Mặc định (`tanstack-provider.tsx`): staleTime 30 
 | income | `INCOMES`, `SOURCES_OF_MONEY`, `DASHBOARD_CASHFLOW` |
 | transfer | `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW` |
 
-Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; lịch sử điều chỉnh số dư nằm dưới `SOURCES_OF_MONEY`, nên tự làm mới theo các invalidate trên. **Thêm mutation mới thì phải thêm invalidate tương ứng.**
+Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; lịch sử giao dịch và link chia sẻ của nguồn nằm dưới `SOURCES_OF_MONEY`, nên tự làm mới theo các invalidate trên. **Thêm mutation mới thì phải thêm invalidate tương ứng.**
 
 ## Trang và menu
 
@@ -92,9 +92,10 @@ Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; 
 | `/expenses` | `expenses` | Bảng + form chi tiêu (tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal, kèm `sourceOfMoneyId`/`amount`/`note`/`cardFeeType` thì điền sẵn form |
 | `/incomes` | `incomes` | Bảng + form thu nhập (tùy chọn "tiếp tục tạo") |
 | `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
-| `/sources-of-money` | `sources-of-money` | Nguồn tiền, kéo-thả, chuyển tiền nhanh, lịch sử điều chỉnh |
+| `/sources-of-money` | `sources-of-money` | Nguồn tiền, kéo-thả, chuyển tiền nhanh, lịch sử giao dịch, tạo link chia sẻ |
 | `/credit-card-compare` | `credit-card-compare` | So sánh thẻ tín dụng theo kịch bản sử dụng (chỉ tính phía client từ danh sách nguồn tiền) |
 | `/categories` | `categories` | Danh mục, kéo-thả, lọc theo loại |
+| `/share/[token]` | `public-share` | **Public, không cần đăng nhập**: lịch sử giao dịch một nguồn qua link chia sẻ ([business/source-history.md](business/source-history.md)) |
 
 Menu: `src/components/layout/navigation-config.tsx` — Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục). Nghiệp vụ từng trang: [business/README.md](business/README.md).
 

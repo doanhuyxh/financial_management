@@ -78,6 +78,9 @@ const transfersSchema = new Schema<ITransfer>(
 );
 
 transfersSchema.index({ userId: 1, transferredAt: -1 });
+// Lịch sử giao dịch theo nguồn tiền (chuyển đi / chuyển đến)
+transfersSchema.index({ userId: 1, fromSourceId: 1, transferredAt: -1 });
+transfersSchema.index({ userId: 1, toSourceId: 1, transferredAt: -1 });
 
 export const modelTransfersName = "transfers";
 const TransfersModel =

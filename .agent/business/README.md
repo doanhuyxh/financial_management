@@ -9,6 +9,7 @@
 |---|---|
 | Expense, Income, Transfer, `$inc`/rollback số dư | [balance-rules.md](balance-rules.md) |
 | CRUD nguồn tiền, điều chỉnh số dư, VietQR, xóa mềm nguồn | [sources-of-money.md](sources-of-money.md) |
+| Lịch sử giao dịch nguồn tiền, link chia sẻ public | [source-history.md](source-history.md) |
 | Phí thẻ, kỳ sao kê, miễn phí, lãi, `credit-card-fees` API | [credit-card-fees.md](credit-card-fees.md) |
 | Danh mục, `kind` | [categories.md](categories.md) |
 | Dashboard (chi tiêu, dòng tiền, tài sản, dư nợ) | [dashboard.md](dashboard.md) |
@@ -21,7 +22,7 @@ Giữ mỗi file ≤ ~8 KB. Vượt thì tách tiếp theo domain con và thêm 
 
 ## Nguyên tắc chung
 
-- Mỗi user chỉ thấy dữ liệu của chính mình (mọi query lọc theo `userId` từ JWT).
+- Mỗi user chỉ thấy dữ liệu của chính mình (mọi query lọc theo `userId` từ JWT). Ngoại lệ: link chia sẻ public lấy `userId` từ ShareLink, chỉ đọc đúng một nguồn ([source-history.md](source-history.md)).
 - **Cập nhật số dư thẻ tín dụng** luôn đặt điều kiện hạn mức/dư nợ ngay trong filter của `findOneAndUpdate`, để request đồng thời không vượt hạn mức hoặc làm dư nợ âm.
 - **Múi giờ:** Asia/Ho_Chi_Minh (+07:00). Dashboard tính theo múi này; PM2 cũng đặt `TZ`.
 - **Category** có `kind`: `EXPENSE` (chi tiêu và phí chuyển tiền) hoặc `INCOME` (thu nhập). Xem [categories.md](categories.md).
