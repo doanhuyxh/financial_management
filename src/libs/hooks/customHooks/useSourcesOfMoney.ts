@@ -7,13 +7,18 @@ import type {
     IFromSourcesOfMoneyData,
     IPaginatedSourcesOfMoneyQuery,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import type { IFromShareLinkData } from "@/libs/interfaces/shareLinksData";
+import type { ISourceTransactionQuery } from "@/libs/interfaces/sourceTransactionsData";
 import {
+    createShareLink,
     createSourcesOfMoney,
-    getBalanceAdjustments,
     deleteSourcesOfMoney,
     getCreditCardFeeProgress,
+    getShareLinks,
+    getSourceTransactions,
     getSourcesOfMoney,
     reorderSourcesOfMoney,
+    revokeShareLink,
     updateSourcesOfMoney,
 } from "@/libs/networkApi/sources-of-money.api";
 import { optimisticReorder, restoreQuerySnapshots } from "@/libs/hooks/customHooks/reorderCache";
@@ -27,13 +32,54 @@ export const useGetSourcesOfMoney = (query: IPaginatedSourcesOfMoneyQuery = {}) 
     });
 };
 
-/** Key nằm dưới SOURCES_OF_MONEY nên mọi invalidate nguồn tiền cũng làm mới lịch sử. */
-export const useGetBalanceAdjustments = (sourceId: string | null, page: number, limit = 10) => {
+/**
+ * Key nằm dưới SOURCES_OF_MONEY: mọi mutation chi tiêu/thu nhập/chuyển tiền/nguồn tiền
+ * (vốn invalidate SOURCES_OF_MONEY) đều làm mới lịch sử.
+ */
+export const useGetSourceTransactions = (
+    sourceId: string | null,
+    query: ISourceTransactionQuery,
+) => {
     return useQuery({
-        queryKey: [configQueryKey.SOURCES_OF_MONEY, "adjustments", sourceId, page, limit],
-        queryFn: () => getBalanceAdjustments(sourceId as string, { page, limit }),
+        queryKey: [configQueryKey.SOURCES_OF_MONEY, "transactions", sourceId, query],
+        queryFn: () => getSourceTransactions(sourceId as string, query),
         enabled: Boolean(sourceId),
         placeholderData: keepPreviousData,
+    });
+};
+
+export const useGetShareLinks = (sourceId: string | null) => {
+    return useQuery({
+        queryKey: [configQueryKey.SOURCES_OF_MONEY, "shares", sourceId],
+        queryFn: () => getShareLinks(sourceId as string),
+        enabled: Boolean(sourceId),
+    });
+};
+
+export const useCreateShareLink = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ sourceId, body }: { sourceId: string; body: IFromShareLinkData }) =>
+            createShareLink(sourceId, body),
+        onSuccess: (_data, { sourceId }) => {
+            queryClient.invalidateQueries({
+                queryKey: [configQueryKey.SOURCES_OF_MONEY, "shares", sourceId],
+            });
+        },
+    });
+};
+
+export const useRevokeShareLink = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (shareId: string) => revokeShareLink(shareId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: [configQueryKey.SOURCES_OF_MONEY, "shares"],
+            });
+        },
     });
 };
 

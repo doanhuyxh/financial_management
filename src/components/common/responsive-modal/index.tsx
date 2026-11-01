@@ -15,6 +15,8 @@ type ResponsiveModalProps = {
     cancelText?: ReactNode;
     footer?: ModalProps["footer"];
     destroyOnHidden?: boolean;
+    /** false: click ra ngoài (mask) không đóng. Bỏ trống thì theo mặc định của antd. */
+    maskClosable?: boolean;
     width?: number;
     children?: ReactNode;
 };
@@ -29,10 +31,12 @@ export default function ResponsiveModal({
     cancelText = "Hủy",
     footer,
     destroyOnHidden,
+    maskClosable,
     width = 520,
     children,
 }: ResponsiveModalProps) {
     const isMobile = useIsMobile();
+    const mask = maskClosable === undefined ? undefined : { closable: maskClosable };
 
     if (isMobile) {
         const okButton = (
@@ -71,6 +75,7 @@ export default function ResponsiveModal({
                 size="90dvh"
                 onClose={onCancel}
                 destroyOnHidden={destroyOnHidden}
+                mask={mask}
                 classNames={{ body: "scrollbar-theme" }}
                 styles={{
                     body: { maxHeight: "calc(90dvh - 120px)", overflowY: "auto" },
@@ -93,6 +98,7 @@ export default function ResponsiveModal({
             cancelText={cancelText}
             footer={footer}
             destroyOnHidden={destroyOnHidden}
+            mask={mask}
             width={width}
             // Cách mép trên 20% màn hình. Thân modal giới hạn chiều cao để cả modal
             // (tiêu đề + thân + footer ≈ thân + 116px) nằm gọn trong 80% còn lại;

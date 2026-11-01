@@ -4,8 +4,20 @@ import type {
     SourcesOfMoneyType,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
-import type { IBalanceAdjustmentData } from "@/libs/interfaces/balanceAdjustmentsData";
+import type {
+    ISourceTransactionData,
+    ISourceTransactionSummary,
+    SourceTransactionFilter,
+} from "@/libs/interfaces/sourceTransactionsData";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
+import type {
+    ICreatedShareLinkData,
+    IFromShareLinkData,
+    IShareLinkData,
+} from "@/libs/interfaces/shareLinksData";
+
+/** YYYY-MM-DD */
+export type HistoryDateRange = { from?: string; to?: string };
 
 export interface ISourcesOfMoneyContextProps {
     // values
@@ -24,11 +36,21 @@ export interface ISourcesOfMoneyContextProps {
     isSubmitting: boolean;
     transferModalOpen: boolean;
     isTransferSubmitting: boolean;
-    /** Nguồn đang xem lịch sử điều chỉnh số dư/dư nợ (null = đóng). */
+    /** Nguồn đang xem lịch sử giao dịch (null = đóng). */
     historySource: ISourcesOfMoneyData | null;
-    historyItems: IBalanceAdjustmentData[];
-    historyPagination?: PaginatedResponse<IBalanceAdjustmentData>["pagination"];
+    historyKind: SourceTransactionFilter | "";
+    historyRange: HistoryDateRange;
+    historyItems: ISourceTransactionData[];
+    historyPagination?: PaginatedResponse<ISourceTransactionData>["pagination"];
+    historySummary?: ISourceTransactionSummary;
     isHistoryLoading: boolean;
+    /** Modal quản lý link chia sẻ của historySource. */
+    shareModalOpen: boolean;
+    shareLinks: IShareLinkData[];
+    isShareLinksLoading: boolean;
+    isCreatingShareLink: boolean;
+    /** Link vừa tạo (token chỉ có một lần), null khi chưa tạo. */
+    createdShareLink: ICreatedShareLinkData | null;
     /** Nguồn ngân hàng đang hiện mã VietQR (null = đóng). */
     qrSource: ISourcesOfMoneyData | null;
 
@@ -45,6 +67,12 @@ export interface ISourcesOfMoneyContextProps {
     openHistory: (record: ISourcesOfMoneyData) => void;
     closeHistory: () => void;
     handleHistoryPageChange: (page: number) => void;
+    handleHistoryKindChange: (kind: SourceTransactionFilter | "") => void;
+    handleHistoryRangeChange: (range: HistoryDateRange) => void;
+    openShareModal: () => void;
+    closeShareModal: () => void;
+    handleCreateShareLink: (values: IFromShareLinkData) => Promise<void>;
+    handleRevokeShareLink: (link: IShareLinkData) => void;
     openQr: (record: ISourcesOfMoneyData) => void;
     closeQr: () => void;
     openTransferModal: () => void;

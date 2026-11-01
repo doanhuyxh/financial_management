@@ -18,6 +18,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 | Nguyên tắc nghiệp vụ chung, nợ kỹ thuật | [.agent/business/README.md](.agent/business/README.md) |
 | Sửa expense / income / transfer, cập nhật số dư | [.agent/business/balance-rules.md](.agent/business/balance-rules.md) |
 | Sửa nguồn tiền (CRUD, điều chỉnh số dư, VietQR) | [.agent/business/sources-of-money.md](.agent/business/sources-of-money.md) |
+| Sửa lịch sử giao dịch nguồn tiền, link chia sẻ public | [.agent/business/source-history.md](.agent/business/source-history.md) |
 | Sửa phí thẻ, kỳ sao kê, lãi | [.agent/business/credit-card-fees.md](.agent/business/credit-card-fees.md) |
 | Sửa danh mục | [.agent/business/categories.md](.agent/business/categories.md) |
 | Sửa dashboard | [.agent/business/dashboard.md](.agent/business/dashboard.md) |
@@ -28,7 +29,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 
 ## Luật không được vi phạm
 
-1. Mọi query lọc theo `userId` từ JWT; không lấy `userId` từ body.
+1. Mọi query lọc theo `userId` từ JWT; không lấy `userId` từ body. Ngoại lệ duy nhất: API `/api/public/*` lấy `userId` từ ShareLink tìm theo token (xem `source-history.md`).
 2. Không dùng Mongo transaction. Cập nhật số dư bằng `$inc` với điều kiện trong filter, có rollback thủ công — giữ nguyên thứ tự rollback khi sửa.
 3. Business logic chỉ nằm trong `src/server/services/`; `route.ts` chỉ parse và gọi service.
 4. 1 component = 1 folder `kebab-case` có `index.tsx`. Ưu tiên antd / shadcn / lucide-react.

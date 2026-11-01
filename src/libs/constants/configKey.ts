@@ -21,6 +21,7 @@ export const configQueryKey = {
 	DASHBOARD_EXPENSES_SUMMARY: "dashboard-expenses-summary",
 	DASHBOARD_CASHFLOW: "dashboard-cashflow",
 	VIETQR_BANKS: "vietqr-banks",
+	PUBLIC_SHARE: "public-share",
 }
 
 export const configSessionKey = {
@@ -30,6 +31,7 @@ export const configSessionKey = {
 export const configLocalStorageKey = {
 	SOURCES_HIDE_EMPTY: "sources-of-money-hide-empty",
 	CREDIT_CARD_COMPARE_SCENARIO: "credit-card-compare-scenario",
+	CREDIT_CARD_COMPARE_HIDDEN_CARDS: "credit-card-compare-hidden-cards",
 	DASHBOARD_CARD_FEE_HIDDEN_COLUMNS: "dashboard-card-fee-hidden-columns",
 }
 

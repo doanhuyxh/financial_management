@@ -55,6 +55,8 @@ const incomesSchema = new Schema<IIncome>(
 );
 
 incomesSchema.index({ userId: 1, receivedAt: -1 });
+// Lịch sử giao dịch theo nguồn tiền
+incomesSchema.index({ userId: 1, sourceOfMoneyId: 1, receivedAt: -1 });
 
 export const modelIncomesName = "incomes";
 const IncomesModel =

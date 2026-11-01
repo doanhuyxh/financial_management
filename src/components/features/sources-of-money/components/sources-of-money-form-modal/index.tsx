@@ -208,6 +208,7 @@ export default function SourcesOfMoneyFormModal() {
             onOk={handleOk}
             confirmLoading={isSubmitting}
             destroyOnHidden
+            maskClosable={false}
             okText={isEdit ? "Cập nhật" : "Tạo mới"}
             cancelText="Hủy"
             width={580}

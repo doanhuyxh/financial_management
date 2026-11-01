@@ -7,7 +7,6 @@ import IncomesModel from "@/server/models/incomes.model";
 import TransfersModel from "@/server/models/transfers.model";
 import BalanceAdjustmentsModel from "@/server/models/balance-adjustments.model";
 import { BalanceAdjustmentField } from "@/libs/interfaces/balanceAdjustmentsData";
-import type { IDefaultQuery } from "@/libs/interfaces/DefaultQuery";
 import {
     AnnualFeeWaiverPeriod,
     type ICreditCardFeeProgress,
@@ -727,33 +726,6 @@ export class SourcesOfMoneyService {
         );
 
         return successResponse(null, "Cập nhật thứ tự nguồn tiền thành công");
-    }
-
-    static async getBalanceAdjustments(sourceId: string, query: IDefaultQuery) {
-        await dbConnect();
-        const user = await getCurrentUser();
-        if (!user?.userId) {
-            return unauthorizedResponse();
-        }
-
-        // Nguồn đã lưu trữ vẫn xem được lịch sử
-        const source = await SourcesOfMoneyModel.exists({ _id: sourceId, userId: user.userId });
-        if (!source) {
-            return errorResponseWithStatusCode("Không tìm thấy nguồn tiền", 404);
-        }
-
-        const { page, limit } = normalizePagination(query.page, query.limit, 10);
-        const filter = { userId: user.userId, sourceOfMoneyId: sourceId };
-        const [items, total] = await Promise.all([
-            BalanceAdjustmentsModel.find(filter)
-                .sort({ adjustedAt: -1, createdAt: -1 })
-                .skip((page - 1) * limit)
-                .limit(limit)
-                .lean(),
-            BalanceAdjustmentsModel.countDocuments(filter),
-        ]);
-
-        return successResponsePageNation(items, total, page, limit);
     }
 
     static async deleteSourcesOfMoney(id: string) {
