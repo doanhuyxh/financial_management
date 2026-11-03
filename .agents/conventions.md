@@ -55,8 +55,17 @@ features/<feature>/
 
 ## Ngôn ngữ & định dạng
 
-- UI, thông báo lỗi từ server và comment nghiệp vụ viết **tiếng Việt**. Tiền tệ VND, định dạng bằng `formatMoney` (`src/libs/utils/formatMoney.ts`).
+- UI, thông báo lỗi từ server và comment nghiệp vụ viết **tiếng Việt**. Tiền tệ VND, định dạng bằng `formatMoney` (`src/libs/utils/formatMoney.ts`). Ngày hiển thị bằng `formatDate` (`src/libs/utils/formatDate.ts`, mặc định `DD/MM/YYYY`), không dùng `toLocaleDateString`.
 - Ngày giờ tính theo **Asia/Ho_Chi_Minh (+07:00)**.
+
+## Màu & số tiền
+
+- Số tiền hiển thị bằng `Money` (`src/components/common/money`, tự có class `money-value` để chế độ ẩn số dư làm mờ; số tiền hiển thị bằng `formatMoney` trực tiếp mà là số dư/tổng thì thêm class `money-value` vào phần tử bao) hoặc class token: `text-money-in` (thu), `text-money-out` (chi, phí), `text-debt` (dư nợ, số âm), `text-warn` (cảnh báo), `text-credit` (hạn mức tín dụng). **Không** dùng màu Tailwind thô (`text-red-500`, `text-green-600`…) cho số tiền.
+- Màu cam (`primary`) chỉ dành cho hành động (nút chính, mục đang chọn, focus). Chữ cam trên nền tối dùng `text-accent-text`.
+- Khối nội dung dạng thẻ dùng `bg-card`, không dùng `bg-background`.
+- Thêm/sửa màu: sửa token trong `src/app/globals.css` **và** hex tương ứng trong `src/libs/constants/themeColors.ts`.
+- Kéo-thả trên danh sách đã lọc phía client (tab, ẩn mục trống): ghép thứ tự bằng `mergeSubsetOrder` (`src/libs/utils/reorder.ts`) vì API reorder cần đủ toàn bộ ID.
+- Modal/Drawer qua `ResponsiveModal`: đặt `className={MODAL_AUTOFOCUS_CLASS}` lên `Form.Item` cần focus khi mở (mặc định antd focus nút đóng).
 
 ## Git
 

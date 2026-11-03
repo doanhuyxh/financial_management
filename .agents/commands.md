@@ -34,6 +34,7 @@ Chạy bằng `bun scripts/<file>.ts` từ thư mục gốc (alias `@/` hoạt �
 | Script | Việc |
 |---|---|
 | `migrate-income-category-kind.ts` | Chuyển danh mục tên "Thu nhập" sang `kind = INCOME`. Mặc định chạy thử; thêm `--apply` để ghi DB |
+| `backfill-category-icons.ts` | Gán emoji cho danh mục chưa có icon, đoán theo từ khóa trong tên (bỏ dấu). Chỉ đụng danh mục chưa lưu trữ và chưa có icon; không đổi màu. Mặc định chạy thử; `--apply` để ghi DB |
 
 ## Deploy
 

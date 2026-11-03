@@ -53,6 +53,27 @@ async function sumByMonth(
     return new Map(rows.map((row) => [row._id, row.total]));
 }
 
+/** Tổng amount trong khoảng [start, end]. */
+async function sumInRange(
+    model: typeof ExpensesModel,
+    dateField: "spentAt" | "receivedAt",
+    userId: mongoose.Types.ObjectId,
+    start: Date,
+    end: Date,
+) {
+    const rows: { total: number }[] = await model.aggregate([
+        { $match: { userId, [dateField]: { $gte: start, $lte: end } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    return rows[0]?.total ?? 0;
+}
+
+/** Ngày hôm nay theo giờ VN (+07:00). */
+function getTodayVN() {
+    const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
+    return { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1, day: now.getUTCDate() };
+}
+
 export class DashboardService {
     static async getCashflowSummary(query: IDashboardExpensesSummaryQuery) {
         await dbConnect();
@@ -123,6 +144,34 @@ export class DashboardService {
         const current = trend[trend.length - 1];
         const previous = trend[trend.length - 2];
 
+        // Số ngày đã qua của tháng đang chọn (giờ VN): tháng hiện tại tính đến hôm nay
+        const today = getTodayVN();
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const isCurrentMonth = today.year === year && today.month === month;
+        const isFutureMonth = year * 12 + month > today.year * 12 + today.month;
+        const daysElapsed = isCurrentMonth ? today.day : isFutureMonth ? 0 : daysInMonth;
+
+        // Tháng đang chạy: so với cùng kỳ tháng trước (ngày 1 → cùng ngày), không so với cả tháng
+        let samePeriodPrevious = null;
+        if (isCurrentMonth) {
+            const prev = shiftMonth(year, month, -1);
+            const { start: prevStart, daysInMonth: prevDays } = getMonthRange(prev.year, prev.month);
+            const toDay = Math.min(daysElapsed, prevDays);
+            const prevEnd = new Date(
+                `${prev.year}-${pad2(prev.month)}-${pad2(toDay)}T23:59:59.999+07:00`,
+            );
+            const [prevIncome, prevExpense] = await Promise.all([
+                sumInRange(IncomesModel, "receivedAt", userObjectId, prevStart, prevEnd),
+                sumInRange(ExpensesModel, "spentAt", userObjectId, prevStart, prevEnd),
+            ]);
+            samePeriodPrevious = {
+                totalIncome: prevIncome,
+                totalExpense: prevExpense,
+                net: prevIncome - prevExpense,
+                toDay,
+            };
+        }
+
         return successResponse(
             {
                 year,
@@ -139,6 +188,8 @@ export class DashboardService {
                           net: previous.net,
                       }
                     : null,
+                period: { daysElapsed, daysInMonth, isCurrentMonth },
+                samePeriodPrevious,
                 trend,
                 incomeByCategory: incomeByCategoryAgg.map(
                     (item: { categoryId: string; categoryName: string; total: number }) => ({
@@ -206,6 +257,8 @@ export class DashboardService {
                         categoryName: {
                             $ifNull: ["$category.name", "Không xác định"],
                         },
+                        icon: { $ifNull: ["$category.icon", null] },
+                        color: { $ifNull: ["$category.color", null] },
                         total: 1,
                         sortOrder: { $ifNull: ["$category.sortOrder", 9999] },
                     },
@@ -285,10 +338,14 @@ export class DashboardService {
             (item: {
                 categoryId: string;
                 categoryName: string;
+                icon: string | null;
+                color: string | null;
                 total: number;
             }) => ({
                 categoryId: item.categoryId,
                 categoryName: item.categoryName,
+                icon: item.icon,
+                color: item.color,
                 total: item.total,
             }),
         );

@@ -25,6 +25,7 @@ import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
+import { buildListSummary } from "../utils/listSummary";
 
 function normalizePayload(data: IFromExpensesData) {
     const categoryId = data.categoryId?.trim();
@@ -190,7 +191,7 @@ const FEE_EXPENSE_LOCKED_MESSAGE =
 
 async function getPopulatedExpense(id: string, userId: string) {
     return ExpensesModel.findOne({ _id: id, userId })
-        .populate("categoryId", "name archivedAt")
+        .populate("categoryId", "name icon color archivedAt")
         .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
         .lean();
 }
@@ -233,7 +234,7 @@ export class ExpensesService {
 
         const [items, total] = await Promise.all([
             ExpensesModel.find(filter)
-                .populate("categoryId", "name archivedAt")
+                .populate("categoryId", "name icon color archivedAt")
                 .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
                 .skip((page - 1) * limit)
                 .limit(limit)
@@ -241,8 +242,9 @@ export class ExpensesService {
                 .lean(),
             ExpensesModel.countDocuments(filter),
         ]);
+        const { summary, dayTotals } = await buildListSummary(ExpensesModel, filter, items, { dateField: "spentAt" });
 
-        return successResponsePageNation(items, total, page, limit);
+        return successResponsePageNation(items, total, page, limit, "", { summary, dayTotals });
     }
 
     static async createExpense(data: IFromExpensesData) {

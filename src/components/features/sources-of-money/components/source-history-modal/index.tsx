@@ -125,8 +125,8 @@ export default function SourceHistoryModal() {
                             <p
                                 className={
                                     isCreditCard
-                                        ? "font-semibold text-rose-600"
-                                        : "font-semibold text-emerald-600"
+                                        ? "money-value font-semibold text-money-out"
+                                        : "money-value font-semibold text-money-in"
                                 }
                             >
                                 {formatMoney(historySummary.increase)}
@@ -139,8 +139,8 @@ export default function SourceHistoryModal() {
                             <p
                                 className={
                                     isCreditCard
-                                        ? "font-semibold text-emerald-600"
-                                        : "font-semibold text-rose-600"
+                                        ? "money-value font-semibold text-money-in"
+                                        : "money-value font-semibold text-money-out"
                                 }
                             >
                                 {formatMoney(historySummary.decrease)}

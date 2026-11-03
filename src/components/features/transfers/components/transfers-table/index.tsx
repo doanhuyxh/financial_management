@@ -1,219 +1,85 @@
 "use client";
 
-import { useMemo } from "react";
-import { Button, Space, Table, Tag } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import { Trash2 } from "lucide-react";
-import MobileRecordList from "@/components/common/mobile-record-list";
+import { useCallback } from "react";
+import { Button, Empty } from "antd";
+import { ArrowLeftRight, Plus } from "lucide-react";
+import Money from "@/components/common/money";
+import GroupedTransactionList from "@/components/common/grouped-transaction-list";
+import TransactionRow from "@/components/common/grouped-transaction-list/components/transaction-row";
 import { useTransfersContext } from "@/components/features/transfers/context";
-import { useIsMobile } from "@/libs/hooks/use-mobile";
 import {
     formatMoney,
     getTransferCategory,
     getTransferSource,
 } from "@/components/features/transfers/utils";
 import type { ITransfersData } from "@/libs/interfaces/transfersData";
-import {
-    SOURCES_OF_MONEY_TYPE_LABELS,
-    SourcesOfMoneyType,
-} from "@/libs/interfaces/sourcesOfMoneyData";
+import { OTHER_COLOR } from "@/libs/utils/categoryColor";
 
+const ROW_ACTIONS = [{ key: "delete", label: "Xóa", danger: true }];
+
+/** Danh sách chuyển tiền nhóm theo ngày (desktop + mobile). Chuyển tiền chỉ xóa, không sửa. */
 export default function TransfersTable() {
     const {
         items,
         page,
         pageSize,
         pagination,
+        dayTotals,
         isLoading,
         handleTableChange,
+        openCreateModal,
         handleDelete,
     } = useTransfersContext();
-    const isMobile = useIsMobile();
 
-    const columns: ColumnsType<ITransfersData> = useMemo(
-        () => [
-            {
-                title: "STT",
-                key: "index",
-                width: 64,
-                responsive: ["md"],
-                render: (_value, _record, index) => (page - 1) * pageSize + index + 1,
-            },
-            {
-                title: "Ngày chuyển",
-                dataIndex: "transferredAt",
-                key: "transferredAt",
-                width: 120,
-                render: (value?: string) =>
-                    value ? new Date(value).toLocaleDateString("vi-VN") : "—",
-            },
-            {
-                title: "Từ",
-                key: "from",
-                render: (_value, record) => {
-                    const source = getTransferSource(record.fromSourceId);
-                    if (!source) return "—";
-                    return (
-                        <div className="flex flex-col gap-0.5">
-                            <span>{source.name}</span>
-                            <Tag className="w-fit">
-                                {SOURCES_OF_MONEY_TYPE_LABELS[
-                                    source.type as SourcesOfMoneyType
-                                ] ?? source.type}
-                            </Tag>
-                        </div>
-                    );
-                },
-            },
-            {
-                title: "Đến",
-                key: "to",
-                render: (_value, record) => {
-                    const source = getTransferSource(record.toSourceId);
-                    if (!source) return "—";
-                    return (
-                        <div className="flex flex-col gap-0.5">
-                            <span>{source.name}</span>
-                            <Tag className="w-fit">
-                                {SOURCES_OF_MONEY_TYPE_LABELS[
-                                    source.type as SourcesOfMoneyType
-                                ] ?? source.type}
-                            </Tag>
-                        </div>
-                    );
-                },
-            },
-            {
-                title: "Số tiền",
-                dataIndex: "amount",
-                key: "amount",
-                width: 140,
-                render: (amount: number) => (
-                    <span className="font-semibold">{formatMoney(amount)}</span>
-                ),
-            },
-            {
-                title: "Phí",
-                key: "fee",
-                width: 160,
-                render: (_value, record) => {
-                    if (!record.feeAmount) return "—";
-                    const category = getTransferCategory(record.feeCategoryId);
-                    return (
-                        <div className="flex flex-col gap-0.5">
-                            <span className="text-rose-600">
-                                {formatMoney(record.feeAmount)}
-                                {record.feePercent
-                                    ? ` (${record.feePercent}%)`
-                                    : ""}
-                            </span>
-                            {category ? (
-                                <span className="text-xs text-muted-foreground">
-                                    {category.name}
-                                </span>
-                            ) : null}
-                        </div>
-                    );
-                },
-            },
-            {
-                title: "Ghi chú",
-                dataIndex: "note",
-                key: "note",
-                ellipsis: true,
-                responsive: ["md"],
-                render: (note?: string) => note || "—",
-            },
-            {
-                title: "Thao tác",
-                key: "actions",
-                width: 100,
-                align: "right",
-                render: (_value, record) => (
-                    <Space size="small">
-                        <Button
-                            type="text"
-                            size="small"
-                            danger
-                            aria-label="Xóa chuyển tiền"
-                            icon={<Trash2 className="size-4" />}
-                            onClick={() => handleDelete(record)}
-                        />
-                    </Space>
-                ),
-            },
-        ],
-        [page, pageSize, handleDelete],
-    );
-
-    const pager = {
-        current: pagination?.page ?? page,
-        pageSize: pagination?.limit ?? pageSize,
-        total: pagination?.total ?? 0,
-        onChange: (current: number, nextPageSize: number) =>
-            handleTableChange({ current, pageSize: nextPageSize }),
-    };
-
-    if (isMobile) {
-        return (
-            <MobileRecordList
-                items={items}
-                loading={isLoading}
-                rowKey={(item) => item._id}
-                pagination={pager}
-                renderItem={(record) => {
-                    const from = getTransferSource(record.fromSourceId);
-                    const to = getTransferSource(record.toSourceId);
-                    return (
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-start justify-between gap-3">
-                                <span className="font-semibold">
-                                    {from?.name ?? "—"} → {to?.name ?? "—"}
-                                </span>
-                                <span className="font-semibold">{formatMoney(record.amount)}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                {record.transferredAt
-                                    ? new Date(record.transferredAt).toLocaleDateString("vi-VN")
-                                    : "—"}
-                                {record.feeAmount ? ` · Phí ${formatMoney(record.feeAmount)}` : ""}
-                            </p>
-                            <div className="flex items-end justify-between gap-2">
-                                <p className="line-clamp-2 text-xs text-muted-foreground">
-                                    {record.note || "Không có ghi chú"}
-                                </p>
-                                <Button
-                                    type="text"
-                                    size="middle"
-                                    danger
-                                    aria-label="Xóa chuyển tiền"
-                                    className="size-10"
-                                    icon={<Trash2 className="size-4" />}
-                                    onClick={() => handleDelete(record)}
-                                />
-                            </div>
-                        </div>
-                    );
-                }}
-            />
-        );
-    }
+    const getDate = useCallback((record: ITransfersData) => record.transferredAt, []);
+    const getAmount = useCallback((record: ITransfersData) => record.amount, []);
 
     return (
-        <Table<ITransfersData>
-            rowKey="_id"
-            size="middle"
-            columns={columns}
-            dataSource={items}
+        <GroupedTransactionList<ITransfersData>
+            items={items}
             loading={isLoading}
-            scroll={{ x: "max-content" }}
+            rowKey={(record) => record._id}
+            getDate={getDate}
+            getAmount={getAmount}
+            dayTotals={dayTotals}
+            totalKind="neutral"
+            empty={
+                <Empty description="Chưa có giao dịch chuyển tiền">
+                    <Button type="primary" icon={<Plus className="size-4" />} onClick={openCreateModal}>
+                        Chuyển tiền
+                    </Button>
+                </Empty>
+            }
             pagination={{
-                ...pager,
-                showSizeChanger: true,
-                pageSizeOptions: [10, 20, 50],
-                showTotal: (total) => `Tổng ${total} giao dịch`,
+                current: pagination?.page ?? page,
+                pageSize: pagination?.limit ?? pageSize,
+                total: pagination?.total ?? 0,
+                onChange: (current, nextPageSize) =>
+                    handleTableChange({ current, pageSize: nextPageSize }),
             }}
-            onChange={handleTableChange}
+            renderRow={(record) => {
+                const from = getTransferSource(record.fromSourceId);
+                const to = getTransferSource(record.toSourceId);
+                const feeCategory = getTransferCategory(record.feeCategoryId);
+                const fee = record.feeAmount
+                    ? `Phí ${formatMoney(record.feeAmount)}${record.feePercent ? ` (${record.feePercent}%)` : ""}${feeCategory ? ` · ${feeCategory.name}` : ""}`
+                    : null;
+                return (
+                    <TransactionRow
+                        color={OTHER_COLOR}
+                        icon={<ArrowLeftRight className="size-4" />}
+                        title={
+                            <span className="truncate">
+                                {from?.name ?? "—"} → {to?.name ?? "—"}
+                            </span>
+                        }
+                        subtitle={[fee, record.note].filter(Boolean).join(" · ") || "—"}
+                        amount={<Money value={record.amount} />}
+                        actions={ROW_ACTIONS}
+                        onAction={() => handleDelete(record)}
+                    />
+                );
+            }}
         />
     );
 }

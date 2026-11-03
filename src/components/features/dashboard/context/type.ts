@@ -4,10 +4,11 @@ import type {
     IDashboardCashflowSummary,
     IDashboardExpensesSummary,
 } from "@/libs/interfaces/dashboardData";
+import type { IAssetsSummary } from "@/libs/utils/assetsSummary";
 import type {
-    IAssetsSummary,
+    IAttentionItem,
     ICreditCardFeeItem,
-    ICreditCardDebtItem,
+    ICreditCardOverviewItem,
 } from "@/components/features/dashboard/utils";
 
 export interface IDashboardContextProps {
@@ -16,13 +17,14 @@ export interface IDashboardContextProps {
     isLoading: boolean;
     cashflow?: IDashboardCashflowSummary;
     isCashflowLoading: boolean;
-    creditCardDebts: ICreditCardDebtItem[];
+    /** Mọi thẻ tín dụng: dư nợ, hạn trả, phí (thẻ còn nợ lên trước) */
+    creditCards: ICreditCardOverviewItem[];
+    attentionItems: IAttentionItem[];
     totalCreditDebt: number;
-    creditCardFees: ICreditCardFeeItem[];
     assets: IAssetsSummary;
     isSourcesLoading: boolean;
     handleChangeMonth: (value: Dayjs | null) => void;
-    handleCreateExpense: () => void;
+    handlePayCard: (cardId: string, amount: number) => void;
     handleRecordCardFee: (item: ICreditCardFeeItem, feeType: CardFeeType) => void;
     handleViewDay: (day: number) => void;
 }

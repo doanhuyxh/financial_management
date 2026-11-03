@@ -85,7 +85,7 @@ export default function BankQrModal() {
                             </div>
                         ) : null}
                         {amountValue ? (
-                            <div className="mt-1 font-semibold text-green-600">
+                            <div className="mt-1 font-semibold text-money-in">
                                 {formatMoney(amountValue)}
                             </div>
                         ) : null}

@@ -4,6 +4,8 @@ import type { SourcesOfMoneyType } from "./sourcesOfMoneyData";
 export interface IIncomeCategoryRef {
     _id: string;
     name: string;
+    icon?: string | null;
+    color?: string | null;
     archivedAt?: string | null;
 }
 

@@ -1,173 +1,147 @@
 "use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import {
-    Mail,
-    Lock,
-    Eye,
-    EyeOff,
-    ArrowRight,
-    AlertCircle,
-    Loader2,
-    Sparkles,
-    ShieldCheck,
-} from 'lucide-react';
-import { useLogin } from './hooks/useLogin';
-import { AuthLoginSchema, type AuthLoginSchemaType } from './schemas/login-schema';
-import { useAntdApp } from '@/libs/hooks/useAntdApp';
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button, Form, Input } from "antd";
+import { ArrowRight, Check, Lock, Mail, Wallet } from "lucide-react";
+import { useLogin } from "./hooks/useLogin";
+import { AuthLoginSchema, type AuthLoginSchemaType } from "./schemas/login-schema";
+import { useAntdApp } from "@/libs/hooks/useAntdApp";
 
+const HIGHLIGHTS = [
+    "Ghi chi tiêu trong vài giây",
+    "Theo dõi dư nợ và phí thẻ tín dụng",
+    "Tài sản ròng cập nhật theo từng giao dịch",
+];
+
+function Logo() {
+    return (
+        <div className="flex items-center gap-2.5">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <Wallet className="size-5" />
+            </span>
+            <span className="text-base font-bold">Money Manager</span>
+        </div>
+    );
+}
+
+/** Đăng nhập: cùng token màu, logo và component antd với phần còn lại của app (theo theme sáng/tối). */
 export default function AuthLoginComponent() {
-    const [showPassword, setShowPassword] = useState(false);
-    const { submit, isPending: isLoginPending } = useLogin();
-    const { notification } = useAntdApp()
+    const { submit, isPending } = useLogin();
+    const { notification } = useAntdApp();
     const {
-        register,
+        control,
         handleSubmit,
         formState: { errors },
     } = useForm<AuthLoginSchemaType>({
-        mode: 'onTouched',
-        defaultValues: {
-            email: "",
-            password: "",
-        },
+        mode: "onTouched",
+        defaultValues: { email: "", password: "" },
         resolver: zodResolver(AuthLoginSchema),
     });
 
     const onSubmit = async (data: AuthLoginSchemaType) => {
         try {
-            await submit({
-                email: data.email,
-                password: data.password,
-            });
+            await submit({ email: data.email, password: data.password });
         } catch (error: any) {
-            notification.error({
-                title: error.message || "Đăng nhập thất bại",
-            });
+            notification.error({ title: error.message || "Đăng nhập thất bại" });
         }
     };
 
     return (
-        <div className="min-h-dvh w-full bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-indigo-300">
-            <div className="absolute top-1/4 -left-32 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="grid min-h-dvh w-full bg-background text-foreground lg:grid-cols-2">
+            {/* Panel thương hiệu (desktop) */}
+            <aside className="relative hidden flex-col justify-center gap-6 overflow-hidden bg-linear-to-br from-[#bc4800] to-[#7c2d00] p-12 text-white lg:flex">
+                <div
+                    aria-hidden
+                    className="pointer-events-none absolute -top-24 -right-24 size-96 rounded-full bg-white/10 blur-3xl"
+                />
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-white/15">
+                    <Wallet className="size-6" />
+                </span>
+                <h2 className="text-3xl leading-tight font-bold">
+                    Biết rõ tiền của bạn
+                    <br />
+                    đang ở đâu.
+                </h2>
+                <ul className="flex flex-col gap-3 text-white/90">
+                    {HIGHLIGHTS.map((text) => (
+                        <li key={text} className="flex items-center gap-2.5">
+                            <Check className="size-4 shrink-0" />
+                            {text}
+                        </li>
+                    ))}
+                </ul>
+            </aside>
 
-            <div className="relative w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 shadow-2xl shadow-indigo-950/40 rounded-2xl p-6 sm:p-8 transition-all duration-300">
-
-
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-linear-to-tr from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/30 mb-4 ring-4 ring-indigo-500/10">
-                        <Sparkles className="w-6 h-6" />
-                    </div>
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-                        Chào mừng trở lại
-                    </h1>
-                    <p className="text-sm text-slate-400 mt-2">
-                        Đăng nhập vào tài khoản của bạn để tiếp tục
-                    </p>
-                </div>
-
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Form */}
+            <main className="flex items-center justify-center p-6 sm:p-10">
+                <div className="flex w-full max-w-sm flex-col gap-6">
+                    <Logo />
                     <div>
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                            Địa chỉ Email
-                        </label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                                <Mail className="h-5 w-5" />
-                            </div>
-                            <input
-                                type="email"
-                                placeholder="name@example.com"
-                                autoComplete="email"
-                                inputMode="email"
-                                disabled={isLoginPending}
-                                className={`w-full pl-10 pr-4 py-2.5 bg-slate-950/60 border rounded-xl text-base md:text-sm placeholder:text-slate-600 focus:outline-none transition-all duration-200 disabled:opacity-50 ${errors.email
-                                    ? 'border-rose-500 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15 text-rose-100'
-                                    : 'border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 text-slate-100'
-                                    }`}
-                                {...register('email')}
-                            />
-                        </div>
-                        {errors.email && (
-                            <p className="mt-1.5 text-xs text-rose-400 flex items-center gap-1.5 font-medium animate-in fade-in duration-150">
-                                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                {errors.email.message}
-                            </p>
-                        )}
+                        <h1 className="text-2xl font-bold tracking-tight">Đăng nhập</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Chào mừng trở lại, đăng nhập để tiếp tục.
+                        </p>
                     </div>
 
-                    { }
-                    <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                                Mật khẩu
-                            </label>
-                        </div>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                                <Lock className="h-5 w-5" />
-                            </div>
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="••••••••"
-                                autoComplete="current-password"
-                                disabled={isLoginPending}
-                                className={`w-full pl-10 pr-11 py-2.5 bg-slate-950/60 border rounded-xl text-base md:text-sm placeholder:text-slate-600 focus:outline-none transition-all duration-200 disabled:opacity-50 ${errors.password
-                                    ? 'border-rose-500 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15 text-rose-100'
-                                    : 'border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15 text-slate-100'
-                                    }`}
-                                {...register('password')}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                disabled={isLoginPending}
-                                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition focus:outline-none"
-                                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                            >
-                                {showPassword ? (
-                                    <EyeOff className="h-4 w-4" />
-                                ) : (
-                                    <Eye className="h-4 w-4" />
+                    <Form layout="vertical" requiredMark={false} onFinish={handleSubmit(onSubmit)}>
+                        <Form.Item
+                            label="Email"
+                            validateStatus={errors.email ? "error" : undefined}
+                            help={errors.email?.message}
+                        >
+                            <Controller
+                                name="email"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input
+                                        {...field}
+                                        type="email"
+                                        size="large"
+                                        autoComplete="email"
+                                        inputMode="email"
+                                        placeholder="name@example.com"
+                                        prefix={<Mail className="size-4 text-muted-foreground" />}
+                                        disabled={isPending}
+                                    />
                                 )}
-                            </button>
-                        </div>
-                        {errors.password && (
-                            <p className="mt-1.5 text-xs text-rose-400 flex items-center gap-1.5 font-medium animate-in fade-in duration-150">
-                                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                {errors.password.message}
-                            </p>
-                        )}
-                    </div>
-
-                    { }
-                    <button
-                        type="submit"
-                        disabled={isLoginPending}
-                        className="w-full relative py-3 px-4 rounded-xl bg-linear-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:via-indigo-700 hover:to-violet-700 active:scale-[0.99] text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                        {isLoginPending ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span>Đang xác thực...</span>
-                            </>
-                        ) : (
-                            <>
-                                <span>Đăng nhập</span>
-                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
-                            </>
-                        )}
-                    </button>
-                </form>
-
-                <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Bảo mật chuẩn mã hoá SSL 256-bit</span>
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="Mật khẩu"
+                            validateStatus={errors.password ? "error" : undefined}
+                            help={errors.password?.message}
+                        >
+                            <Controller
+                                name="password"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input.Password
+                                        {...field}
+                                        size="large"
+                                        autoComplete="current-password"
+                                        placeholder="••••••••"
+                                        prefix={<Lock className="size-4 text-muted-foreground" />}
+                                        disabled={isPending}
+                                    />
+                                )}
+                            />
+                        </Form.Item>
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            size="large"
+                            block
+                            loading={isPending}
+                            icon={isPending ? undefined : <ArrowRight className="size-4" />}
+                            iconPlacement="end"
+                            className="mt-2"
+                        >
+                            {isPending ? "Đang xác thực..." : "Đăng nhập"}
+                        </Button>
+                    </Form>
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

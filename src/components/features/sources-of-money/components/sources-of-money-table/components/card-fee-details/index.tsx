@@ -130,7 +130,7 @@ export default function CardFeeDetails({ record }: { record: ISourcesOfMoneyData
             </Button>
             {open
                 ? groups.map((group) => (
-                      <div key={group.title} className="mt-1 text-xs text-blue-500">
+                      <div key={group.title} className="mt-1 text-xs text-credit">
                           <div className="font-medium">{group.title}</div>
                           {group.items.map((item) => (
                               <div key={item} className="pl-3">

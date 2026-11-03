@@ -13,11 +13,14 @@ import type {
     IFromTransfersData,
     ITransfersData,
 } from "@/libs/interfaces/transfersData";
-import type { ITransfersContextProps } from "./type";
+import { useSearchParams } from "next/navigation";
+import type { ITransferCreateDefaults, ITransfersContextProps } from "./type";
 import { formatMoney } from "@/libs/utils/formatMoney";
+import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 
 const DEFAULT_PAGE_SIZE = 10;
 const EMPTY_ITEMS: ITransfersData[] = [];
+const EMPTY_DAY_TOTALS: IDayTotal[] = [];
 
 interface ITransfersContextProviderProps {
     children: React.ReactNode;
@@ -38,6 +41,7 @@ export default function TransfersContextProvider({
     children,
 }: ITransfersContextProviderProps) {
     const { notification, modal } = useAntdApp();
+    const searchParams = useSearchParams();
 
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -47,7 +51,20 @@ export default function TransfersContextProvider({
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(
         null,
     );
-    const [modalOpen, setModalOpen] = useState(false);
+    // `?action=create&fromSourceId=&toSourceId=&amount=` mở sẵn form đã điền (VD: "Trả nợ" từ dashboard)
+    const [modalOpen, setModalOpen] = useState(
+        () => searchParams.get("action") === "create",
+    );
+    const [createDefaults, setCreateDefaults] = useState<ITransferCreateDefaults | null>(() => {
+        if (searchParams.get("action") !== "create") return null;
+        const amount = Number(searchParams.get("amount"));
+        const defaults: ITransferCreateDefaults = {
+            fromSourceId: searchParams.get("fromSourceId") || undefined,
+            toSourceId: searchParams.get("toSourceId") || undefined,
+            amount: Number.isFinite(amount) && amount > 0 ? amount : undefined,
+        };
+        return Object.values(defaults).some((value) => value !== undefined) ? defaults : null;
+    });
 
     const query = useMemo(
         () => ({
@@ -68,6 +85,8 @@ export default function TransfersContextProvider({
 
     const items = data?.data?.items ?? EMPTY_ITEMS;
     const pagination = data?.data?.pagination;
+    const summary = data?.data?.summary;
+    const dayTotals = data?.data?.dayTotals ?? EMPTY_DAY_TOTALS;
 
     const handleSearch = useCallback((value: string) => {
         setSearch(value);
@@ -101,11 +120,13 @@ export default function TransfersContextProvider({
     }, []);
 
     const openCreateModal = useCallback(() => {
+        setCreateDefaults(null);
         setModalOpen(true);
     }, []);
 
     const closeModal = useCallback(() => {
         setModalOpen(false);
+        setCreateDefaults(null);
     }, []);
 
     const handleSubmit = useCallback(
@@ -165,10 +186,13 @@ export default function TransfersContextProvider({
             pageSize,
             items,
             pagination,
+            summary,
+            dayTotals,
             // Only show loading for first load or a changed query (page/filter);
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
             modalOpen,
+            createDefaults,
             isSubmitting: isCreating,
             handleSearch,
             handleFromSourceFilter,
@@ -190,10 +214,13 @@ export default function TransfersContextProvider({
             pageSize,
             items,
             pagination,
+            summary,
+            dayTotals,
             isLoading,
             isFetching,
             isPlaceholderData,
             modalOpen,
+            createDefaults,
             isCreating,
             handleSearch,
             handleFromSourceFilter,

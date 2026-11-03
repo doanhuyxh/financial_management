@@ -12,13 +12,14 @@ import {
     useGetSourcesOfMoney,
 } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { CardFeeType } from "@/libs/interfaces/expensesData";
-import { MENU_KEY } from "@/libs/constants/menuKey";
+import { buildTransactionsUrl } from "@/libs/utils/transactionsUrl";
 import {
-    buildAssetsSummary,
-    buildCreditCardDebts,
+    buildAttentionItems,
     buildCreditCardFees,
+    buildCreditCardsOverview,
     type ICreditCardFeeItem,
 } from "@/components/features/dashboard/utils";
+import { buildAssetsSummary } from "@/libs/utils/assetsSummary";
 import type { IDashboardContextProps } from "./type";
 
 interface IDashboardContextProviderProps {
@@ -49,33 +50,53 @@ export default function DashboardContextProvider({
         isFetching: isCashflowFetching,
         isPlaceholderData: isCashflowPlaceholder,
     } = useGetDashboardCashflow(query);
-    // Toàn bộ nguồn tiền: dùng cho cả bảng dư nợ thẻ và phần Tài sản
+    // Toàn bộ nguồn tiền: dùng cho phần Tài sản và khối Thẻ tín dụng
     const { data: sourcesData, isLoading: isSourcesLoading } = useGetSourcesOfMoney({
         page: 1,
         limit: 100,
     });
     const sources = sourcesData?.data?.items;
 
-    const creditCardDebts = useMemo(() => buildCreditCardDebts(sources ?? []), [sources]);
     const { data: feeProgressData } = useGetCreditCardFeeProgress();
     const feeProgress = feeProgressData?.data;
     const creditCardFees = useMemo(
         () => buildCreditCardFees(sources ?? [], feeProgress ?? []),
         [sources, feeProgress],
     );
+    const creditCards = useMemo(
+        () => buildCreditCardsOverview(sources ?? [], creditCardFees),
+        [sources, creditCardFees],
+    );
     const assets = useMemo(() => buildAssetsSummary(sources ?? []), [sources]);
     const totalCreditDebt = useMemo(
-        () => creditCardDebts.reduce((sum, item) => sum + item.currentDebt, 0),
-        [creditCardDebts],
+        () => creditCards.reduce((sum, item) => sum + Math.max(0, item.currentDebt), 0),
+        [creditCards],
+    );
+    const attentionItems = useMemo(
+        () =>
+            isSourcesLoading
+                ? []
+                : buildAttentionItems(creditCards, assets.netWorth, totalCreditDebt, assets.cashTotal),
+        [isSourcesLoading, creditCards, assets, totalCreditDebt],
     );
 
     const handleChangeMonth = useCallback((value: Dayjs | null) => {
         if (value) setMonthValue(value);
     }, []);
 
-    const handleCreateExpense = useCallback(() => {
-        router.push(`${MENU_KEY.EXPENSES}?action=create`);
-    }, [router]);
+    // Trả nợ thẻ = chuyển tiền tới thẻ: mở form chuyển tiền điền sẵn thẻ đích và số dư nợ
+    const handlePayCard = useCallback(
+        (cardId: string, amount: number) => {
+            router.push(
+                buildTransactionsUrl("transfer", {
+                    action: "create",
+                    toSourceId: cardId,
+                    amount: Math.round(amount),
+                }),
+            );
+        },
+        [router],
+    );
 
     // Phí thực tế có thể khác ước tính: mở form chi tiêu điền sẵn để người dùng sửa số rồi lưu.
     // Khoản chi được đánh dấu phí thẻ nên không tính vào điều kiện miễn phí.
@@ -118,14 +139,15 @@ export default function DashboardContextProvider({
                 },
             };
             const { label, period, amount } = byType[feeType];
-            const params = new URLSearchParams({
-                action: "create",
-                sourceOfMoneyId: item._id,
-                cardFeeType: feeType,
-                note: `${label} ${item.name} ${period}`,
-            });
-            if (amount) params.set("amount", String(amount));
-            router.push(`${MENU_KEY.EXPENSES}?${params.toString()}`);
+            router.push(
+                buildTransactionsUrl("expense", {
+                    action: "create",
+                    sourceOfMoneyId: item._id,
+                    cardFeeType: feeType,
+                    note: `${label} ${item.name} ${period}`,
+                    amount: amount || undefined,
+                }),
+            );
         },
         [router],
     );
@@ -134,7 +156,7 @@ export default function DashboardContextProvider({
     const handleViewDay = useCallback(
         (day: number) => {
             const date = monthValue.date(day).format("YYYY-MM-DD");
-            router.push(`${MENU_KEY.EXPENSES}?date=${date}`);
+            router.push(buildTransactionsUrl("expense", { date }));
         },
         [monthValue, router],
     );
@@ -149,13 +171,13 @@ export default function DashboardContextProvider({
             cashflow: cashflowData?.data,
             isCashflowLoading:
                 isCashflowInitialLoading || (isCashflowFetching && isCashflowPlaceholder),
-            creditCardDebts,
+            creditCards,
+            attentionItems,
             totalCreditDebt,
-            creditCardFees,
             assets,
             isSourcesLoading,
             handleChangeMonth,
-            handleCreateExpense,
+            handlePayCard,
             handleRecordCardFee,
             handleViewDay,
         }),
@@ -169,13 +191,13 @@ export default function DashboardContextProvider({
             isCashflowInitialLoading,
             isCashflowFetching,
             isCashflowPlaceholder,
-            creditCardDebts,
+            creditCards,
+            attentionItems,
             totalCreditDebt,
-            creditCardFees,
             assets,
             isSourcesLoading,
             handleChangeMonth,
-            handleCreateExpense,
+            handlePayCard,
             handleRecordCardFee,
             handleViewDay,
         ],

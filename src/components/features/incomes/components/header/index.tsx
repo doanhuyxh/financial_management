@@ -5,6 +5,14 @@ import MobileFilterShell from "@/components/common/mobile-filter-shell";
 import IncomesFilterDrawer from "@/components/features/incomes/components/header/filter-drawer";
 import { useIncomesContext } from "@/components/features/incomes/context";
 import { useDebounce } from "@/libs/hooks/useDebounce";
+import TransactionSummaryStrip from "@/components/common/transaction-summary-strip";
+import ActiveFilterChips, {
+    dateRangeLabel,
+    optionLabel,
+} from "@/components/common/active-filter-chips";
+import { useCategoryOptions } from "@/libs/hooks/customHooks/useCategories";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
+import { useSourceOptions } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 
 export default function IncomesHeader() {
     const {
@@ -18,6 +26,7 @@ export default function IncomesHeader() {
         handleDateRange,
         handleChangePage,
         openCreateModal,
+        summary,
     } = useIncomesContext();
 
     const [localSearch, setLocalSearch] = useState(search ?? "");
@@ -37,6 +46,22 @@ export default function IncomesHeader() {
         handleChangePage(1);
     };
 
+    const { options: categoryOptions } = useCategoryOptions(CategoryKind.INCOME);
+    const { options: sourceOptions } = useSourceOptions();
+    const filterChips = [
+        {
+            key: "category",
+            label: optionLabel(categoryOptions, categoryFilter),
+            onRemove: () => handleCategoryFilter(""),
+        },
+        {
+            key: "source",
+            label: optionLabel(sourceOptions, sourceFilter),
+            onRemove: () => handleSourceFilter(""),
+        },
+        { key: "date", label: dateRangeLabel(dateRange), onRemove: () => handleDateRange(null) },
+    ];
+
     return (
         <MobileFilterShell
             searchValue={localSearch}
@@ -46,8 +71,18 @@ export default function IncomesHeader() {
             desktopFilters={<IncomesFilterDrawer layout="desktop" />}
             drawerFilters={<IncomesFilterDrawer layout="drawer" />}
             onClearFilters={clearFilters}
+            activeFilters={<ActiveFilterChips chips={filterChips} onClearAll={clearFilters} />}
             createLabel="Thêm thu nhập"
             onCreate={openCreateModal}
+            mobileCreate={false}
+            summary={
+                <TransactionSummaryStrip
+                    summary={summary}
+                    unit="khoản thu"
+                    kind="in"
+                    dateRange={dateRange}
+                />
+            }
         />
     );
 }

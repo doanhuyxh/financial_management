@@ -33,7 +33,7 @@ export default function CardVerdicts() {
                 return (
                     <div
                         key={card._id}
-                        className="flex flex-col gap-2 rounded-xl border border-border bg-background p-4"
+                        className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4"
                     >
                         <span className="font-semibold">{card.name}</span>
                         <ul className="flex flex-col gap-1 text-sm">

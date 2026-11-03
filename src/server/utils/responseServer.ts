@@ -33,6 +33,8 @@ export function successResponsePageNation<T>(
     page: number,
     limit: number,
     message = "",
+    /** Field bổ sung trong `data`, VD: `summary`, `dayTotals` của danh sách giao dịch */
+    extra: Record<string, unknown> = {},
 ) {
     return NextResponse.json({
         status: true,
@@ -45,6 +47,7 @@ export function successResponsePageNation<T>(
                 limit,
                 totalPages: Math.ceil(total / limit),
             },
+            ...extra,
         },
         message,
     });

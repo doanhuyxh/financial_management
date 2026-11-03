@@ -1,10 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DatePicker, Form, Input, Select, Switch } from "antd";
-import ResponsiveModal from "@/components/common/responsive-modal";
+import { Form, Input, Select, Switch } from "antd";
+import ResponsiveModal, {
+    MODAL_AUTOFOCUS_CLASS,
+    focusModalField,
+} from "@/components/common/responsive-modal";
+import ChoiceChips from "@/components/common/choice-chips";
+import QuickDateField from "@/components/common/quick-date-field";
+import TransactionTypeSwitch from "@/components/common/transaction-type-switch";
+import { useSubmitShortcut } from "@/libs/hooks/useHotkey";
 import dayjs from "dayjs";
-import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import DebouncedNumberInput, {
+    LARGE_AMOUNT_INPUT_CLASS,
+} from "@/components/common/input/DebouncedNumberInput";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
 import CardUsageFeeAlert from "@/components/features/expenses/components/expenses-form-modal/components/card-usage-fee-alert";
 import { useExpensesContext } from "@/components/features/expenses/context";
@@ -134,13 +143,19 @@ export default function ExpensesFormModal() {
         }
     }, [foreignFeeTypeWatch, foreignFeeOptions, form]);
 
-    const categoryOptions = groupSuggestedOptions(
-        appendCurrentOption(
+    const expenseCategories = useMemo(
+        () =>
             filterCategoriesByKind(
                 categoriesData?.data?.items ?? [],
                 CategoryKind.EXPENSE,
                 editingItem ? getRefId(editingItem.categoryId) : undefined,
-            ).map((item) => ({
+            ),
+        [categoriesData, editingItem],
+    );
+
+    const categoryOptions = groupSuggestedOptions(
+        appendCurrentOption(
+            expenseCategories.map((item) => ({
                 value: item._id,
                 label: item.name,
             })),
@@ -175,6 +190,43 @@ export default function ExpensesFormModal() {
 
     const handleAmountSuggestion = (amount: number) => {
         form.setFields([{ name: "amount", value: String(amount), errors: [] }]);
+    };
+
+    // Chip "thường dùng": tối đa 5 danh mục, 3 nguồn theo gợi ý (chỉ những mục còn chọn được)
+    const categoryChips = useMemo(() => {
+        const nameById = new Map(
+            expenseCategories.map((item) => [item._id, item.icon ? `${item.icon} ${item.name}` : item.name]),
+        );
+        return (suggestions?.categoryIds ?? [])
+            .filter((id) => nameById.has(id))
+            .slice(0, 5)
+            .map((id) => ({ value: id, label: nameById.get(id) as string }));
+    }, [expenseCategories, suggestions?.categoryIds]);
+
+    const sourceChips = useMemo(
+        () =>
+            (suggestions?.sourceIds ?? [])
+                .map((id) => sources.find((item) => item._id === id))
+                .filter((item): item is NonNullable<typeof item> => Boolean(item))
+                .slice(0, 3)
+                .map((item) => ({
+                    value: item._id,
+                    label: item.name,
+                    hint:
+                        item.type === SourcesOfMoneyType.CREDIT_CARD
+                            ? `còn ${formatMoney(getSourceRemaining(item))}`
+                            : formatMoney(getSourceRemaining(item)),
+                })),
+        [sources, suggestions?.sourceIds],
+    );
+
+    const selectCategory = (categoryId: string) => {
+        form.setFields([{ name: "categoryId", value: categoryId, errors: [] }]);
+        handleCategoryChange(categoryId);
+    };
+
+    const selectSource = (sourceId: string) => {
+        form.setFields([{ name: "sourceOfMoneyId", value: sourceId, errors: [] }]);
     };
 
     useEffect(() => {
@@ -235,12 +287,15 @@ export default function ExpensesFormModal() {
             // Giữ lại ngày đã chọn để nhập nhanh nhiều khoản trong cùng ngày
             form.resetFields(["categoryId", "sourceOfMoneyId", "amount", "note", "foreignFeeType"]);
             form.setFieldsValue({ amount: "", note: "" });
+            focusModalField();
         }
     };
 
+    useSubmitShortcut(handleOk, modalOpen);
+
     return (
         <ResponsiveModal
-            title={isEdit ? "Sửa chi tiêu" : "Thêm chi tiêu"}
+            title={isEdit ? "Sửa chi tiêu" : <TransactionTypeSwitch value="expense" />}
             open={modalOpen}
             onCancel={closeModal}
             onOk={handleOk}
@@ -270,53 +325,10 @@ export default function ExpensesFormModal() {
                 </div>
             )}
         >
-            <Form form={form} layout="vertical" className="mt-4">
-                <Form.Item
-                    name="spentAt"
-                    label="Ngày chi"
-                    rules={[{ required: true, message: "Ngày chi là bắt buộc" }]}
-                >
-                    <DatePicker inputReadOnly className="w-full" format="DD/MM/YYYY" />
-                </Form.Item>
-
-                <Form.Item
-                    name="categoryId"
-                    label="Danh mục"
-                    rules={[{ required: true, message: "Danh mục là bắt buộc" }]}
-                >
-                    <Select
-                        showSearch
-                        optionFilterProp="label"
-                        placeholder="Chọn danh mục"
-                        loading={categoriesLoading}
-                        options={categoryOptions}
-                        onChange={handleCategoryChange}
-                    />
-                </Form.Item>
-
-                <Form.Item
-                    name="sourceOfMoneyId"
-                    label="Nguồn tiền"
-                    rules={[{ required: true, message: "Nguồn tiền là bắt buộc" }]}
-                    extra={
-                        selectedSource
-                            ? selectedSource.type === SourcesOfMoneyType.CREDIT_CARD
-                                ? `Hạn mức còn lại: ${formatMoney(remaining)}`
-                                : `Số dư hiện có: ${formatMoney(remaining)}`
-                            : undefined
-                    }
-                >
-                    <Select
-                        showSearch
-                        optionFilterProp="label"
-                        placeholder="Chọn nguồn tiền"
-                        loading={sourcesLoading}
-                        options={sourceOptions}
-                    />
-                </Form.Item>
-
+            <Form form={form} layout="vertical" className="mt-4" requiredMark={false}>
                 <Form.Item
                     name="amount"
+                    className={MODAL_AUTOFOCUS_CLASS}
                     label="Số tiền"
                     rules={[{ required: true, message: "Số tiền là bắt buộc" }]}
                     extra={
@@ -327,7 +339,75 @@ export default function ExpensesFormModal() {
                         />
                     }
                 >
-                    <DebouncedNumberInput min={0} placeholder="0" delay={300} />
+                    <DebouncedNumberInput
+                        min={0}
+                        placeholder="0"
+                        delay={300}
+                        size="large"
+                        suffix="₫"
+                        className={LARGE_AMOUNT_INPUT_CLASS}
+                    />
+                </Form.Item>
+
+                <Form.Item label="Danh mục" required>
+                    <div className="flex flex-col gap-2">
+                        <ChoiceChips
+                            label="Thường dùng:"
+                            options={categoryChips}
+                            value={selectedCategoryId}
+                            onChange={selectCategory}
+                        />
+                        <Form.Item
+                            name="categoryId"
+                            noStyle
+                            rules={[{ required: true, message: "Danh mục là bắt buộc" }]}
+                        >
+                            <Select
+                                showSearch
+                                optionFilterProp="label"
+                                placeholder={categoryChips.length ? "Hoặc chọn danh mục khác" : "Chọn danh mục"}
+                                loading={categoriesLoading}
+                                options={categoryOptions}
+                                onChange={handleCategoryChange}
+                            />
+                        </Form.Item>
+                    </div>
+                </Form.Item>
+
+                <Form.Item
+                    label="Nguồn tiền"
+                    required
+                    extra={
+                        selectedSource ? (
+                            <span className="money-value">
+                                {selectedSource.type === SourcesOfMoneyType.CREDIT_CARD
+                                    ? `Hạn mức còn lại: ${formatMoney(remaining)}`
+                                    : `Số dư hiện có: ${formatMoney(remaining)}`}
+                            </span>
+                        ) : undefined
+                    }
+                >
+                    <div className="flex flex-col gap-2">
+                        <ChoiceChips
+                            label="Thường dùng:"
+                            options={sourceChips}
+                            value={selectedSourceId}
+                            onChange={selectSource}
+                        />
+                        <Form.Item
+                            name="sourceOfMoneyId"
+                            noStyle
+                            rules={[{ required: true, message: "Nguồn tiền là bắt buộc" }]}
+                        >
+                            <Select
+                                showSearch
+                                optionFilterProp="label"
+                                placeholder={sourceChips.length ? "Hoặc chọn nguồn khác" : "Chọn nguồn tiền"}
+                                loading={sourcesLoading}
+                                options={sourceOptions}
+                            />
+                        </Form.Item>
+                    </div>
                 </Form.Item>
 
                 {/* Ghi chính khoản phí thẻ thì không tính là chi tiêu của kỳ */}
@@ -349,9 +429,17 @@ export default function ExpensesFormModal() {
                     </Form.Item>
                 ) : null}
 
-                <Form.Item name="note" label="Ghi chú">
+                <Form.Item
+                    name="spentAt"
+                    label="Ngày chi"
+                    rules={[{ required: true, message: "Ngày chi là bắt buộc" }]}
+                >
+                    <QuickDateField />
+                </Form.Item>
+
+                <Form.Item name="note" label="Ghi chú" className="mb-0">
                     <Input.TextArea
-                        rows={3}
+                        rows={2}
                         maxLength={500}
                         placeholder="Ghi chú (không bắt buộc)"
                         showCount

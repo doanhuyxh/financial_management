@@ -1,0 +1,119 @@
+"use client";
+
+import { useMemo } from "react";
+import dynamic from "next/dynamic";
+import { Empty, Skeleton, Spin } from "antd";
+import { useDashboardContext } from "@/components/features/dashboard/context";
+import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
+import { useIsMobile } from "@/libs/hooks/use-mobile";
+import { formatCompactMoney, formatMoney } from "@/libs/utils/formatMoney";
+import { THEME_COLORS } from "@/libs/constants/themeColors";
+
+// G2 is ~380KB gzipped: load it in a separate chunk, client-only.
+const Column = dynamic(() => import("@ant-design/plots").then((mod) => mod.Column), {
+    ssr: false,
+    loading: () => <Skeleton.Node active className="h-60! w-full!" />,
+});
+
+const INCOME_LABEL = "Thu nhập";
+const EXPENSE_LABEL = "Chi tiêu";
+
+const formatCurrency = (value: number) => formatMoney(value);
+const formatCompact = (value: number) => formatCompactMoney(value);
+
+export default function TrendChart() {
+    const { cashflow, isCashflowLoading } = useDashboardContext();
+    const isDark = useIsDarkMode();
+    const isMobile = useIsMobile();
+    const chartHeight = isMobile ? 220 : 280;
+    // Bỏ các tháng trống ở đầu (trước khi bắt đầu ghi chép); tháng đang chạy gắn dấu "*"
+    const trend = useMemo(() => {
+        const items = cashflow?.trend ?? [];
+        const firstWithData = items.findIndex((item) => item.income > 0 || item.expense > 0);
+        if (firstWithData === -1) return [];
+        const isCurrentMonth = cashflow?.period.isCurrentMonth;
+        return items.slice(firstWithData).map((item, index, list) =>
+            isCurrentMonth && index === list.length - 1 ? { ...item, label: `${item.label}*` } : item,
+        );
+    }, [cashflow]);
+    const hasData = trend.length > 0;
+
+    const config = useMemo(() => {
+        const colors = THEME_COLORS[isDark ? "dark" : "light"];
+        const tickFill = colors.muted;
+        const gridStroke = colors.border;
+        const data = trend.flatMap((item) => [
+            { label: item.label, type: INCOME_LABEL, value: item.income },
+            { label: item.label, type: EXPENSE_LABEL, value: item.expense },
+        ]);
+        return {
+            data,
+            theme: isDark ? "classicDark" : "classic",
+            xField: "label",
+            yField: "value",
+            colorField: "type",
+            group: true,
+            scale: {
+                color: { domain: [INCOME_LABEL, EXPENSE_LABEL], range: [colors.moneyIn, colors.moneyOut] },
+            },
+            axis: {
+                x: {
+                    title: false,
+                    labelFill: tickFill,
+                    labelFontSize: 11,
+                    tickStroke: tickFill,
+                    lineStroke: gridStroke,
+                },
+                y: {
+                    title: false,
+                    labelFill: tickFill,
+                    labelFontSize: 11,
+                    labelFormatter: formatCompact,
+                    gridStroke,
+                    gridStrokeOpacity: 1,
+                    tickStroke: tickFill,
+                    lineStroke: gridStroke,
+                },
+            },
+            legend: {
+                color: { position: "top", itemLabelFill: tickFill },
+            },
+            style: {
+                radiusTopLeft: 4,
+                radiusTopRight: 4,
+                // Ít tháng dữ liệu thì cột không bị giãn quá to
+                maxWidth: 28,
+            },
+            tooltip: {
+                items: [{ field: "value", valueFormatter: formatCurrency }],
+            },
+        };
+    }, [trend, isDark]);
+
+    if (isCashflowLoading) {
+        return (
+            <div className="flex h-60 items-center justify-center">
+                <Spin />
+            </div>
+        );
+    }
+
+    if (!hasData) {
+        return (
+            <div className="flex h-60 items-center justify-center">
+                <Empty description="Chưa có thu chi trong 6 tháng gần nhất" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="money-value" style={{ height: chartHeight }}>
+            <Column
+                key={`${isDark ? "dark" : "light"}-${chartHeight}`}
+                {...config}
+                height={chartHeight}
+                autoFit
+            />
+        </div>
+    );
+}

@@ -19,6 +19,7 @@ import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
+import { buildListSummary } from "../utils/listSummary";
 
 function normalizePayload(data: IFromIncomesData) {
     const categoryId = data.categoryId?.trim();
@@ -155,7 +156,7 @@ async function adjustSourceBalance(
 
 async function getPopulatedIncome(id: string, userId: string) {
     return IncomesModel.findOne({ _id: id, userId })
-        .populate("categoryId", "name archivedAt")
+        .populate("categoryId", "name icon color archivedAt")
         .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
         .lean();
 }
@@ -198,7 +199,7 @@ export class IncomesService {
 
         const [items, total] = await Promise.all([
             IncomesModel.find(filter)
-                .populate("categoryId", "name archivedAt")
+                .populate("categoryId", "name icon color archivedAt")
                 .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
                 .skip((page - 1) * limit)
                 .limit(limit)
@@ -206,8 +207,9 @@ export class IncomesService {
                 .lean(),
             IncomesModel.countDocuments(filter),
         ]);
+        const { summary, dayTotals } = await buildListSummary(IncomesModel, filter, items, { dateField: "receivedAt" });
 
-        return successResponsePageNation(items, total, page, limit);
+        return successResponsePageNation(items, total, page, limit, "", { summary, dayTotals });
     }
 
     static async createIncome(data: IFromIncomesData) {

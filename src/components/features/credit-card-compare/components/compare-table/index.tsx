@@ -133,7 +133,7 @@ export default function CompareTable() {
     ];
 
     return (
-        <div className="rounded-xl border border-border bg-background p-4">
+        <div className="rounded-xl border border-border bg-card p-4">
             <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                     <h2 className="text-base font-semibold">Bảng so sánh</h2>

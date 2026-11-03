@@ -85,7 +85,7 @@ export default function VisibilitySettings({
                     }
                 />
                 {!canSave ? (
-                    <p className="mt-3 text-xs text-red-500">Chọn ít nhất {minVisible} mục.</p>
+                    <p className="mt-3 text-xs text-destructive">Chọn ít nhất {minVisible} mục.</p>
                 ) : null}
             </ResponsiveModal>
         </>

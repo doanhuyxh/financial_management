@@ -50,4 +50,4 @@ Nguồn chuyển và nguồn nhận phải khác nhau.
 
 **Xóa transfer:** lấy lại `receiveAmount` từ bên nhận (nếu bên nhận đã tiêu hết, hoặc thẻ nhận không còn đủ hạn mức để hoàn dư nợ, thì báo lỗi), hoàn `amount` cho bên chuyển, rồi xóa fee expense và transfer.
 
-Từ UI có hai lối vào chuyển tiền: trang `/transfers` và nút chuyển tiền trên trang `/sources-of-money`. Cả hai dùng chung `transfers/components/transfer-form-modal-content`, và UI validate trùng với server (ẩn thẻ ở ô "đến" khi "từ" là thẻ, hiển thị số dư hoặc hạn mức còn lại).
+Từ UI có hai lối vào chuyển tiền: trang `/transactions?type=transfer` và nút chuyển tiền trên trang `/sources-of-money`. Cả hai dùng chung `transfers/components/transfer-form-modal-content`, và UI validate trùng với server (ẩn thẻ ở ô "đến" khi "từ" là thẻ, hiển thị số dư hoặc hạn mức còn lại).

@@ -3,6 +3,8 @@ import type { SourcesOfMoneyType } from "./sourcesOfMoneyData";
 export interface IExpenseByCategoryItem {
     categoryId: string;
     categoryName: string;
+    icon?: string | null;
+    color?: string | null;
     total: number;
 }
 
@@ -53,7 +55,17 @@ export interface IDashboardCashflowSummary {
     net: number;
     /** net / totalIncome, null khi tháng không có thu nhập */
     savingsRate: number | null;
+    /** Cả tháng liền trước */
     previous: { totalIncome: number; totalExpense: number; net: number } | null;
+    /** daysElapsed: tháng hiện tại = hôm nay (giờ VN), tháng đã qua = cả tháng, tháng tương lai = 0 */
+    period: { daysElapsed: number; daysInMonth: number; isCurrentMonth: boolean };
+    /** Chỉ có khi đang xem tháng hiện tại: ngày 1 → ngày `toDay` của tháng trước */
+    samePeriodPrevious: {
+        totalIncome: number;
+        totalExpense: number;
+        net: number;
+        toDay: number;
+    } | null;
     /** 6 tháng gần nhất, tăng dần, phần tử cuối là tháng đang chọn */
     trend: ICashflowMonthItem[];
     incomeByCategory: IExpenseByCategoryItem[];

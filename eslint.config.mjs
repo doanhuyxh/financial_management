@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Skill/agent của Claude (script CommonJS bên thứ ba), không phải code app
+    ".claude/**",
+    ".agents/**",
   ]),
   {
     rules: {

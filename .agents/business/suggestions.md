@@ -12,8 +12,10 @@ API: `GET /api/expenses/suggestions`, `/api/incomes/suggestions`, `/api/transfer
 - **Chuyển tiền** trả về: `pairs` (top 3 cặp từ→đến, mỗi cặp kèm `amounts`), `fromSourceIds` (top 3), `topAmounts`.
 
 Cách form dùng:
-- Select danh mục và nguồn tiền chia 2 nhóm "Thường dùng" và "Khác" (`groupSuggestedOptions`).
+- Form chi tiêu / thu nhập: ô **Số tiền** đứng đầu (cỡ lớn, tự focus). Dưới nhãn Danh mục là hàng chip "Thường dùng:" (`common/choice-chips`) gồm tối đa 5 `categoryIds`; dưới nhãn Nguồn tiền là tối đa 3 `sourceIds`, mỗi chip kèm số dư (thẻ: "còn <hạn mức còn lại>"). Chỉ hiện mục còn chọn được (đúng loại, chưa lưu trữ; thu nhập bỏ thẻ tín dụng). Bấm chip = chọn giá trị, giống chọn trong Select.
+- Select danh mục và nguồn tiền vẫn có, chia 2 nhóm "Thường dùng" và "Khác" (`groupSuggestedOptions`).
 - Chip số tiền nằm dưới ô Số tiền (`common/amount-suggestion-chips`). Khi chưa chọn danh mục, chip hiện `topAmounts`; khi đã chọn, chip chỉ hiện số tiền của danh mục đó.
 - Khi tạo mới, chọn danh mục mà ô nguồn tiền đang trống thì tự điền `byCategory[id].sourceId`. Ở chế độ sửa thì không tự điền.
+- Form chuyển tiền: chip "Từ nguồn" gồm tối đa 3 `fromSourceIds` (kèm số dư / hạn mức còn lại); chip "Đến nguồn" gồm các nguồn nhận của cặp quen với nguồn chuyển đang chọn (kèm số dư / dư nợ), chỉ những nguồn hợp lệ (không thẻ → thẻ).
 - Form chuyển tiền có dòng "Hay chuyển": bấm vào là điền cả nguồn chuyển và nguồn nhận. Chọn nguồn chuyển khi ô "đến" đang trống thì tự điền nguồn nhận của cặp quen. Chip số tiền hiện theo cặp đang chọn, hoặc `topAmounts` khi chưa chọn nguồn.
 - Query key nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`, nên các invalidate sẵn có tự làm mới gợi ý. Chỉ fetch khi modal mở; stale 5 phút.

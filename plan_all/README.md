@@ -10,6 +10,9 @@ Ngày lập: 2026-10-15 · Nhánh gốc: `main` (commit `20027ab`)
 | 2 | Giao diện chưa tối ưu cho mobile | Trung bình | [02-mobile-ui.md](02-mobile-ui.md) |
 | 3 | Tối ưu web chung (hiệu năng, bảo mật, SEO/a11y cơ bản) | Trung bình / Thấp | [03-web-optimization.md](03-web-optimization.md) |
 | 4 | Dashboard hiển thị "Tài sản" (tiền mặt + tín dụng khả dụng) — đã duyệt phương án C, đã triển khai | Tính năng mới | [04-dashboard-assets.md](04-dashboard-assets.md) · [mockup](04-dashboard-assets-mockup.html) |
+| 5 | Đánh giá giao diện tổng thể & hướng cải thiện (màu ngữ nghĩa, dashboard, nhập nhanh) | Trung bình | [05-ui-review.md](05-ui-review.md) |
+| 6 | Re-design UI: so sánh hiện tại ↔ mới, design token, lộ trình — đã duyệt 2026-11-03 | Đã duyệt | [06-re-design-ui.md](re-design-ui/06-re-design-ui.md) · [mockup](re-design-ui/06-re-design-ui-mockup.html) |
+| 7 | Plan code re-design UI: 5 giai đoạn (nền tảng → dashboard → giao dịch + điều hướng → ghi nhanh → nguồn tiền/danh mục/login) | Triển khai | [plan_code_redesign/](plan_code_redesign/README.md) |
 
 ## Thứ tự thực hiện đề xuất
 

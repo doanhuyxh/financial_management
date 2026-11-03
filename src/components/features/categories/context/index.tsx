@@ -9,11 +9,17 @@ import {
     useReorderCategories,
     useUpdateCategory,
 } from "@/libs/hooks/customHooks/useCategories";
-import type {
+import {
     CategoryKind,
-    ICategoriesData,
-    IFromCategoriesData,
+    type ICategoriesData,
+    type IFromCategoriesData,
 } from "@/libs/interfaces/categoriesData";
+import dayjs from "dayjs";
+import {
+    useGetDashboardCashflow,
+    useGetDashboardExpensesSummary,
+} from "@/libs/hooks/customHooks/useDashboard";
+import { mergeSubsetOrder } from "@/libs/utils/reorder";
 import type { ICategoryContextProps } from "./type";
 
 const LIST_LIMIT = 100;
@@ -35,7 +41,8 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
     const { notification, modal } = useAntdApp();
 
     const [search, setSearch] = useState("");
-    const [kindFilter, setKindFilter] = useState<CategoryKind | "">("");
+    // Tab Chi tiêu / Thu nhập, lọc phía client để vẫn kéo-thả được trong từng tab
+    const [kindFilter, setKindFilter] = useState<CategoryKind>(CategoryKind.EXPENSE);
     const [localItems, setLocalItems] = useState<ICategoriesData[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<ICategoriesData | null>(null);
@@ -45,10 +52,32 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
             page: 1,
             limit: LIST_LIMIT,
             search: search.trim() || undefined,
-            kind: kindFilter || undefined,
         }),
-        [search, kindFilter],
+        [search],
     );
+
+    // Số đã chi / đã thu tháng này theo danh mục (dùng lại query của dashboard)
+    const monthQuery = useMemo(() => ({ year: dayjs().year(), month: dayjs().month() + 1 }), []);
+    const { data: expenseSummary } = useGetDashboardExpensesSummary(monthQuery);
+    const { data: cashflow } = useGetDashboardCashflow(monthQuery);
+    const monthTotals = useMemo(() => {
+        const totals: Record<string, number> = {};
+        for (const item of expenseSummary?.data?.byCategory ?? []) totals[item.categoryId] = item.total;
+        for (const item of cashflow?.data?.incomeByCategory ?? []) {
+            totals[item.categoryId] = (totals[item.categoryId] ?? 0) + item.total;
+        }
+        return totals;
+    }, [expenseSummary?.data?.byCategory, cashflow?.data?.incomeByCategory]);
+
+    const visibleItems = useMemo(
+        () => localItems.filter((item) => (item.kind ?? CategoryKind.EXPENSE) === kindFilter),
+        [localItems, kindFilter],
+    );
+    const kindCounts = useMemo(() => {
+        const counts = { [CategoryKind.EXPENSE]: 0, [CategoryKind.INCOME]: 0 };
+        for (const item of localItems) counts[item.kind ?? CategoryKind.EXPENSE] += 1;
+        return counts;
+    }, [localItems]);
 
     const { data, isLoading, isFetching, isPlaceholderData } = useGetCategories(query);
     const { mutateAsync: createCategory, isPending: isCreating } = useCreateCategory();
@@ -67,7 +96,7 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         setSearch(value);
     }, []);
 
-    const handleKindFilter = useCallback((value: CategoryKind | "") => {
+    const handleKindFilter = useCallback((value: CategoryKind) => {
         setKindFilter(value);
     }, []);
 
@@ -130,9 +159,11 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         [modal, deleteCategory, notification],
     );
 
+    // `orderedSubset`: thứ tự mới trong tab hiện tại; API cần thứ tự toàn bộ danh mục
     const handleReorder = useCallback(
-        async (orderedItems: ICategoriesData[]) => {
+        async (orderedSubset: ICategoriesData[]) => {
             const previous = localItems;
+            const orderedItems = mergeSubsetOrder(localItems, orderedSubset);
             setLocalItems(orderedItems);
 
             try {
@@ -151,12 +182,14 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
         () => ({
             search,
             kindFilter,
-            items: localItems,
+            items: visibleItems,
+            kindCounts,
+            monthTotals,
             // Only show loading for first load or a changed query (page/filter);
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
             isReordering,
-            canReorder: !query.search && !query.kind,
+            canReorder: !query.search,
             modalOpen,
             editingCategory,
             isSubmitting: isCreating || isUpdating,
@@ -173,7 +206,9 @@ export default function CategoryContextProvider({ children }: ICategoryContextPr
             search,
             kindFilter,
             query,
-            localItems,
+            visibleItems,
+            kindCounts,
+            monthTotals,
             isLoading,
             isFetching,
             isPlaceholderData,
