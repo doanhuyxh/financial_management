@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { unauthorizedResponse } from "@/server/utils/responseServer";
+import { clearAccessTokenCookie, unauthorizedResponse } from "@/server/utils/responseServer";
 import { verifyAccessToken } from "@/server/utils/jwtUtil";
 import { validateAccessToken } from "@/server/utils/getCurrentUser";
 import { configCookieKey } from "@/libs/constants/configKey";
@@ -44,7 +44,7 @@ function nextWithClientMeta(
     });
 }
 
-function redirectToLogin(request: NextRequest) {
+function redirectToLogin(request: NextRequest, hadToken: boolean) {
     const url = request.nextUrl.clone();
     const returnUrl = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     url.pathname = "/";
@@ -53,8 +53,8 @@ function redirectToLogin(request: NextRequest) {
     const response = NextResponse.redirect(url);
     // Best-effort: trình duyệt điện thoại có lúc không xóa được cookie, nên không dựa vào bước này.
     // Trang "/" luôn kiểm tra token đầy đủ nên cookie cũ còn sót cũng không gây vòng lặp.
-    response.cookies.delete(configCookieKey.ACCESS_TOKEN_KEY);
-    return response;
+    // Không có token thì không gửi lệnh xóa: tránh xóa nhầm cookie vừa được login set (race trên iOS).
+    return hadToken ? clearAccessTokenCookie(response) : response;
 }
 
 /**
@@ -88,9 +88,10 @@ export async function proxy(request: NextRequest) {
 
     if (!accessToken || !verifyResult) {
         if (pathname.startsWith("/api")) {
-            return unauthorizedResponse();
+            const response = unauthorizedResponse();
+            return accessToken ? clearAccessTokenCookie(response) : response;
         }
-        return redirectToLogin(request);
+        return redirectToLogin(request, !!accessToken);
     }
 
     const userInfoHeader = Buffer.from(
