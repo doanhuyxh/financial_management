@@ -156,7 +156,7 @@ async function adjustSourceBalance(
 
 async function getPopulatedIncome(id: string, userId: string) {
     return IncomesModel.findOne({ _id: id, userId })
-        .populate("categoryId", "name archivedAt")
+        .populate("categoryId", "name icon color archivedAt")
         .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
         .lean();
 }
@@ -199,7 +199,7 @@ export class IncomesService {
 
         const [items, total] = await Promise.all([
             IncomesModel.find(filter)
-                .populate("categoryId", "name archivedAt")
+                .populate("categoryId", "name icon color archivedAt")
                 .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
                 .skip((page - 1) * limit)
                 .limit(limit)

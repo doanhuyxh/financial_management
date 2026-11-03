@@ -257,6 +257,8 @@ export class DashboardService {
                         categoryName: {
                             $ifNull: ["$category.name", "Không xác định"],
                         },
+                        icon: { $ifNull: ["$category.icon", null] },
+                        color: { $ifNull: ["$category.color", null] },
                         total: 1,
                         sortOrder: { $ifNull: ["$category.sortOrder", 9999] },
                     },
@@ -336,10 +338,14 @@ export class DashboardService {
             (item: {
                 categoryId: string;
                 categoryName: string;
+                icon: string | null;
+                color: string | null;
                 total: number;
             }) => ({
                 categoryId: item.categoryId,
                 categoryName: item.categoryName,
+                icon: item.icon,
+                color: item.color,
                 total: item.total,
             }),
         );

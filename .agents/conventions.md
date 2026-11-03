@@ -64,6 +64,7 @@ features/<feature>/
 - Màu cam (`primary`) chỉ dành cho hành động (nút chính, mục đang chọn, focus). Chữ cam trên nền tối dùng `text-accent-text`.
 - Khối nội dung dạng thẻ dùng `bg-card`, không dùng `bg-background`.
 - Thêm/sửa màu: sửa token trong `src/app/globals.css` **và** hex tương ứng trong `src/libs/constants/themeColors.ts`.
+- Kéo-thả trên danh sách đã lọc phía client (tab, ẩn mục trống): ghép thứ tự bằng `mergeSubsetOrder` (`src/libs/utils/reorder.ts`) vì API reorder cần đủ toàn bộ ID.
 - Modal/Drawer qua `ResponsiveModal`: đặt `className={MODAL_AUTOFOCUS_CLASS}` lên `Form.Item` cần focus khi mở (mặc định antd focus nút đóng).
 
 ## Git

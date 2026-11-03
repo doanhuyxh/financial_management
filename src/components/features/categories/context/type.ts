@@ -7,11 +7,16 @@ import type {
 export interface ICategoryContextProps {
     // values
     search: string;
-    kindFilter: CategoryKind | "";
+    /** Tab đang xem (lọc phía client) */
+    kindFilter: CategoryKind;
+    /** Danh mục của tab đang xem */
     items: ICategoriesData[];
+    kindCounts: Record<CategoryKind, number>;
+    /** categoryId → tổng đã chi / đã thu trong tháng hiện tại */
+    monthTotals: Record<string, number>;
     isLoading: boolean;
     isReordering: boolean;
-    /** False while search/kind filter is active (list is only a subset). */
+    /** False khi đang tìm kiếm (danh sách tải về chỉ là một phần). */
     canReorder: boolean;
     modalOpen: boolean;
     editingCategory: ICategoriesData | null;
@@ -19,7 +24,7 @@ export interface ICategoryContextProps {
 
     // handlers
     handleSearch: (value: string) => void;
-    handleKindFilter: (value: CategoryKind | "") => void;
+    handleKindFilter: (value: CategoryKind) => void;
     handleReorder: (orderedItems: ICategoriesData[]) => Promise<void>;
     openCreateModal: () => void;
     openEditModal: (record: ICategoriesData) => void;

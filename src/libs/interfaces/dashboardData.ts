@@ -3,6 +3,8 @@ import type { SourcesOfMoneyType } from "./sourcesOfMoneyData";
 export interface IExpenseByCategoryItem {
     categoryId: string;
     categoryName: string;
+    icon?: string | null;
+    color?: string | null;
     total: number;
 }
 

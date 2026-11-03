@@ -4,6 +4,8 @@ import type { ForeignFeeType, SourcesOfMoneyType } from "./sourcesOfMoneyData";
 export interface IExpenseCategoryRef {
     _id: string;
     name: string;
+    icon?: string | null;
+    color?: string | null;
     archivedAt?: string | null;
 }
 

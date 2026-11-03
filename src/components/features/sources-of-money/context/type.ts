@@ -1,3 +1,4 @@
+import type { IAssetsSummary } from "@/libs/utils/assetsSummary";
 import type {
     IFromSourcesOfMoneyData,
     ISourcesOfMoneyData,
@@ -23,13 +24,15 @@ export interface ISourcesOfMoneyContextProps {
     // values
     search: string;
     typeFilter: SourcesOfMoneyType | "";
-    /** Ẩn nguồn trống: nguồn thường số dư = 0, thẻ tín dụng dư nợ = 0. */
+    /** Ẩn nguồn trống: chỉ nguồn thường có số dư = 0 (thẻ tín dụng luôn hiện). Mặc định bật. */
     hideEmpty: boolean;
     hiddenCount: number;
     items: ISourcesOfMoneyData[];
+    /** Tổng hợp trên toàn bộ nguồn (không theo bộ lọc) */
+    assets: IAssetsSummary;
     isLoading: boolean;
     isReordering: boolean;
-    /** False while search/type filter/hide empty is active (list is only a subset). */
+    /** False khi đang tìm kiếm / lọc loại (danh sách tải về chỉ là một phần). */
     canReorder: boolean;
     modalOpen: boolean;
     editingItem: ISourcesOfMoneyData | null;

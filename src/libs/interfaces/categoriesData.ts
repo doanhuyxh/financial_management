@@ -14,6 +14,10 @@ export interface ICategoriesData {
     _id: string;
     name: string;
     kind: CategoryKind;
+    /** 1 emoji (tùy chọn) */
+    icon?: string | null;
+    /** #RRGGBB (tùy chọn) */
+    color?: string | null;
     sortOrder: number;
     createdAt?: string;
     updatedAt?: string;
@@ -22,6 +26,10 @@ export interface ICategoriesData {
 export interface IFromCategoriesData {
     name: string;
     kind?: CategoryKind;
+    /** Chuỗi rỗng / null = bỏ icon */
+    icon?: string | null;
+    /** Chuỗi rỗng / null = bỏ màu */
+    color?: string | null;
     sortOrder?: number;
 }
 

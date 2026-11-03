@@ -36,7 +36,7 @@ export default function SourcesFilterDrawer({ layout }: { layout: "desktop" | "d
             />
             <label
                 className="flex cursor-pointer items-center gap-2 text-sm whitespace-nowrap"
-                title="Ngân hàng, tiền mặt, ví: số dư = 0 · Thẻ tín dụng: dư nợ = 0"
+                title="Ẩn ngân hàng, tiền mặt, ví có số dư = 0 (thẻ tín dụng luôn hiện)"
             >
                 <Switch size="small" checked={hideEmpty} onChange={handleHideEmpty} />
                 Ẩn nguồn trống

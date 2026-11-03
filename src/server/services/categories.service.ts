@@ -63,6 +63,28 @@ async function backfillCategoryKind(userId: string) {
     kindBackfilledUsers.add(userId);
 }
 
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const MAX_ICON_LENGTH = 16;
+
+/**
+ * Chuẩn hóa icon/màu từ body: `undefined` = không đổi, chuỗi rỗng/null = bỏ (null).
+ * Trả `error` khi giá trị không hợp lệ.
+ */
+function normalizeAppearance(category: IFromCategoriesData) {
+    const result: { icon?: string | null; color?: string | null; error?: string } = {};
+    if (category.icon !== undefined) {
+        const icon = typeof category.icon === "string" ? category.icon.trim() : "";
+        if (icon.length > MAX_ICON_LENGTH) result.error = "Icon không hợp lệ";
+        result.icon = icon || null;
+    }
+    if (category.color !== undefined) {
+        const color = typeof category.color === "string" ? category.color.trim() : "";
+        if (color && !HEX_COLOR.test(color)) result.error = "Màu không hợp lệ";
+        result.color = color || null;
+    }
+    return result;
+}
+
 export class CategoriesService {
     static async getCategories(query: IPaginatedCategoriesQuery) {
         await dbConnect();
@@ -107,7 +129,7 @@ export class CategoriesService {
                 .skip((page - 1) * limit)
                 .limit(limit)
                 .sort({ sortOrder: 1, createdAt: 1 })
-                .select(["_id", "name", "kind", "sortOrder", "createdAt", "updatedAt"]),
+                .select(["_id", "name", "kind", "icon", "color", "sortOrder", "createdAt", "updatedAt"]),
             CategoriesModel.countDocuments(filter),
         ]);
 
@@ -124,6 +146,10 @@ export class CategoriesService {
         if (!isCategoryKind(category.kind)) {
             return errorResponseWithStatusCode("Loại danh mục không hợp lệ", 400);
         }
+        const appearance = normalizeAppearance(category);
+        if (appearance.error) {
+            return errorResponseWithStatusCode(appearance.error, 400);
+        }
 
         const last = await CategoriesModel.findOne({ userId: user.userId })
             .sort({ sortOrder: -1 })
@@ -135,6 +161,8 @@ export class CategoriesService {
         const newCategory = await CategoriesModel.create({
             name: category.name.trim(),
             kind: category.kind,
+            icon: appearance.icon ?? null,
+            color: appearance.color ?? null,
             sortOrder,
             userId: user.userId,
         });
@@ -159,7 +187,14 @@ export class CategoriesService {
             return errorResponseWithStatusCode("Không tìm thấy danh mục", 404);
         }
 
+        const appearance = normalizeAppearance(category);
+        if (appearance.error) {
+            return errorResponseWithStatusCode(appearance.error, 400);
+        }
+
         const update: Record<string, unknown> = { name: category.name.trim() };
+        if (appearance.icon !== undefined) update.icon = appearance.icon;
+        if (appearance.color !== undefined) update.color = appearance.color;
         if (category.kind && category.kind !== existing.kind) {
             // Đổi loại sẽ làm giao dịch cũ nằm sai loại danh mục
             const [expense, income, feeTransfer] = await Promise.all([

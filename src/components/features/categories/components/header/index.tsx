@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Segmented } from "antd";
 import MobileFilterShell from "@/components/common/mobile-filter-shell";
-import CategoryFilterDrawer from "@/components/features/categories/components/header/filter-drawer";
 import { useCategoryContext } from "@/components/features/categories/context";
+import { CATEGORY_KIND_LABELS, CategoryKind } from "@/libs/interfaces/categoriesData";
 import { useDebounce } from "@/libs/hooks/useDebounce";
 
 export default function CategoryHeader() {
-    const { search, kindFilter, handleSearch, handleKindFilter, openCreateModal } =
+    const { search, kindFilter, kindCounts, handleSearch, handleKindFilter, openCreateModal } =
         useCategoryContext();
     const [localSearch, setLocalSearch] = useState(search ?? "");
     const debouncedSearch = useDebounce(localSearch, 500);
@@ -17,16 +18,23 @@ export default function CategoryHeader() {
     }, [debouncedSearch, handleSearch]);
 
     return (
-        <MobileFilterShell
-            searchValue={localSearch}
-            onSearchChange={setLocalSearch}
-            searchPlaceholder="Tìm kiếm danh mục..."
-            activeFilterCount={kindFilter ? 1 : 0}
-            desktopFilters={<CategoryFilterDrawer layout="desktop" />}
-            drawerFilters={<CategoryFilterDrawer layout="drawer" />}
-            onClearFilters={() => handleKindFilter("")}
-            createLabel="Thêm danh mục"
-            onCreate={openCreateModal}
-        />
+        <div className="flex flex-col gap-3">
+            <Segmented<CategoryKind>
+                value={kindFilter}
+                onChange={handleKindFilter}
+                options={Object.values(CategoryKind).map((kind) => ({
+                    value: kind,
+                    label: `${CATEGORY_KIND_LABELS[kind]} · ${kindCounts[kind]}`,
+                }))}
+                className="w-full sm:w-fit [&_.ant-segmented-item]:flex-1"
+            />
+            <MobileFilterShell
+                searchValue={localSearch}
+                onSearchChange={setLocalSearch}
+                searchPlaceholder="Tìm kiếm danh mục..."
+                createLabel="Thêm danh mục"
+                onCreate={openCreateModal}
+            />
+        </div>
     );
 }

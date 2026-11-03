@@ -63,8 +63,8 @@ export default function IncomesTable() {
                 const name = category?.name ?? "—";
                 return (
                     <TransactionRow
-                        color={getCategoryColor(category?._id)}
-                        icon={name.charAt(0).toUpperCase()}
+                        color={getCategoryColor(category?._id, category?.color)}
+                        icon={category?.icon || name.charAt(0).toUpperCase()}
                         title={<span className="truncate">{name}</span>}
                         subtitle={[source?.name, record.note].filter(Boolean).join(" · ") || "—"}
                         amount={<Money value={record.amount} kind="in" signed />}

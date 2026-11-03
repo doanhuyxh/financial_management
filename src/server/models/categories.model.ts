@@ -19,6 +19,19 @@ const categoriesSchema = new Schema({
         type: String,
         enum: Object.values(CategoryKind),
     },
+    /** 1 emoji hiển thị cạnh tên (tùy chọn); null = dùng chữ cái đầu */
+    icon: {
+        type: String,
+        trim: true,
+        maxlength: 16,
+        default: null,
+    },
+    /** Màu #RRGGBB (tùy chọn); null = màu băm theo id (getCategoryColor) */
+    color: {
+        type: String,
+        match: /^#[0-9a-fA-F]{6}$/,
+        default: null,
+    },
     sortOrder: {
         type: Number,
         required: true,

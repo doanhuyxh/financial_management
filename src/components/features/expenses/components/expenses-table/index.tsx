@@ -65,8 +65,8 @@ export default function ExpensesTable() {
                 const name = category?.name ?? "—";
                 return (
                     <TransactionRow
-                        color={getCategoryColor(category?._id)}
-                        icon={name.charAt(0).toUpperCase()}
+                        color={getCategoryColor(category?._id, category?.color)}
+                        icon={category?.icon || name.charAt(0).toUpperCase()}
                         title={
                             <>
                                 <span className="truncate">{name}</span>

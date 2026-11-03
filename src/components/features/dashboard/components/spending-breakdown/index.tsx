@@ -18,13 +18,15 @@ interface IBarRow {
     color: string;
 }
 
-function toRows(items: { id: string | null; name: string; total: number }[]): IBarRow[] {
+function toRows(
+    items: { id: string | null; name: string; total: number; color?: string | null }[],
+): IBarRow[] {
     const sorted = [...items].sort((a, b) => b.total - a.total);
     const rows = sorted.map((item) => ({
         key: item.id ?? item.name,
         name: item.name,
         total: item.total,
-        color: getCategoryColor(item.id),
+        color: getCategoryColor(item.id, item.color),
     }));
     if (rows.length <= MAX_ROWS) return rows;
     const rest = rows.slice(MAX_ROWS - 1);
@@ -114,8 +116,9 @@ export default function SpendingBreakdown() {
             toRows(
                 (summary?.byCategory ?? []).map((item) => ({
                     id: item.categoryId || null,
-                    name: item.categoryName,
+                    name: item.icon ? `${item.icon} ${item.categoryName}` : item.categoryName,
                     total: item.total,
+                    color: item.color,
                 })),
             ),
         [summary],

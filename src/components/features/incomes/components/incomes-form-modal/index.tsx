@@ -149,7 +149,9 @@ export default function IncomesFormModal() {
 
     // Chip "thường dùng": tối đa 5 danh mục, 3 nguồn theo gợi ý (chỉ những mục còn chọn được)
     const categoryChips = useMemo(() => {
-        const nameById = new Map(incomeCategories.map((item) => [item._id, item.name]));
+        const nameById = new Map(
+            incomeCategories.map((item) => [item._id, item.icon ? `${item.icon} ${item.name}` : item.name]),
+        );
         return (suggestions?.categoryIds ?? [])
             .filter((id) => nameById.has(id))
             .slice(0, 5)

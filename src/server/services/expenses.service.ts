@@ -191,7 +191,7 @@ const FEE_EXPENSE_LOCKED_MESSAGE =
 
 async function getPopulatedExpense(id: string, userId: string) {
     return ExpensesModel.findOne({ _id: id, userId })
-        .populate("categoryId", "name archivedAt")
+        .populate("categoryId", "name icon color archivedAt")
         .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
         .lean();
 }
@@ -234,7 +234,7 @@ export class ExpensesService {
 
         const [items, total] = await Promise.all([
             ExpensesModel.find(filter)
-                .populate("categoryId", "name archivedAt")
+                .populate("categoryId", "name icon color archivedAt")
                 .populate("sourceOfMoneyId", "name type balance creditDetails archivedAt")
                 .skip((page - 1) * limit)
                 .limit(limit)

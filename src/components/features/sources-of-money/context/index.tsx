@@ -17,10 +17,10 @@ import {
     useUpdateSourcesOfMoney,
 } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { useCreateTransfer } from "@/libs/hooks/customHooks/useTransfers";
-import type {
-    IFromSourcesOfMoneyData,
-    ISourcesOfMoneyData,
+import {
     SourcesOfMoneyType,
+    type IFromSourcesOfMoneyData,
+    type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
 import type { SourceTransactionFilter } from "@/libs/interfaces/sourceTransactionsData";
@@ -30,6 +30,8 @@ import type {
     IShareLinkData,
 } from "@/libs/interfaces/shareLinksData";
 import type { HistoryDateRange, ISourcesOfMoneyContextProps } from "./type";
+import { mergeSubsetOrder } from "@/libs/utils/reorder";
+import { buildAssetsSummary } from "@/libs/utils/assetsSummary";
 
 const LIST_LIMIT = 100;
 const HISTORY_LIMIT = 20;
@@ -63,9 +65,10 @@ export default function SourcesOfMoneyContextProvider({
 
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState<SourcesOfMoneyType | "">("");
+    // Mặc định bật: phần lớn nguồn ngân hàng/ví thường 0 ₫, ẩn đi cho gọn
     const [hideEmpty, setHideEmpty] = useLocalStorage(
         configLocalStorageKey.SOURCES_HIDE_EMPTY,
-        false,
+        true,
     );
     const [localItems, setLocalItems] = useState<ISourcesOfMoneyData[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
@@ -143,10 +146,23 @@ export default function SourcesOfMoneyContextProvider({
         [],
     );
 
-    // Lọc phía client: nguồn thường số dư = 0, thẻ tín dụng dư nợ = 0
+    // Lọc phía client: chỉ ẩn nguồn thường có số dư = 0. Thẻ tín dụng luôn hiện (hạn mức vẫn dùng được)
     const visibleItems = useMemo(
-        () => (hideEmpty ? localItems.filter((item) => getTrackedAmount(item) !== 0) : localItems),
+        () =>
+            hideEmpty
+                ? localItems.filter(
+                      (item) =>
+                          item.type === SourcesOfMoneyType.CREDIT_CARD || getTrackedAmount(item) !== 0,
+                  )
+                : localItems,
         [hideEmpty, localItems],
+    );
+
+    // Tổng tiền mặt / dư nợ / tín dụng khả dụng luôn tính trên toàn bộ nguồn, không theo bộ lọc
+    const { data: allSourcesData } = useGetSourcesOfMoney({ page: 1, limit: LIST_LIMIT });
+    const assets = useMemo(
+        () => buildAssetsSummary(allSourcesData?.data?.items ?? []),
+        [allSourcesData?.data?.items],
     );
 
     const openCreateModal = useCallback(() => {
@@ -336,9 +352,11 @@ export default function SourcesOfMoneyContextProvider({
         [modal, deleteSource, notification],
     );
 
+    // `orderedSubset`: thứ tự mới của một nhóm (có thể đang ẩn bớt nguồn trống); API cần đủ toàn bộ
     const handleReorder = useCallback(
-        async (orderedItems: ISourcesOfMoneyData[]) => {
+        async (orderedSubset: ISourcesOfMoneyData[]) => {
             const previous = localItems;
+            const orderedItems = mergeSubsetOrder(localItems, orderedSubset);
             setLocalItems(orderedItems);
 
             try {
@@ -360,11 +378,13 @@ export default function SourcesOfMoneyContextProvider({
             hideEmpty,
             hiddenCount: localItems.length - visibleItems.length,
             items: visibleItems,
+            assets,
             // Only show loading for first load or a changed query (page/filter);
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
             isReordering,
-            canReorder: !query.search && !query.type && !hideEmpty,
+            // Tìm kiếm / lọc loại làm danh sách tải về chỉ là một phần nên không ghép đủ thứ tự được
+            canReorder: !query.search && !query.type,
             modalOpen,
             editingItem,
             isSubmitting: isCreating || isUpdating,
@@ -415,6 +435,7 @@ export default function SourcesOfMoneyContextProvider({
             query,
             localItems,
             visibleItems,
+            assets,
             isLoading,
             isFetching,
             isPlaceholderData,
