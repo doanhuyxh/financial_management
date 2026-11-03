@@ -7,25 +7,25 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 App quản lý tài chính cá nhân (tiếng Việt, VND): Next.js 16 + React 19 + MongoDB/Mongoose, frontend và API chung một app. Package manager: **bun**.
 
-File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent/` — **đọc file tương ứng trước khi làm việc**.
+File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agents/` — **đọc file tương ứng trước khi làm việc**.
 
 | Khi bạn cần... | Đọc |
 |---|---|
-| Chạy, build, lint, env, script, deploy | [.agent/commands.md](.agent/commands.md) |
-| Viết/sửa component, hook, đặt tên, cấu trúc feature | [.agent/conventions.md](.agent/conventions.md) |
-| Hiểu cây thư mục, ranh giới client/server, luồng dữ liệu, cache React Query | [.agent/architecture.md](.agent/architecture.md) |
-| Sửa model, schema, query ghi số dư, viết migration | [.agent/database.md](.agent/database.md) |
-| Nguyên tắc nghiệp vụ chung, nợ kỹ thuật | [.agent/business/README.md](.agent/business/README.md) |
-| Sửa expense / income / transfer, cập nhật số dư | [.agent/business/balance-rules.md](.agent/business/balance-rules.md) |
-| Sửa nguồn tiền (CRUD, điều chỉnh số dư, VietQR) | [.agent/business/sources-of-money.md](.agent/business/sources-of-money.md) |
-| Sửa lịch sử giao dịch nguồn tiền, link chia sẻ public | [.agent/business/source-history.md](.agent/business/source-history.md) |
-| Sửa phí thẻ, kỳ sao kê, lãi | [.agent/business/credit-card-fees.md](.agent/business/credit-card-fees.md) |
-| Sửa danh mục | [.agent/business/categories.md](.agent/business/categories.md) |
-| Sửa dashboard | [.agent/business/dashboard.md](.agent/business/dashboard.md) |
-| Sửa bảng phí thẻ trên dashboard | [.agent/business/dashboard-card-fees.md](.agent/business/dashboard-card-fees.md) |
-| Sửa trang so sánh thẻ | [.agent/business/card-compare.md](.agent/business/card-compare.md) |
-| Sửa đăng nhập, JWT, proxy | [.agent/business/auth.md](.agent/business/auth.md) |
-| Sửa gợi ý "thường dùng" trong form | [.agent/business/suggestions.md](.agent/business/suggestions.md) |
+| Chạy, build, lint, env, script, deploy | [.agents/commands.md](.agents/commands.md) |
+| Viết/sửa component, hook, đặt tên, cấu trúc feature | [.agents/conventions.md](.agents/conventions.md) |
+| Hiểu cây thư mục, ranh giới client/server, luồng dữ liệu, cache React Query | [.agents/architecture.md](.agents/architecture.md) |
+| Sửa model, schema, query ghi số dư, viết migration | [.agents/database.md](.agents/database.md) |
+| Nguyên tắc nghiệp vụ chung, nợ kỹ thuật | [.agents/business/README.md](.agents/business/README.md) |
+| Sửa expense / income / transfer, cập nhật số dư | [.agents/business/balance-rules.md](.agents/business/balance-rules.md) |
+| Sửa nguồn tiền (CRUD, điều chỉnh số dư, VietQR) | [.agents/business/sources-of-money.md](.agents/business/sources-of-money.md) |
+| Sửa lịch sử giao dịch nguồn tiền, link chia sẻ public | [.agents/business/source-history.md](.agents/business/source-history.md) |
+| Sửa phí thẻ, kỳ sao kê, lãi | [.agents/business/credit-card-fees.md](.agents/business/credit-card-fees.md) |
+| Sửa danh mục | [.agents/business/categories.md](.agents/business/categories.md) |
+| Sửa dashboard | [.agents/business/dashboard.md](.agents/business/dashboard.md) |
+| Sửa bảng phí thẻ trên dashboard | [.agents/business/dashboard-card-fees.md](.agents/business/dashboard-card-fees.md) |
+| Sửa trang so sánh thẻ | [.agents/business/card-compare.md](.agents/business/card-compare.md) |
+| Sửa đăng nhập, JWT, proxy | [.agents/business/auth.md](.agents/business/auth.md) |
+| Sửa gợi ý "thường dùng" trong form | [.agents/business/suggestions.md](.agents/business/suggestions.md) |
 
 ## Luật không được vi phạm
 
@@ -38,7 +38,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 
 ## Giữ tài liệu đúng
 
-- `.agent/` là nguồn sự thật duy nhất cho agent. Không tạo tài liệu song song ở chỗ khác.
-- Đổi business rule → cập nhật file tương ứng trong `.agent/business/`. Đổi schema → `.agent/database.md`. Thêm lệnh/script/env → `.agent/commands.md`. Đổi cấu trúc thư mục hoặc luồng dữ liệu → `.agent/architecture.md`.
-- Mỗi file trong `.agent/` giữ ≤ ~8 KB, chỉ đọc file cần cho task. Vượt thì tách theo domain con và thêm dòng vào bảng trên.
+- `.agents/` là nguồn sự thật duy nhất cho agent. Không tạo tài liệu song song ở chỗ khác.
+- Đổi business rule → cập nhật file tương ứng trong `.agents/business/`. Đổi schema → `.agents/database.md`. Thêm lệnh/script/env → `.agents/commands.md`. Đổi cấu trúc thư mục hoặc luồng dữ liệu → `.agents/architecture.md`.
+- Mỗi file trong `.agents/` giữ ≤ ~8 KB, chỉ đọc file cần cho task. Vượt thì tách theo domain con và thêm dòng vào bảng trên.
 - Nếu tài liệu khác code, tin code và sửa tài liệu trong cùng commit.
