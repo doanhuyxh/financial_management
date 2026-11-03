@@ -1,10 +1,8 @@
 "use client";
 
-import { DatePicker, Select } from "antd";
+import { Select } from "antd";
 import type { Dayjs } from "dayjs";
-import DateRangeFields from "@/components/common/date-range-fields";
-
-const { RangePicker } = DatePicker;
+import TransactionDateRange from "@/components/common/transaction-date-range";
 
 type Option = { value: string; label: string };
 
@@ -57,20 +55,7 @@ export default function TransactionFilterFields({
                     optionFilterProp="label"
                 />
             ) : null}
-            {layout === "desktop" ? (
-                <RangePicker
-                    inputReadOnly
-                    value={dateRange}
-                    onChange={(dates) =>
-                        onDateRange(dates ? [dates[0] ?? null, dates[1] ?? null] : null)
-                    }
-                    className="w-full lg:w-auto"
-                    format="DD/MM/YYYY"
-                    allowClear
-                />
-            ) : (
-                <DateRangeFields value={dateRange} onChange={onDateRange} />
-            )}
+            <TransactionDateRange value={dateRange} onChange={onDateRange} layout={layout} />
         </>
     );
 }

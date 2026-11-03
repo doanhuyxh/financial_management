@@ -74,6 +74,7 @@ export default function ExpensesTable() {
                             </>
                         }
                         subtitle={[source?.name, record.note].filter(Boolean).join(" · ") || "—"}
+                        columns={[source?.name, record.note]}
                         amount={<Money value={-record.amount} kind="out" signed />}
                         onClick={locked ? undefined : () => openEditModal(record)}
                         lockedHint={locked ? "Sửa qua chuyển tiền" : undefined}

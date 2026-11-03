@@ -77,6 +77,7 @@ export default function IncomesHeader() {
             mobileCreate={false}
             summary={
                 <TransactionSummaryStrip
+                    className="xl:hidden"
                     summary={summary}
                     unit="khoản thu"
                     kind="in"

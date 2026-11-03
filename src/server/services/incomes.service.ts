@@ -207,9 +207,16 @@ export class IncomesService {
                 .lean(),
             IncomesModel.countDocuments(filter),
         ]);
-        const { summary, dayTotals } = await buildListSummary(IncomesModel, filter, items, { dateField: "receivedAt" });
+        const { summary, dayTotals, breakdown } = await buildListSummary(IncomesModel, filter, items, {
+            dateField: "receivedAt",
+            breakdown: { field: "categoryId", from: CategoriesModel.collection.name },
+        });
 
-        return successResponsePageNation(items, total, page, limit, "", { summary, dayTotals });
+        return successResponsePageNation(items, total, page, limit, "", {
+            summary,
+            dayTotals,
+            breakdown,
+        });
     }
 
     static async createIncome(data: IFromIncomesData) {

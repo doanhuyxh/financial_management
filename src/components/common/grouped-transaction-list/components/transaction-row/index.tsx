@@ -12,7 +12,13 @@ interface ITransactionRowProps {
     /** Ký tự / icon trong ô (chữ cái đầu danh mục, emoji…) */
     icon: ReactNode;
     title: ReactNode;
+    /** Dòng phụ dưới tiêu đề; khi có `columns` thì chỉ hiện dưới lg */
     subtitle?: ReactNode;
+    /**
+     * Cột thông tin trên màn hình ≥ lg (VD: [nguồn, ghi chú]). Cột đầu cố định, cột cuối giãn lấp
+     * chỗ trống; dưới lg các cột ẩn và dùng `subtitle`.
+     */
+    columns?: ReactNode[];
     amount: ReactNode;
     /** Bấm dòng (VD: mở form sửa). Không có thì dòng không bấm được. */
     onClick?: () => void;
@@ -29,6 +35,7 @@ export default function TransactionRow({
     icon,
     title,
     subtitle,
+    columns,
     amount,
     onClick,
     actions,
@@ -63,12 +70,30 @@ export default function TransactionRow({
             >
                 {icon}
             </span>
-            <div className="min-w-0 flex-1">
+            <div className={cn("min-w-0 flex-1", columns?.length && "lg:w-64 lg:flex-none")}>
                 <div className="flex flex-wrap items-center gap-1 font-medium">{title}</div>
                 {subtitle ? (
-                    <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+                    <p
+                        className={cn(
+                            "truncate text-xs text-muted-foreground",
+                            columns?.length && "lg:hidden",
+                        )}
+                    >
+                        {subtitle}
+                    </p>
                 ) : null}
             </div>
+            {columns?.map((column, index) => (
+                <div
+                    key={index}
+                    className={cn(
+                        "hidden min-w-0 truncate text-sm text-muted-foreground lg:block",
+                        index === columns.length - 1 ? "flex-1" : "w-52 shrink-0",
+                    )}
+                >
+                    {column || "—"}
+                </div>
+            ))}
             <div className="shrink-0 text-right font-semibold">{amount}</div>
             {lockedHint ? (
                 <span className="w-16 shrink-0 text-right text-[11px] leading-tight text-muted-foreground">

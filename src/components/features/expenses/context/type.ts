@@ -21,6 +21,8 @@ export interface IExpensesContextProps {
     summary?: ITransactionListResponse<IExpensesData>["summary"];
     /** Tổng theo ngày cho các ngày trong trang hiện tại */
     dayTotals: NonNullable<ITransactionListResponse<IExpensesData>["dayTotals"]>;
+    /** Phân bổ tổng theo danh mục / nơi nhận (toàn bộ kết quả lọc) */
+    breakdown?: ITransactionListResponse<IExpensesData>["breakdown"];
     isLoading: boolean;
     modalOpen: boolean;
     editingItem: IExpensesData | null;

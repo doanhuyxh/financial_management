@@ -2,6 +2,7 @@
 
 import { Tag } from "antd";
 import type { Dayjs } from "dayjs";
+import { matchDateRangePreset } from "@/libs/utils/dateRangePresets";
 
 export interface IActiveFilterChip {
     key: string;
@@ -19,6 +20,8 @@ export function optionLabel(options: { value: string; label: string }[], value?:
 export function dateRangeLabel(range?: [Dayjs | null, Dayjs | null] | null) {
     const [from, to] = range ?? [];
     if (!from && !to) return "";
+    const preset = matchDateRangePreset(range);
+    if (preset) return preset.label;
     const year = new Date().getFullYear();
     const format = (date: Dayjs) => date.format(date.year() === year ? "DD/MM" : "DD/MM/YYYY");
     if (from && to) return from.isSame(to, "day") ? format(from) : `${format(from)} – ${format(to)}`;

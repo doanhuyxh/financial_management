@@ -74,6 +74,7 @@ export default function TransfersHeader() {
             mobileCreate={false}
             summary={
                 <TransactionSummaryStrip
+                    className="xl:hidden"
                     summary={summary}
                     unit="giao dịch"
                     kind="neutral"

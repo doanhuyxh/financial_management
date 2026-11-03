@@ -67,6 +67,7 @@ export default function IncomesTable() {
                         icon={category?.icon || name.charAt(0).toUpperCase()}
                         title={<span className="truncate">{name}</span>}
                         subtitle={[source?.name, record.note].filter(Boolean).join(" · ") || "—"}
+                        columns={[source?.name, record.note]}
                         amount={<Money value={record.amount} kind="in" signed />}
                         onClick={() => openEditModal(record)}
                         actions={ROW_ACTIONS}

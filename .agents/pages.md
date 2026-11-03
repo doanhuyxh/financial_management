@@ -15,6 +15,10 @@
 
 Ghi giao dịch nhanh: nút "Ghi giao dịch" trên header (desktop, `common/quick-add-button`), phím `N` ở mọi trang (`useHotkey`, bỏ qua khi đang gõ hoặc có modal/drawer mở) và nút "+" của bottom nav đều gọi `useQuickAdd` (`libs/hooks/useQuickAdd.tsx`). Form tạo có `TransactionTypeSwitch` ở tiêu đề để đổi Chi/Thu/Chuyển (dữ liệu đang nhập bị bỏ); `Ctrl/⌘+Enter` = lưu (`useSubmitShortcut`). Nút con mắt trên header bật chế độ ẩn số dư (`usePrivacyMode`, localStorage `privacy-mode`): gắn `data-privacy="on"` lên `<html>`, CSS làm mờ mọi `.money-value`.
 
+Trang Giao dịch: tab loại (`transactions/components/type-tabs`) có icon + màu theo loại (chi `money-out`, thu `money-in`, chuyển tiền màu nhấn). Bộ lọc ngày (`common/transaction-date-range`) có chọn nhanh "7 ngày qua / Tháng này / 3 tháng gần đây" (`getDateRangePresets`, `libs/utils/dateRangePresets.ts`; 3 tháng = từ ngày 1 của tháng cách 2 tháng đến hôm nay): desktop nằm trong khung lịch, mobile là chip trong drawer; chip bộ lọc hiện tên preset nếu khớp.
+
+Trang Giao dịch trên desktop: mỗi trang 20 dòng; từ `lg` dòng giao dịch tách cột Danh mục | Nguồn (chuyển tiền: Phí) | Ghi chú | Số tiền; từ `xl` có cột "Phân tích" dính bên phải (`common/transaction-insights`: tổng, trung bình/khoản, trung bình/ngày khi lọc khoảng ngày, phí; phân bổ theo danh mục hoặc nơi nhận từ `breakdown`) và dải tổng phía trên bị ẩn.
+
 Trang Giao dịch trên mobile: bộ lọc nằm trong drawer, nên các bộ lọc đang bật hiện thành chip có nút × dưới thanh tìm kiếm (`common/active-filter-chips`); desktop không hiện chip vì ô lọc đã nằm trên toolbar.
 
 Menu phẳng: `src/components/layout/navigation-config.tsx` — Tổng quan, Giao dịch, Nguồn tiền, Thẻ tín dụng (`/credit-card-compare`), Danh mục. Mobile có thêm `layout/mobile-bottom-nav` (Tổng quan · Giao dịch · [+] · Nguồn tiền · Thêm = mở sidebar); nút "+" mở `/transactions?action=create` đúng loại đang xem. Nghiệp vụ từng trang: [business/README.md](business/README.md).

@@ -79,6 +79,7 @@ export default function ExpensesHeader() {
             mobileCreate={false}
             summary={
                 <TransactionSummaryStrip
+                    className="xl:hidden"
                     summary={summary}
                     unit="khoản chi"
                     kind="out"

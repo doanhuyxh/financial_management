@@ -368,9 +368,16 @@ export class TransfersService {
                 .lean(),
             TransfersModel.countDocuments(filter),
         ]);
-        const { summary, dayTotals } = await buildListSummary(TransfersModel, filter, items, { dateField: "transferredAt", feeField: "feeAmount" });
+        const { summary, dayTotals, breakdown } = await buildListSummary(TransfersModel, filter, items, {
+            dateField: "transferredAt", feeField: "feeAmount",
+            breakdown: { field: "toSourceId", from: SourcesOfMoneyModel.collection.name },
+        });
 
-        return successResponsePageNation(items, total, page, limit, "", { summary, dayTotals });
+        return successResponsePageNation(items, total, page, limit, "", {
+            summary,
+            dayTotals,
+            breakdown,
+        });
     }
 
     static async createTransfer(data: IFromTransfersData) {
