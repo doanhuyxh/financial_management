@@ -5,7 +5,10 @@ import { formatMoney } from "@/libs/utils/formatMoney";
 /** Phí quản lý ước tính mỗi tháng và ngày thu. */
 export default function ManagementFeeInfo({ item }: { item: ICreditCardFeeItem }) {
     if (item.managementFee == null) return <span className="text-muted-foreground">—</span>;
-    const waived = item.managementFee === 0 || Boolean(item.managementFeeWaiver?.achieved);
+    if (item.managementFee === 0) {
+        return <span className="font-semibold text-money-in">Miễn phí</span>;
+    }
+    const waived = Boolean(item.managementFeeWaiver?.achieved);
     return (
         <div className="flex flex-col gap-1">
             <span

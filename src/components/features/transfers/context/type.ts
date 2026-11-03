@@ -6,6 +6,13 @@ import type {
 } from "@/libs/interfaces/transfersData";
 import type { TablePaginationConfig } from "antd/es/table";
 
+/** Giá trị điền sẵn khi mở form tạo từ màn khác (VD: nút "Trả nợ" trên dashboard). */
+export interface ITransferCreateDefaults {
+    fromSourceId?: string;
+    toSourceId?: string;
+    amount?: number;
+}
+
 export interface ITransfersContextProps {
     search: string;
     fromSourceFilter: string;
@@ -17,6 +24,7 @@ export interface ITransfersContextProps {
     pagination?: PaginatedResponse<ITransfersData>["pagination"];
     isLoading: boolean;
     modalOpen: boolean;
+    createDefaults: ITransferCreateDefaults | null;
     isSubmitting: boolean;
 
     handleSearch: (value: string) => void;

@@ -92,7 +92,7 @@ Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; 
 | `/dashboard` | `dashboard` | Thống kê tháng, tài sản, dòng tiền, dư nợ thẻ |
 | `/expenses` | `expenses` | Bảng + form chi tiêu (tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal, kèm `sourceOfMoneyId`/`amount`/`note`/`cardFeeType` thì điền sẵn form |
 | `/incomes` | `incomes` | Bảng + form thu nhập (tùy chọn "tiếp tục tạo") |
-| `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa |
+| `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa; `?action=create` mở sẵn modal, kèm `fromSourceId`/`toSourceId`/`amount` thì điền sẵn form (nút "Trả nợ" trên dashboard) |
 | `/sources-of-money` | `sources-of-money` | Nguồn tiền, kéo-thả, chuyển tiền nhanh, lịch sử giao dịch, tạo link chia sẻ |
 | `/credit-card-compare` | `credit-card-compare` | So sánh thẻ tín dụng theo kịch bản sử dụng (chỉ tính phía client từ danh sách nguồn tiền) |
 | `/categories` | `categories` | Danh mục, kéo-thả, lọc theo loại |

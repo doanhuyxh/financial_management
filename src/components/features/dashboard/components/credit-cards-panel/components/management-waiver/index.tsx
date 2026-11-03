@@ -1,5 +1,5 @@
 import type { IManagementFeeWaiver } from "@/components/features/dashboard/utils";
-import WaiverProgress from "@/components/features/dashboard/components/credit-card-fees/components/waiver-progress";
+import WaiverProgress from "@/components/features/dashboard/components/credit-cards-panel/components/waiver-progress";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
 /** Miễn phí quản lý: đạt số giao dịch HOẶC mức chi tiêu trong kỳ sao kê. */

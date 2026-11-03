@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Collapse, Empty, Spin, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useDashboardContext } from "@/components/features/dashboard/context";
-import type { AssetGroup, IAssetSourceItem } from "@/components/features/dashboard/utils";
+import type { AssetGroup, IAssetSourceItem } from "@/libs/utils/assetsSummary";
 import { SOURCES_OF_MONEY_TYPE_LABELS } from "@/libs/interfaces/sourcesOfMoneyData";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatMoney } from "@/libs/utils/formatMoney";

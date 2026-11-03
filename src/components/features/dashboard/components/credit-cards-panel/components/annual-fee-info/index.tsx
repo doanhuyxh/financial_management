@@ -19,7 +19,9 @@ export default function AnnualFeeInfo({ item }: { item: ICreditCardFeeItem }) {
     const waived = item.annualFee === 0 || Boolean(item.annualFeeWaiver?.achieved);
     return (
         <div className="flex flex-col gap-1">
-            {item.annualFee != null ? (
+            {item.annualFee === 0 ? (
+                <span className="font-semibold text-money-in">Miễn phí</span>
+            ) : item.annualFee != null ? (
                 <span
                     className={cn(
                         "font-semibold",

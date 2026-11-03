@@ -17,17 +17,6 @@ export const DUE_URGENT_DAYS = 3;
 
 export type CreditDueStatus = "no-due-date" | "today" | "urgent" | "soon" | "normal";
 
-export interface ICreditCardDebtItem {
-    _id: string;
-    name: string;
-    creditLimit: number;
-    currentDebt: number;
-    availableCredit: number;
-    nextDueDate: Dayjs | null;
-    daysLeft: number | null;
-    status: CreditDueStatus;
-}
-
 /** Next occurrence of `dueDay` (1–31) from `today`, clamped to the month length. */
 export function getNextDueDate(dueDay: number, today: Dayjs = dayjs()): Dayjs {
     const start = today.startOf("day");
@@ -45,40 +34,6 @@ function getDueStatus(daysLeft: number | null): CreditDueStatus {
     if (daysLeft <= DUE_URGENT_DAYS) return "urgent";
     if (daysLeft <= DUE_SOON_DAYS) return "soon";
     return "normal";
-}
-
-/** Credit cards with outstanding debt, sorted by nearest due date first. */
-export function buildCreditCardDebts(
-    sources: ISourcesOfMoneyData[],
-    today: Dayjs = dayjs(),
-): ICreditCardDebtItem[] {
-    return sources
-        .filter(
-            (source) =>
-                source.type === SourcesOfMoneyType.CREDIT_CARD &&
-                (source.creditDetails?.currentDebt ?? 0) > 0,
-        )
-        .map((source) => {
-            const creditLimit = source.creditDetails?.creditLimit ?? 0;
-            const currentDebt = source.creditDetails?.currentDebt ?? 0;
-            const dueDay = source.creditDetails?.dueDate;
-            const nextDueDate = dueDay ? getNextDueDate(dueDay, today) : null;
-            const daysLeft = nextDueDate
-                ? nextDueDate.diff(today.startOf("day"), "day")
-                : null;
-
-            return {
-                _id: source._id,
-                name: source.name,
-                creditLimit,
-                currentDebt,
-                availableCredit: Math.max(0, creditLimit - currentDebt),
-                nextDueDate,
-                daysLeft,
-                status: getDueStatus(daysLeft),
-            };
-        })
-        .sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity));
 }
 
 /** Tiến độ một điều kiện miễn phí: `current` so với mức tối thiểu `target`. */
@@ -282,74 +237,223 @@ export function buildCreditCardFees(
     return items.sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity));
 }
 
-export type AssetGroup = "cash" | "credit";
+/* ------------------------------------------------------------------ */
+/* Thẻ tín dụng: gộp dư nợ + phí cho khối "Thẻ tín dụng" trên dashboard */
+/* ------------------------------------------------------------------ */
 
-export interface IAssetSourceItem {
+export type HeadlineTone = "warn" | "in" | "neutral";
+
+export interface ICardFeeHeadline {
+    text: string;
+    tone: HeadlineTone;
+}
+
+export interface ICreditCardOverviewItem {
     _id: string;
     name: string;
-    type: SourcesOfMoneyType;
-    group: AssetGroup;
-    /** Số dư (nguồn thường) hoặc hạn mức còn lại (thẻ tín dụng). */
-    amount: number;
+    creditLimit: number;
+    currentDebt: number;
+    availableCredit: number;
+    nextDueDate: Dayjs | null;
+    daysLeft: number | null;
+    /** Chỉ có ý nghĩa khi còn dư nợ */
+    status: CreditDueStatus;
+    fee: ICreditCardFeeItem | null;
+    headline: ICardFeeHeadline;
 }
 
-export interface IAssetsSummary {
-    cashTotal: number;
-    availableCreditTotal: number;
-    creditLimitTotal: number;
-    totalAssets: number;
-    /** Tiền mặt − tổng dư nợ thẻ. */
-    netWorth: number;
-    /** Nguồn có amount > 0, sắp xếp giảm dần. */
-    cashSources: IAssetSourceItem[];
-    creditSources: IAssetSourceItem[];
+const formatVnd = (value: number) => `${Math.round(value).toLocaleString("vi-VN")} ₫`;
+/** "116,2 tr" / "850 nghìn" cho câu tóm tắt ngắn */
+function formatShortVnd(value: number) {
+    if (value >= 1_000_000) {
+        return `${(value / 1_000_000).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} tr`;
+    }
+    return formatVnd(value);
 }
 
-/** Tài sản hiện tại: tiền mặt (mọi nguồn không phải thẻ) + hạn mức tín dụng còn lại. */
-export function buildAssetsSummary(sources: ISourcesOfMoneyData[]): IAssetsSummary {
-    const cashSources: IAssetSourceItem[] = [];
-    const creditSources: IAssetSourceItem[] = [];
-    let creditLimitTotal = 0;
-    let creditDebtTotal = 0;
+/** Ngày cuối kỳ sao kê hiện tại (cycleEnd là mốc mở, nên lùi 1 ngày). */
+const lastCycleDay = (fee: ICreditCardFeeItem) => fee.cycleEnd.subtract(1, "day").format("DD/MM");
 
-    for (const source of sources) {
-        const isCredit = source.type === SourcesOfMoneyType.CREDIT_CARD;
-        let amount = source.balance ?? 0;
-        if (isCredit) {
+/** Phần còn thiếu để miễn phí quản lý: "5 GD hoặc chi 3 tr". */
+function describeManagementGap(waiver: IManagementFeeWaiver) {
+    const parts: string[] = [];
+    if (waiver.transactions && !waiver.transactions.achieved) {
+        parts.push(`${waiver.transactions.target - waiver.transactions.current} GD`);
+    }
+    if (waiver.spend && !waiver.spend.achieved) {
+        parts.push(`chi ${formatShortVnd(waiver.spend.target - waiver.spend.current)}`);
+    }
+    return parts.join(" hoặc ");
+}
+
+/**
+ * Một câu tóm tắt "phí sắp tới" của thẻ, ưu tiên khoản sắp phát sinh trong kỳ này.
+ * Thứ tự: phí quản lý chưa đạt miễn → phí sử dụng đã phát sinh → phí trả nợ đã phát sinh
+ * → phí thường niên → đã miễn phí quản lý → phí sử dụng nếu có chi tiêu → không có phí.
+ */
+export function getCardFeeHeadline(fee: ICreditCardFeeItem | null): ICardFeeHeadline {
+    if (!fee) return { text: "Chưa cấu hình phí", tone: "neutral" };
+
+    const managementPending =
+        (fee.managementFee ?? 0) > 0 && fee.managementFeeWaiver && !fee.managementFeeWaiver.achieved;
+    if (managementPending && fee.managementFeeWaiver) {
+        return {
+            text: `Phí quản lý ${formatVnd(fee.managementFee ?? 0)}/tháng · cần thêm ${describeManagementGap(fee.managementFeeWaiver)} trước ${lastCycleDay(fee)}`,
+            tone: "warn",
+        };
+    }
+    if (fee.usageFee?.charged && fee.usageFee.fee > 0) {
+        return { text: `Phí sử dụng ${formatVnd(fee.usageFee.fee)} kỳ này (đã có chi tiêu)`, tone: "warn" };
+    }
+    if (fee.paymentFee && fee.paymentFee.estimatedTotal > 0) {
+        return { text: `Phí trả nợ ≈${formatVnd(fee.paymentFee.estimatedTotal)} kỳ này`, tone: "warn" };
+    }
+    if ((fee.annualFee ?? 0) > 0 && fee.nextAnnualFeeDate) {
+        if (fee.annualFeeWaiver?.achieved) {
+            return { text: "Đã đủ điều kiện miễn phí thường niên", tone: "in" };
+        }
+        const gap = fee.annualFeeWaiver
+            ? ` · cần chi thêm ${formatShortVnd(fee.annualFeeWaiver.target - fee.annualFeeWaiver.current)} để miễn`
+            : "";
+        return {
+            text: `Phí thường niên ${formatVnd(fee.annualFee ?? 0)} vào ${fee.nextAnnualFeeDate.format("DD/MM/YYYY")}${gap}`,
+            tone: (fee.daysLeft ?? Infinity) <= 30 ? "warn" : "neutral",
+        };
+    }
+    if ((fee.managementFee ?? 0) > 0 && fee.managementFeeWaiver?.achieved) {
+        return { text: "Đã miễn phí quản lý kỳ này", tone: "in" };
+    }
+    if (fee.usageFee && fee.usageFee.fee > 0) {
+        return { text: `Phí sử dụng ${formatVnd(fee.usageFee.fee)}/kỳ nếu có chi tiêu`, tone: "neutral" };
+    }
+    return { text: "Không có phí sắp tới", tone: "in" };
+}
+
+/**
+ * Mọi thẻ tín dụng (kể cả không dư nợ), kèm hạn trả và phí.
+ * Thẻ còn dư nợ lên trước (hạn gần nhất trước), các thẻ còn lại giữ thứ tự nguồn tiền.
+ */
+export function buildCreditCardsOverview(
+    sources: ISourcesOfMoneyData[],
+    fees: ICreditCardFeeItem[],
+    today: Dayjs = dayjs(),
+): ICreditCardOverviewItem[] {
+    const feeById = new Map(fees.map((fee) => [fee._id, fee]));
+    const items = sources
+        .filter((source) => source.type === SourcesOfMoneyType.CREDIT_CARD)
+        .map((source) => {
             const creditLimit = source.creditDetails?.creditLimit ?? 0;
             const currentDebt = source.creditDetails?.currentDebt ?? 0;
-            creditLimitTotal += creditLimit;
-            creditDebtTotal += currentDebt;
-            amount = Math.max(0, creditLimit - currentDebt);
-        }
-        if (amount <= 0) continue;
+            const dueDay = source.creditDetails?.dueDate;
+            const nextDueDate = dueDay ? getNextDueDate(dueDay, today) : null;
+            const daysLeft = nextDueDate ? nextDueDate.diff(today.startOf("day"), "day") : null;
+            const fee = feeById.get(source._id) ?? null;
+            return {
+                _id: source._id,
+                name: source.name,
+                creditLimit,
+                currentDebt,
+                availableCredit: Math.max(0, creditLimit - currentDebt),
+                nextDueDate,
+                daysLeft,
+                status: getDueStatus(daysLeft),
+                fee,
+                headline: getCardFeeHeadline(fee),
+            };
+        });
+    const withDebt = items
+        .filter((item) => item.currentDebt > 0)
+        .sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity));
+    const noDebt = items.filter((item) => item.currentDebt <= 0);
+    return [...withDebt, ...noDebt];
+}
 
-        const item: IAssetSourceItem = {
-            _id: source._id,
-            name: source.name,
-            type: source.type,
-            group: isCredit ? "credit" : "cash",
-            amount,
-        };
-        (isCredit ? creditSources : cashSources).push(item);
+/* ------------------------------------------------------------------ */
+/* "Cần chú ý": việc người dùng nên làm ngay                           */
+/* ------------------------------------------------------------------ */
+
+export type AttentionTone = "debt" | "warn";
+
+export interface IAttentionItem {
+    key: string;
+    tone: AttentionTone;
+    icon: "due" | "fee" | "net-worth";
+    title: string;
+    description: string;
+    /** Thẻ cần trả nợ: nút "Thanh toán" mở form chuyển tiền điền sẵn */
+    payCard?: { _id: string; amount: number };
+}
+
+/** Số mục tối đa trong hàng "Cần chú ý" */
+const MAX_ATTENTION_ITEMS = 4;
+/** Phí thường niên được nhắc khi còn ≤ số ngày này */
+const ANNUAL_FEE_REMIND_DAYS = 30;
+
+/**
+ * Thứ tự ưu tiên: thẻ đến hạn ≤ 7 ngày (gần nhất trước) → phí sắp tính chưa đạt miễn → tài sản ròng âm.
+ */
+export function buildAttentionItems(
+    cards: ICreditCardOverviewItem[],
+    netWorth: number,
+    totalCreditDebt: number,
+    cashTotal: number,
+): IAttentionItem[] {
+    const items: IAttentionItem[] = [];
+
+    for (const card of cards) {
+        if (card.currentDebt <= 0 || card.daysLeft == null || card.daysLeft > DUE_SOON_DAYS) continue;
+        const when = card.daysLeft === 0 ? "hôm nay" : `${card.nextDueDate?.format("DD/MM")} · còn ${card.daysLeft} ngày`;
+        items.push({
+            key: `due-${card._id}`,
+            tone: card.daysLeft <= DUE_URGENT_DAYS ? "debt" : "warn",
+            icon: "due",
+            title: `${card.name} đến hạn ${when}`,
+            description: `Cần trả ${formatVnd(card.currentDebt)}`,
+            payCard: { _id: card._id, amount: card.currentDebt },
+        });
     }
 
-    const byAmountDesc = (a: IAssetSourceItem, b: IAssetSourceItem) => b.amount - a.amount;
-    cashSources.sort(byAmountDesc);
-    creditSources.sort(byAmountDesc);
+    for (const card of cards) {
+        const fee = card.fee;
+        if (!fee) continue;
+        const waiver = fee.managementFeeWaiver;
+        if ((fee.managementFee ?? 0) > 0 && waiver && !waiver.achieved) {
+            items.push({
+                key: `management-${card._id}`,
+                tone: "warn",
+                icon: "fee",
+                title: `${card.name} sắp tính phí quản lý ${formatVnd(fee.managementFee ?? 0)}`,
+                description: `Cần thêm ${describeManagementGap(waiver)} trước ${lastCycleDay(fee)}`,
+            });
+        }
+        if (
+            (fee.annualFee ?? 0) > 0 &&
+            fee.nextAnnualFeeDate &&
+            (fee.daysLeft ?? Infinity) <= ANNUAL_FEE_REMIND_DAYS &&
+            !fee.annualFeeWaiver?.achieved
+        ) {
+            items.push({
+                key: `annual-${card._id}`,
+                tone: (fee.daysLeft ?? Infinity) <= DUE_URGENT_DAYS ? "debt" : "warn",
+                icon: "fee",
+                title: `${card.name} sắp thu phí thường niên ${formatVnd(fee.annualFee ?? 0)}`,
+                description: `Ngày ${fee.nextAnnualFeeDate.format("DD/MM/YYYY")} · còn ${fee.daysLeft} ngày`,
+            });
+        }
+    }
 
-    const sum = (items: IAssetSourceItem[]) =>
-        items.reduce((total, item) => total + item.amount, 0);
-    const cashTotal = sum(cashSources);
-    const availableCreditTotal = sum(creditSources);
-
-    return {
-        cashTotal,
-        availableCreditTotal,
-        creditLimitTotal,
-        totalAssets: cashTotal + availableCreditTotal,
-        netWorth: cashTotal - creditDebtTotal,
-        cashSources,
-        creditSources,
-    };
+    // Tài sản ròng âm luôn được giữ một chỗ, kể cả khi có nhiều nhắc hạn/phí
+    if (netWorth < 0) {
+        return [
+            ...items.slice(0, MAX_ATTENTION_ITEMS - 1),
+            {
+                key: "net-worth",
+                tone: "debt",
+                icon: "net-worth",
+                title: "Tài sản ròng đang âm",
+                description: `Dư nợ thẻ ${formatVnd(totalCreditDebt)} lớn hơn tiền mặt ${formatVnd(cashTotal)}`,
+            },
+        ];
+    }
+    return items.slice(0, MAX_ATTENTION_ITEMS);
 }

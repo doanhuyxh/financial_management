@@ -21,19 +21,28 @@ const EXPENSE_LABEL = "Chi tiêu";
 const formatCurrency = (value: number) => formatMoney(value);
 const formatCompact = (value: number) => formatCompactMoney(value);
 
-export default function CashflowTrendChart() {
+export default function TrendChart() {
     const { cashflow, isCashflowLoading } = useDashboardContext();
     const isDark = useIsDarkMode();
     const isMobile = useIsMobile();
     const chartHeight = isMobile ? 220 : 280;
-    const trend = cashflow?.trend;
-    const hasData = (trend ?? []).some((item) => item.income > 0 || item.expense > 0);
+    // Bỏ các tháng trống ở đầu (trước khi bắt đầu ghi chép); tháng đang chạy gắn dấu "*"
+    const trend = useMemo(() => {
+        const items = cashflow?.trend ?? [];
+        const firstWithData = items.findIndex((item) => item.income > 0 || item.expense > 0);
+        if (firstWithData === -1) return [];
+        const isCurrentMonth = cashflow?.period.isCurrentMonth;
+        return items.slice(firstWithData).map((item, index, list) =>
+            isCurrentMonth && index === list.length - 1 ? { ...item, label: `${item.label}*` } : item,
+        );
+    }, [cashflow]);
+    const hasData = trend.length > 0;
 
     const config = useMemo(() => {
         const colors = THEME_COLORS[isDark ? "dark" : "light"];
         const tickFill = colors.muted;
         const gridStroke = colors.border;
-        const data = (trend ?? []).flatMap((item) => [
+        const data = trend.flatMap((item) => [
             { label: item.label, type: INCOME_LABEL, value: item.income },
             { label: item.label, type: EXPENSE_LABEL, value: item.expense },
         ]);
@@ -72,6 +81,8 @@ export default function CashflowTrendChart() {
             style: {
                 radiusTopLeft: 4,
                 radiusTopRight: 4,
+                // Ít tháng dữ liệu thì cột không bị giãn quá to
+                maxWidth: 28,
             },
             tooltip: {
                 items: [{ field: "value", valueFormatter: formatCurrency }],

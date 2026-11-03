@@ -36,6 +36,8 @@ type FormValues = {
 
 export type TransferFormModalContentProps = {
     open: boolean;
+    /** Điền sẵn khi mở form (nguồn, đích, số tiền) */
+    defaults?: { fromSourceId?: string; toSourceId?: string; amount?: number } | null;
     isSubmitting: boolean;
     onClose: () => void;
     onSubmit: (
@@ -72,6 +74,7 @@ function resetCreateForm(form: ReturnType<typeof Form.useForm<FormValues>>[0]) {
 
 export default function TransferFormModalContent({
     open,
+    defaults,
     isSubmitting,
     onClose,
     onSubmit,
@@ -194,7 +197,14 @@ export default function TransferFormModalContent({
             return;
         }
         resetCreateForm(form);
-    }, [open, form]);
+        if (defaults) {
+            form.setFieldsValue({
+                fromSourceId: defaults.fromSourceId,
+                toSourceId: defaults.toSourceId,
+                amount: defaults.amount != null ? String(defaults.amount) : "",
+            });
+        }
+    }, [open, form, defaults]);
 
     // Đổi nguồn chuyển: thẻ có cấu hình phí rút tiền mặt thì điền sẵn %, người dùng vẫn sửa được
     const cashAdvanceFeePercent = fromIsCredit

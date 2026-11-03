@@ -1,6 +1,6 @@
 import { cn } from "@/libs/shadcn/utils";
 
-interface IAssetTileProps {
+interface IStatTileProps {
     icon: React.ReactNode;
     label: string;
     value: React.ReactNode;
@@ -9,14 +9,14 @@ interface IAssetTileProps {
     highlight?: boolean;
 }
 
-export default function AssetTile({
+export default function StatTile({
     icon,
     label,
     value,
     description,
     valueClassName,
     highlight,
-}: IAssetTileProps) {
+}: IStatTileProps) {
     return (
         <div
             className={cn(
