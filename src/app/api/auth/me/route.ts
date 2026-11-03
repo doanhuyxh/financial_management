@@ -1,5 +1,8 @@
+import { configCookieKey } from "@/libs/constants/configKey";
+import getValueCookieServer from "@/libs/utils/getValueCookieServer";
 import { getCurrentUser } from "@/server/utils/getCurrentUser";
 import {
+    clearAccessTokenCookie,
     errorResponseWithStatusCode,
     noStore,
     successResponse,
@@ -10,7 +13,9 @@ export async function GET() {
     try {
         const userInfoAccess = await getCurrentUser();
         if (!userInfoAccess) {
-            return noStore(unauthorizedResponse());
+            const response = noStore(unauthorizedResponse());
+            const hadToken = !!(await getValueCookieServer(configCookieKey.ACCESS_TOKEN_KEY));
+            return hadToken ? clearAccessTokenCookie(response) : response;
         }
 
         return noStore(

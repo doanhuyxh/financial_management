@@ -105,9 +105,15 @@ export function unauthorizedResponse(
         data: null,
         statusCode: 401,
     };
-    const res = NextResponse.json(response, { status: 401 });
-    // Proxy only checks the JWT signature; a revoked token (tokenVersion mismatch) must be
-    // dropped here, otherwise "/" redirects back to "/dashboard" and the client loops on 401.
+    return NextResponse.json(response, { status: 401 });
+}
+
+/**
+ * Xóa cookie access_token. Chỉ gọi khi request THỰC SỰ mang token sai/đã thu hồi:
+ * response của một request không có cookie (hoặc mang cookie cũ) có thể về muộn, sau khi
+ * login vừa set cookie mới, và Set-Cookie xóa sẽ xóa luôn cookie mới (gặp trên Chrome iOS).
+ */
+export function clearAccessTokenCookie<T extends NextResponse>(res: T): T {
     res.cookies.set({
         name: configCookieKey.ACCESS_TOKEN_KEY,
         value: "",

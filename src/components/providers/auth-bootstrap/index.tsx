@@ -11,8 +11,10 @@ export default function AuthBootstrap({ children }: { children: React.ReactNode 
     const dispatch = useAppDispatch();
     const pathname = usePathname();
     const { status } = useAppSelector((state: RootState) => state.auth);
-    // Trang link chia sẻ public: người xem không đăng nhập, gọi /auth/me sẽ bị đá về trang login
-    const isPublicPage = pathname?.startsWith(`${SHARE_PATH}/`);
+    // Trang link chia sẻ public: người xem không đăng nhập, gọi /auth/me sẽ bị đá về trang login.
+    // Trang đăng nhập "/": không cần /auth/me (proxy đã chuyển /dashboard nếu token hợp lệ); response 401
+    // của nó có thể về muộn và xóa cookie mà login vừa set -> đăng nhập xong vẫn kẹt ở trang login.
+    const isPublicPage = pathname === "/" || pathname?.startsWith(`${SHARE_PATH}/`);
 
     useEffect(() => {
         if (status === "idle" && !isPublicPage) {
