@@ -107,7 +107,7 @@ export default function TrendChart() {
     }
 
     return (
-        <div style={{ height: chartHeight }}>
+        <div className="money-value" style={{ height: chartHeight }}>
             <Column
                 key={`${isDark ? "dark" : "light"}-${chartHeight}`}
                 {...config}

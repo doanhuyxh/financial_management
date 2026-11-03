@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Button, DatePicker, Skeleton, Spin, Tag } from "antd";
-import { ArrowDownLeft, ArrowUpRight, PiggyBank, Plus, Scale } from "lucide-react";
+import { DatePicker, Skeleton, Spin, Tag } from "antd";
+import { ArrowDownLeft, ArrowUpRight, PiggyBank, Scale } from "lucide-react";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import StatTile from "@/components/features/dashboard/components/stat-tile";
 import ChangeText from "@/components/features/dashboard/components/month-summary/components/change-text";
@@ -26,7 +26,6 @@ export default function MonthSummary() {
         cashflow,
         isCashflowLoading,
         handleChangeMonth,
-        handleCreateExpense,
     } = useDashboardContext();
 
     const samePeriod = cashflow?.samePeriodPrevious ?? null;
@@ -85,13 +84,6 @@ export default function MonthSummary() {
                         allowClear={false}
                         className="flex-1 sm:w-32 sm:flex-none"
                     />
-                    <Button
-                        type="primary"
-                        icon={<Plus className="size-4" />}
-                        onClick={handleCreateExpense}
-                    >
-                        Thêm chi tiêu
-                    </Button>
                 </div>
             </div>
 
@@ -134,7 +126,7 @@ export default function MonthSummary() {
                     description={
                         extra ? (
                             <>
-                                TB chi {formatMoney(extra.avgPerDay)}/ngày
+                                TB chi <span className="money-value">{formatMoney(extra.avgPerDay)}</span>/ngày
                                 {extra.peakDay ? (
                                     <>
                                         {" · "}nhiều nhất {extra.peakDay.label}/

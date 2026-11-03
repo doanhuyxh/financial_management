@@ -33,6 +33,8 @@ export const configLocalStorageKey = {
 	CREDIT_CARD_COMPARE_SCENARIO: "credit-card-compare-scenario",
 	CREDIT_CARD_COMPARE_HIDDEN_CARDS: "credit-card-compare-hidden-cards",
 	DASHBOARD_CARD_FEE_HIDDEN_COLUMNS: "dashboard-card-fee-hidden-columns",
+	/** Chế độ ẩn số dư (làm mờ số tiền) */
+	PRIVACY_MODE: "privacy-mode",
 }
 
 export const configCookieKey = {

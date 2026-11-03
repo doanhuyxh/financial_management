@@ -11,6 +11,15 @@ import { useIsMobile } from "@/libs/hooks/use-mobile";
  */
 export const MODAL_AUTOFOCUS_CLASS = "js-modal-autofocus";
 
+/** Focus lại ô có MODAL_AUTOFOCUS_CLASS (VD: sau khi lưu với "Tạo tiếp"). */
+export function focusModalField() {
+    requestAnimationFrame(() => {
+        document
+            .querySelector<HTMLElement>(`.${MODAL_AUTOFOCUS_CLASS} input, .${MODAL_AUTOFOCUS_CLASS} textarea`)
+            ?.focus();
+    });
+}
+
 type ResponsiveModalProps = {
     open: boolean;
     title?: ReactNode;

@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { LayoutGridIcon, LandmarkIcon, MenuIcon, PlusIcon, ReceiptIcon } from "lucide-react";
 import { useSidebar } from "@/components/shadcn/ui/sidebar";
 import { useAppSelector } from "@/libs/redux/redux";
 import { selectPathname } from "@/libs/redux/navigationSlice";
 import { MENU_KEY } from "@/libs/constants/menuKey";
 import { cn } from "@/libs/shadcn/utils";
-import { buildTransactionsUrl, parseTransactionType } from "@/libs/utils/transactionsUrl";
+import { useQuickAdd } from "@/libs/hooks/useQuickAdd";
 
 const ITEMS = [
     { title: "Tổng quan", url: MENU_KEY.DASHBOARD, icon: LayoutGridIcon },
@@ -22,21 +21,12 @@ const ITEMS = [
  * "Thêm" mở sidebar (Thẻ tín dụng, Danh mục, tài khoản).
  */
 export default function MobileBottomNav() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
+    const openQuickAdd = useQuickAdd();
     const pathname = useAppSelector(selectPathname);
     const { setOpenMobile } = useSidebar();
 
     const isActive = (url: string) => pathname === url || pathname.startsWith(`${url}/`);
     const isOtherActive = !ITEMS.some((item) => isActive(item.url));
-
-    const handleCreate = () => {
-        const type = isActive(MENU_KEY.TRANSACTIONS)
-            ? parseTransactionType(searchParams.get("type"))
-            : "expense";
-        // `t` đổi mỗi lần bấm để trang Giao dịch mount lại và mở form, kể cả khi đang ở đúng trang đó
-        router.push(buildTransactionsUrl(type, { action: "create", t: Date.now() }));
-    };
 
     // antd tô mọi <a> bằng colorLink (CSS ngoài layer, thắng class Tailwind) nên cần `!`
     const linkClass = (active: boolean) =>
@@ -63,7 +53,7 @@ export default function MobileBottomNav() {
                 <button
                     type="button"
                     aria-label="Ghi giao dịch"
-                    onClick={handleCreate}
+                    onClick={openQuickAdd}
                     className="-mt-6 flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/40 active:scale-95"
                 >
                     <PlusIcon className="size-6" />

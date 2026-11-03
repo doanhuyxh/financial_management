@@ -32,7 +32,7 @@ export default function StatTile({
             </div>
             <div
                 className={cn(
-                    "text-base font-bold tracking-tight wrap-break-word tabular-nums sm:text-xl",
+                    "money-value text-base font-bold tracking-tight wrap-break-word tabular-nums sm:text-xl",
                     valueClassName,
                 )}
             >

@@ -10,6 +10,7 @@ export default function TransferFormModal() {
     return (
         <TransferFormModalContent
             open={modalOpen}
+            showTypeSwitch
             defaults={createDefaults}
             isSubmitting={isSubmitting}
             onClose={closeModal}

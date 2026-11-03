@@ -42,7 +42,7 @@ export default function TransactionSummaryStrip({
                 </span>
             ) : null}
             {days ? (
-                <span className="text-xs text-muted-foreground">
+                <span className="money-value text-xs text-muted-foreground">
                     TB {formatMoney(summary.totalAmount / days)}/ngày
                 </span>
             ) : null}

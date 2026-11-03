@@ -117,7 +117,7 @@ function CardRow({
                         railColor="var(--muted)"
                         className="m-0"
                     />
-                    <p className="text-xs text-muted-foreground tabular-nums">
+                    <p className="money-value text-xs text-muted-foreground tabular-nums">
                         {usedPercent}% của {formatMoney(card.creditLimit)}
                     </p>
                 </div>

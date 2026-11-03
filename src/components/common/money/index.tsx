@@ -46,7 +46,7 @@ export default function Money({
     return (
         <span
             className={cn(
-                "tabular-nums whitespace-nowrap",
+                "money-value tabular-nums whitespace-nowrap",
                 mutedZero && isZero ? "text-muted-foreground" : KIND_CLASS[resolvedKind],
                 className,
             )}

@@ -13,6 +13,10 @@ interface DebouncedNumberInputProps {
 }
 
 
+/** Class cho ô số tiền cỡ lớn ở đầu form giao dịch (dùng kèm size="large"). */
+export const LARGE_AMOUNT_INPUT_CLASS =
+	"[&_.ant-input-number-input]:h-12! [&_.ant-input-number-input]:text-2xl! [&_.ant-input-number-input]:font-bold! [&_.ant-input-number-input]:tabular-nums";
+
 const normalizeValue = (v: string | number | null | undefined) =>
 	v === undefined || v === null || v === "" ? "" : String(v);
 

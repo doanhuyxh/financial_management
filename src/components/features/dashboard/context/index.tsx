@@ -84,10 +84,6 @@ export default function DashboardContextProvider({
         if (value) setMonthValue(value);
     }, []);
 
-    const handleCreateExpense = useCallback(() => {
-        router.push(buildTransactionsUrl("expense", { action: "create" }));
-    }, [router]);
-
     // Trả nợ thẻ = chuyển tiền tới thẻ: mở form chuyển tiền điền sẵn thẻ đích và số dư nợ
     const handlePayCard = useCallback(
         (cardId: string, amount: number) => {
@@ -181,7 +177,6 @@ export default function DashboardContextProvider({
             assets,
             isSourcesLoading,
             handleChangeMonth,
-            handleCreateExpense,
             handlePayCard,
             handleRecordCardFee,
             handleViewDay,
@@ -202,7 +197,6 @@ export default function DashboardContextProvider({
             assets,
             isSourcesLoading,
             handleChangeMonth,
-            handleCreateExpense,
             handlePayCard,
             handleRecordCardFee,
             handleViewDay,

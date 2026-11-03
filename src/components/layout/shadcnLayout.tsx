@@ -13,6 +13,8 @@ import {
 import { TooltipProvider } from "@/components/shadcn/ui/tooltip"
 import { cn } from "@/libs/shadcn/utils"
 import MobileBottomNav from "@/components/layout/mobile-bottom-nav"
+import PrivacyToggle from "@/components/layout/privacy-toggle"
+import QuickAddButton from "@/components/common/quick-add-button"
 import { Suspense } from "react"
 
 export default function ShadcnLayout({
@@ -43,7 +45,11 @@ export default function ShadcnLayout({
               />
               <BreadcrumbTrail />
             </div>
-            <div className="px-3 md:px-4">
+            <div className="flex items-center gap-2 px-3 md:px-4">
+              <Suspense fallback={null}>
+                <QuickAddButton />
+              </Suspense>
+              <PrivacyToggle />
               <ThemeToggle />
             </div>
           </header>

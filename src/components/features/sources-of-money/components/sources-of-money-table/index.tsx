@@ -75,7 +75,7 @@ export default function SourcesOfMoneyTable() {
                         const available =
                             record.availableCreditLimit ?? Math.max(0, limit - debt);
                         return (
-                            <div className="text-sm leading-5">
+                            <div className="money-value text-sm leading-5">
                                 <div className={debt ? "font-semibold text-debt" : "font-medium text-muted-foreground"}>
                                     {debt ? <>Dư nợ: {formatMoney(debt)}</> : "Không dư nợ"}
                                 </div>

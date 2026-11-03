@@ -1,10 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alert, DatePicker, Form, Input, Select, Switch } from "antd";
-import ResponsiveModal, { MODAL_AUTOFOCUS_CLASS } from "@/components/common/responsive-modal";
+import { Alert, Form, Input, Select, Switch } from "antd";
+import ResponsiveModal, {
+    MODAL_AUTOFOCUS_CLASS,
+    focusModalField,
+} from "@/components/common/responsive-modal";
+import QuickDateField from "@/components/common/quick-date-field";
+import TransactionTypeSwitch from "@/components/common/transaction-type-switch";
+import { useSubmitShortcut } from "@/libs/hooks/useHotkey";
 import dayjs from "dayjs";
-import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import DebouncedNumberInput, {
+    LARGE_AMOUNT_INPUT_CLASS,
+} from "@/components/common/input/DebouncedNumberInput";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
 import CardPaymentFeeAlert from "@/components/common/card-payment-fee-alert";
 import TransferPairSuggestions from "@/components/features/transfers/components/transfer-pair-suggestions";
@@ -36,6 +44,8 @@ type FormValues = {
 
 export type TransferFormModalContentProps = {
     open: boolean;
+    /** Hiện nút đổi loại giao dịch ở tiêu đề (chỉ trên trang Giao dịch) */
+    showTypeSwitch?: boolean;
     /** Điền sẵn khi mở form (nguồn, đích, số tiền) */
     defaults?: { fromSourceId?: string; toSourceId?: string; amount?: number } | null;
     isSubmitting: boolean;
@@ -74,6 +84,7 @@ function resetCreateForm(form: ReturnType<typeof Form.useForm<FormValues>>[0]) {
 
 export default function TransferFormModalContent({
     open,
+    showTypeSwitch = false,
     defaults,
     isSubmitting,
     onClose,
@@ -314,8 +325,11 @@ export default function TransferFormModalContent({
                 note: "",
                 feeCategoryId: undefined,
             });
+            focusModalField();
         }
     };
+
+    useSubmitShortcut(handleOk, open);
 
     let amountExtra: string | undefined;
     if (toIsCredit && maxToCredit != null) {
@@ -328,7 +342,7 @@ export default function TransferFormModalContent({
 
     return (
         <ResponsiveModal
-            title="Chuyển tiền"
+            title={showTypeSwitch ? <TransactionTypeSwitch value="transfer" /> : "Chuyển tiền"}
             open={open}
             onCancel={onClose}
             onOk={handleOk}
@@ -354,7 +368,35 @@ export default function TransferFormModalContent({
                 </div>
             )}
         >
-            <Form form={form} layout="vertical" className="mt-4">
+            <Form form={form} layout="vertical" className="mt-4" requiredMark={false}>
+                <Form.Item
+                    name="amount"
+                    className={MODAL_AUTOFOCUS_CLASS}
+                    label="Số tiền"
+                    rules={[{ required: true, message: "Số tiền là bắt buộc" }]}
+                    extra={
+                        amountExtra || amountSuggestions?.length ? (
+                            <>
+                                {amountExtra}
+                                <AmountSuggestionChips
+                                    amounts={amountSuggestions}
+                                    value={amountWatch}
+                                    onSelect={handleAmountSuggestion}
+                                />
+                            </>
+                        ) : undefined
+                    }
+                >
+                    <DebouncedNumberInput
+                        min={0}
+                        placeholder="0"
+                        delay={300}
+                        size="large"
+                        suffix="₫"
+                        className={LARGE_AMOUNT_INPUT_CLASS}
+                    />
+                </Form.Item>
+
                 <TransferPairSuggestions
                     pairs={suggestions?.pairs}
                     sources={sources}
@@ -362,14 +404,6 @@ export default function TransferFormModalContent({
                     toSourceId={toSourceId}
                     onSelect={handlePairSelect}
                 />
-
-                <Form.Item
-                    name="transferredAt"
-                    label="Ngày chuyển"
-                    rules={[{ required: true, message: "Ngày chuyển là bắt buộc" }]}
-                >
-                    <DatePicker inputReadOnly className="w-full" format="DD/MM/YYYY" />
-                </Form.Item>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
                     <Form.Item
@@ -416,26 +450,6 @@ export default function TransferFormModalContent({
                     </Form.Item>
                 </div>
 
-                <Form.Item
-                    name="amount"
-                    className={MODAL_AUTOFOCUS_CLASS}
-                    label="Số tiền"
-                    rules={[{ required: true, message: "Số tiền là bắt buộc" }]}
-                    extra={
-                        amountExtra || amountSuggestions?.length ? (
-                            <>
-                                {amountExtra}
-                                <AmountSuggestionChips
-                                    amounts={amountSuggestions}
-                                    value={amountWatch}
-                                    onSelect={handleAmountSuggestion}
-                                />
-                            </>
-                        ) : undefined
-                    }
-                >
-                    <DebouncedNumberInput min={0} placeholder="Nhập số tiền" delay={300} />
-                </Form.Item>
 
                 <CardPaymentFeeAlert source={toSource} date={transferredAtWatch} />
 
@@ -494,9 +508,17 @@ export default function TransferFormModalContent({
                     </div>
                 ) : null}
 
-                <Form.Item name="note" label="Ghi chú">
+                <Form.Item
+                    name="transferredAt"
+                    label="Ngày chuyển"
+                    rules={[{ required: true, message: "Ngày chuyển là bắt buộc" }]}
+                >
+                    <QuickDateField />
+                </Form.Item>
+
+                <Form.Item name="note" label="Ghi chú" className="mb-0">
                     <Input.TextArea
-                        rows={3}
+                        rows={2}
                         maxLength={500}
                         placeholder="Ghi chú (không bắt buộc)"
                         showCount

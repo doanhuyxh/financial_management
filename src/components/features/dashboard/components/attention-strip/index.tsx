@@ -43,7 +43,7 @@ export default function AttentionStrip() {
                     </span>
                     <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold leading-snug">{item.title}</p>
-                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                        <p className="money-value text-xs text-muted-foreground">{item.description}</p>
                         {item.payCard ? (
                             <Button
                                 size="small"

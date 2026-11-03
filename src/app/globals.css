@@ -244,3 +244,17 @@ html:not(.dark) [data-sidebar="menu-sub-button"][data-active="true"] {
 .pb-safe {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
+
+/*
+ * Chế độ ẩn số dư (nút con mắt trên header, usePrivacyMode): làm mờ mọi số tiền có class `money-value`
+ * (component Money, ô thống kê...). Rê chuột/nhấn giữ để xem tạm.
+ */
+html[data-privacy="on"] .money-value {
+    filter: blur(7px);
+    transition: filter 150ms ease;
+}
+
+html[data-privacy="on"] .money-value:hover,
+html[data-privacy="on"] .money-value:active {
+    filter: none;
+}

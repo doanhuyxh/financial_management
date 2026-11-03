@@ -24,7 +24,6 @@ export interface IDashboardContextProps {
     assets: IAssetsSummary;
     isSourcesLoading: boolean;
     handleChangeMonth: (value: Dayjs | null) => void;
-    handleCreateExpense: () => void;
     handlePayCard: (cardId: string, amount: number) => void;
     handleRecordCardFee: (item: ICreditCardFeeItem, feeType: CardFeeType) => void;
     handleViewDay: (day: number) => void;

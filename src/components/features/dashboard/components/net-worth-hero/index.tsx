@@ -35,7 +35,7 @@ export default function NetWorthHero() {
                             className="block text-2xl font-bold tracking-tight sm:text-3xl"
                         />,
                     )}
-                    <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                    <p className="money-value mt-1 text-xs text-muted-foreground tabular-nums">
                         Tiền mặt {formatMoney(assets.cashTotal)} − Dư nợ thẻ{" "}
                         {formatMoney(totalCreditDebt)}
                     </p>
@@ -85,7 +85,7 @@ export default function NetWorthHero() {
                         railColor="var(--muted)"
                         className="m-0"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="money-value text-xs text-muted-foreground">
                         {creditRemainingPercent}% của {formatMoney(assets.creditLimitTotal)} · không
                         tính vào tài sản
                     </p>

@@ -47,7 +47,7 @@ function BarList({ rows, total }: { rows: IBarRow[]; total: number }) {
                 <li key={row.key}>
                     <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
                         <span className="min-w-0 truncate font-medium">{row.name}</span>
-                        <span className="shrink-0 tabular-nums">
+                        <span className="money-value shrink-0 tabular-nums">
                             {formatMoney(row.total)}
                             <span className="text-muted-foreground">
                                 {" · "}
@@ -155,7 +155,7 @@ export default function SpendingBreakdown() {
                     <h2 className="text-base font-semibold">
                         Chi tiêu tháng {monthValue.format("MM/YYYY")}
                     </h2>
-                    <p className="text-xs text-muted-foreground tabular-nums">
+                    <p className="money-value text-xs text-muted-foreground tabular-nums">
                         {formatMoney(total)} · {count} danh mục
                     </p>
                 </div>

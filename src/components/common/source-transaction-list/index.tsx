@@ -48,8 +48,8 @@ export default function SourceTransactionList<T extends SourceTransactionRow>({
                             <span
                                 className={
                                     isGood
-                                        ? "shrink-0 font-semibold tabular-nums text-money-in"
-                                        : "shrink-0 font-semibold tabular-nums text-money-out"
+                                        ? "money-value shrink-0 font-semibold tabular-nums text-money-in"
+                                        : "money-value shrink-0 font-semibold tabular-nums text-money-out"
                                 }
                             >
                                 {item.delta >= 0 ? "+" : "−"}

@@ -56,7 +56,7 @@ export default function AssetsBreakdown() {
         const renderGroup = (row: Extract<BreakdownRow, { kind: "group" }>) => (
             <span className="text-xs font-semibold text-muted-foreground">
                 {GROUP_LABELS[row.group]} ·{" "}
-                <span className={`tabular-nums ${GROUP_COLORS[row.group]}`}>
+                <span className={`money-value tabular-nums ${GROUP_COLORS[row.group]}`}>
                     {formatMoney(row.total)}
                 </span>
             </span>
@@ -93,7 +93,7 @@ export default function AssetsBreakdown() {
                 onCell: (row) => groupSpan(row, 0),
                 render: (_, row) =>
                     row.kind === "item" ? (
-                        <span className="tabular-nums">{formatMoney(row.amount)}</span>
+                        <span className="money-value tabular-nums">{formatMoney(row.amount)}</span>
                     ) : null,
             },
             {
@@ -104,7 +104,7 @@ export default function AssetsBreakdown() {
                 onCell: (row) => groupSpan(row, 0),
                 render: (_, row) =>
                     row.kind === "item" ? (
-                        <span className="text-muted-foreground tabular-nums">
+                        <span className="text-muted-foreground money-value tabular-nums">
                             {(row.share * 100).toLocaleString("vi-VN", {
                                 maximumFractionDigits: 1,
                             })}
