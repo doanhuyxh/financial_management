@@ -37,3 +37,4 @@ Giữ mỗi file ≤ ~8 KB. Vượt thì tách tiếp theo domain con và thêm 
 6. Chuyển tiền không sửa được, chỉ xóa rồi tạo lại.
 7. Bộ lọc `to` dùng `setHours(23,59,59)` theo giờ server (PM2 đặt `TZ=Asia/Ho_Chi_Minh`).
 8. `formatMoney` dùng chung ở `src/libs/utils/formatMoney.ts`. `getRefId` vẫn nằm trong utils của từng feature.
+9. **Đang gỡ antd sang shadcn** (quyết định 03/11/2026, giữ giao diện giống hiện tại). Đợt 1 xong: shadcn đủ bộ + Animate UI, thông báo/xác nhận qua `useAppFeedback` (sonner + `confirm-dialog`). Còn lại ~70 file antd: Form (9 form → react-hook-form + zod), Table có sort, Select tìm kiếm, DatePicker, Segmented, Pagination, QRCode, `AntdProvider`/`themeColors.ts`. Thứ tự dự kiến: `common/` → từng feature → gỡ package.

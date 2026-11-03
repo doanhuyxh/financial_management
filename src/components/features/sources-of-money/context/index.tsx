@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useAntdApp } from "@/libs/hooks/useAntdApp";
+import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
 import useLocalStorage from "@/libs/hooks/useLocalStorage";
 import { configLocalStorageKey } from "@/libs/constants/configKey";
 import { getTrackedAmount } from "@/libs/utils/trackedAmount";
@@ -61,7 +61,7 @@ function getErrorStatusCode(error: unknown) {
 export default function SourcesOfMoneyContextProvider({
     children,
 }: ISourcesOfMoneyContextProviderProps) {
-    const { notification, modal } = useAntdApp();
+    const { notification, modal } = useAppFeedback();
 
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState<SourcesOfMoneyType | "">("");

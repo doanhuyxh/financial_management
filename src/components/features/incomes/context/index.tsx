@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { Dayjs } from "dayjs";
 import type { TablePaginationConfig } from "antd/es/table";
-import { useAntdApp } from "@/libs/hooks/useAntdApp";
+import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
 import {
     useCreateIncome,
     useDeleteIncome,
@@ -37,7 +37,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 export default function IncomesContextProvider({
     children,
 }: IIncomesContextProviderProps) {
-    const { notification, modal } = useAntdApp();
+    const { notification, modal } = useAppFeedback();
 
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);

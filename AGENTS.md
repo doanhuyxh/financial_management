@@ -38,7 +38,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 1. Mọi query lọc theo `userId` từ JWT; không lấy `userId` từ body. Ngoại lệ duy nhất: API `/api/public/*` lấy `userId` từ ShareLink tìm theo token (xem `source-history.md`).
 2. Không dùng Mongo transaction. Cập nhật số dư bằng `$inc` với điều kiện trong filter, có rollback thủ công — giữ nguyên thứ tự rollback khi sửa.
 3. Business logic chỉ nằm trong `src/server/services/`; `route.ts` chỉ parse và gọi service.
-4. 1 component = 1 folder `kebab-case` có `index.tsx`. Ưu tiên antd / shadcn / lucide-react.
+4. 1 component = 1 folder `kebab-case` có `index.tsx`. Ưu tiên shadcn (`src/components/shadcn/ui`) + lucide-react. **Không viết UI mới bằng antd** — đang gỡ dần (xem [.agents/conventions.md](.agents/conventions.md)).
 5. Kiểm tra `src/libs/hooks/`, `src/libs/utils/` và `hooks/` của feature trước khi tạo hàm/hook mới.
 6. Xong việc: `bun run lint` và `bun run build` không lỗi.
 7. Sản phẩm thiết kế giao diện (mockup, prototype, banner, slide, design system, kế hoạch UI — kể cả khi dùng skill `design`, `ui-ux-pro-max`, `ui-styling`, `design-system`, `banner-design`, `brand`, `slides`) **chỉ lưu local trong `plan_all/`**: đặt tên `NN-ten-ngan.md` / `NN-ten-ngan-mockup.html`, thêm 1 dòng vào bảng trong `plan_all/README.md`. **Không đẩy lên đám mây**: không dùng Artifact, Claude Docs, Figma, Cloudinary, Notion, Google Drive… trừ khi user yêu cầu rõ trong tin nhắn. Asset ảnh do skill tạo cũng lưu trong `plan_all/` (thư mục con theo tên file kế hoạch), không upload.
