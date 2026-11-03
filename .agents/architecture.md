@@ -2,7 +2,7 @@
 
 Ứng dụng quản lý tài chính cá nhân (tiếng Việt, VND). Frontend và API chung **một app Next.js 16**. Mỗi user chỉ thấy dữ liệu của chính mình: mọi query đều lọc theo `userId` lấy từ JWT.
 
-**Stack:** Next.js 16 (App Router) + React 19 (React Compiler), MongoDB/Mongoose, React Query, Redux Toolkit (chỉ cho auth/navigation), Ant Design + shadcn, `@ant-design/plots` cho biểu đồ, react-hook-form + zod, `@dnd-kit` cho kéo-thả.
+**Stack:** Next.js 16 (App Router) + React 19 (React Compiler), MongoDB/Mongoose, React Query, Redux Toolkit (chỉ cho auth/navigation), shadcn (radix-nova) + Animate UI (`@animate-ui/react`, `motion`) + sonner; antd còn ở code cũ (đang gỡ dần); `@ant-design/plots` cho biểu đồ, react-hook-form + zod, `@dnd-kit` cho kéo-thả.
 
 ## Cây thư mục
 
@@ -29,7 +29,7 @@ src/
     features/<feature>/       # Module theo trang (cấu trúc: conventions.md)
     common/                   # Component dùng chung nhiều feature (money: hiển thị số tiền theo màu nghĩa)
     layout/                   # Khung trang, menu (navigation-config.tsx), mobile-bottom-nav
-    providers/                # client-app (gate ssr:false), app-providers, antd, redux, tanstack, auth-bootstrap
+    providers/                # client-app (gate ssr:false), app-providers (antd, redux, tanstack, ConfirmDialogProvider, Toaster sonner), auth-bootstrap
     shadcn/ui/                # Component shadcn đã sinh
 scripts/                      # Script một lần + deploy.sh
 plan_all/                     # Kế hoạch + mockup/thiết kế UI (chỉ lưu local, không publish cloud — luật 7 AGENTS.md); không phải nguồn sự thật

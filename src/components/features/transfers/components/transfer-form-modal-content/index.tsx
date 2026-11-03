@@ -384,8 +384,8 @@ export default function TransferFormModalContent({
             cancelText="Hủy"
             width={600}
             footer={(_, { OkBtn, CancelBtn }) => (
-                <div className="flex items-center justify-between gap-3">
-                    <label className="flex shrink-0 items-center gap-2 text-sm text-neutral-600">
+                <div className="flex items-center justify-end gap-3">
+                    <label className="mr-auto flex shrink-0 items-center gap-2 text-sm text-neutral-600">
                         <Switch
                             size="small"
                             checked={keepCreating}

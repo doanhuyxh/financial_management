@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { Dayjs } from "dayjs";
 import type { TablePaginationConfig } from "antd/es/table";
-import { useAntdApp } from "@/libs/hooks/useAntdApp";
+import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
 import {
     useCreateTransfer,
     useDeleteTransfer,
@@ -41,7 +41,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 export default function TransfersContextProvider({
     children,
 }: ITransfersContextProviderProps) {
-    const { notification, modal } = useAntdApp();
+    const { notification, modal } = useAppFeedback();
     const searchParams = useSearchParams();
 
     const [page, setPage] = useState(1);

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useAntdApp } from "@/libs/hooks/useAntdApp";
+import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
 import {
     useCreateCategory,
     useDeleteCategory,
@@ -38,7 +38,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export default function CategoryContextProvider({ children }: ICategoryContextProviderProps) {
-    const { notification, modal } = useAntdApp();
+    const { notification, modal } = useAppFeedback();
 
     const [search, setSearch] = useState("");
     // Tab Chi tiêu / Thu nhập, lọc phía client để vẫn kéo-thả được trong từng tab

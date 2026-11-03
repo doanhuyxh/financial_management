@@ -6,7 +6,7 @@ import { Button, Form, Input } from "antd";
 import { ArrowRight, Check, Lock, Mail, Wallet } from "lucide-react";
 import { useLogin } from "./hooks/useLogin";
 import { AuthLoginSchema, type AuthLoginSchemaType } from "./schemas/login-schema";
-import { useAntdApp } from "@/libs/hooks/useAntdApp";
+import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
 
 const HIGHLIGHTS = [
     "Ghi chi tiêu trong vài giây",
@@ -28,7 +28,7 @@ function Logo() {
 /** Đăng nhập: cùng token màu, logo và component antd với phần còn lại của app (theo theme sáng/tối). */
 export default function AuthLoginComponent() {
     const { submit, isPending } = useLogin();
-    const { notification } = useAntdApp();
+    const { notification } = useAppFeedback();
     const {
         control,
         handleSubmit,

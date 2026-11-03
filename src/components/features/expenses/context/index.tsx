@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useSearchParams } from "next/navigation";
 import dayjs, { type Dayjs } from "dayjs";
 import type { TablePaginationConfig } from "antd/es/table";
-import { useAntdApp } from "@/libs/hooks/useAntdApp";
+import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
 import {
     useCreateExpense,
     useDeleteExpense,
@@ -42,7 +42,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 export default function ExpensesContextProvider({
     children,
 }: IExpensesContextProviderProps) {
-    const { notification, modal } = useAntdApp();
+    const { notification, modal } = useAppFeedback();
     const searchParams = useSearchParams();
 
     const [page, setPage] = useState(1);

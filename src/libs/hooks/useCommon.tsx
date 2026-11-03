@@ -1,7 +1,7 @@
-import { useAntdApp } from "./useAntdApp";
+import { useAppFeedback } from "./useAppFeedback";
 
 export function useCommon() {
-    const { notification } = useAntdApp();
+    const { notification } = useAppFeedback();
 
     const sleep = (s: number) =>
         new Promise((resolve) => setTimeout(resolve, s * 1000));

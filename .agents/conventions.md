@@ -9,7 +9,9 @@
 - **1 component = 1 folder có `index.tsx`.** Không tạo file `.tsx` đứng lẻ. File `.ts` đứng lẻ thì được (types, schemas, utils).
 - **Tên folder `kebab-case`** (ví dụ `category-form-modal`). Không dùng `PascalCase`.
 - **Import bỏ đuôi `.tsx`**: `import Header from "@/components/features/categories/components/header";`
-- **UI library**: trước khi tự dựng UI, tìm component có sẵn trong **Ant Design (antd)** và **shadcn UI** (`src/components/shadcn/ui`). Icon dùng **lucide-react**. Component dùng chung nhiều feature đặt ở `src/components/common/`.
+- **UI library**: trước khi tự dựng UI, tìm component có sẵn trong **shadcn UI** (`src/components/shadcn/ui`, style `radix-nova`; thêm component mới xem [commands.md](commands.md#shadcn--animate-ui)). Icon dùng **lucide-react**. Component dùng chung nhiều feature đặt ở `src/components/common/`.
+- **antd đang được gỡ dần**: code cũ còn dùng (Form, Table, Select, DatePicker...), nhưng **không import antd trong code mới**; khi sửa một component cũ, cân nhắc chuyển nó sang shadcn luôn. Hiệu ứng: component shadcn đã nối sang `@animate-ui/react` (`motion`), không thêm animation CSS tay cho chúng.
+- **Thông báo & xác nhận**: `useAppFeedback()` (`src/libs/hooks/useAppFeedback.tsx`) → `notification.success/error/warning({ title, description?, duration? })` (sonner) và `modal.confirm({ title, content, okText, okType: "danger", onOk })` (`common/confirm-dialog`). Không dùng `App.useApp`/`message` của antd.
 
 > Một số file cũ trong `src/components/layout/` và `src/components/providers/` vẫn là `.tsx` đứng lẻ. Không bắt chước; code mới theo quy tắc trên.
 

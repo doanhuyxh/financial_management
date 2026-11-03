@@ -240,9 +240,9 @@ export default function IncomesFormModal() {
             cancelText="Hủy"
             width={520}
             footer={(_, { OkBtn, CancelBtn }) => (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-end gap-3">
                     {!isEdit ? (
-                        <label className="flex shrink-0 items-center gap-2 text-sm text-neutral-600">
+                        <label className="mr-auto flex shrink-0 items-center gap-2 text-sm text-neutral-600">
                             <Switch
                                 size="small"
                                 checked={keepCreating}
