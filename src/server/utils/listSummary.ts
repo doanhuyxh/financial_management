@@ -1,5 +1,9 @@
 import mongoose, { type Model } from "mongoose";
-import type { IDayTotal, IListSummary } from "@/libs/interfaces/ApiResponseData";
+import type {
+    IDayTotal,
+    IListBreakdownItem,
+    IListSummary,
+} from "@/libs/interfaces/ApiResponseData";
 
 const TIMEZONE = "+07:00";
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -30,7 +34,15 @@ interface IListSummaryOptions {
     dateField: string;
     /** Field phí cộng riêng vào `totalFee` (chuyển tiền) */
     feeField?: string;
+    /**
+     * Phân bổ tổng theo một field tham chiếu (VD: categoryId → collection danh mục), cho cột
+     * "Phân tích" của trang Giao dịch. `from` là tên collection để $lookup lấy name/icon/color.
+     */
+    breakdown?: { field: string; from: string };
 }
+
+/** Số dòng tối đa của `breakdown`; phần còn lại UI tính "Khác" = summary.totalAmount − tổng các dòng */
+const MAX_BREAKDOWN_ITEMS = 8;
 
 /**
  * Tổng của **toàn bộ** kết quả lọc (không chỉ trang hiện tại) và tổng theo ngày (giờ VN) cho các ngày
@@ -41,8 +53,8 @@ export async function buildListSummary(
     model: Model<any>,
     filter: Record<string, unknown>,
     items: Record<string, any>[],
-    { dateField, feeField }: IListSummaryOptions,
-): Promise<{ summary: IListSummary; dayTotals: IDayTotal[] }> {
+    { dateField, feeField, breakdown }: IListSummaryOptions,
+): Promise<{ summary: IListSummary; dayTotals: IDayTotal[]; breakdown?: IListBreakdownItem[] }> {
     const match = toAggregateMatch(filter);
 
     const totalsPromise = model.aggregate([
@@ -93,7 +105,46 @@ export async function buildListSummary(
           ])
         : Promise.resolve([]);
 
-    const [[totals], dayRows] = await Promise.all([totalsPromise, dayTotalsPromise]);
+    const breakdownPromise: Promise<IListBreakdownItem[] | undefined> = breakdown
+        ? model.aggregate([
+              { $match: match },
+              {
+                  $group: {
+                      _id: `$${breakdown.field}`,
+                      total: { $sum: "$amount" },
+                      count: { $sum: 1 },
+                  },
+              },
+              { $sort: { total: -1 } },
+              { $limit: MAX_BREAKDOWN_ITEMS },
+              {
+                  $lookup: {
+                      from: breakdown.from,
+                      localField: "_id",
+                      foreignField: "_id",
+                      as: "ref",
+                  },
+              },
+              { $unwind: { path: "$ref", preserveNullAndEmptyArrays: true } },
+              {
+                  $project: {
+                      _id: 0,
+                      id: { $toString: "$_id" },
+                      name: { $ifNull: ["$ref.name", "Không xác định"] },
+                      icon: { $ifNull: ["$ref.icon", null] },
+                      color: { $ifNull: ["$ref.color", null] },
+                      total: 1,
+                      count: 1,
+                  },
+              },
+          ])
+        : Promise.resolve(undefined);
+
+    const [[totals], dayRows, breakdownRows] = await Promise.all([
+        totalsPromise,
+        dayTotalsPromise,
+        breakdownPromise,
+    ]);
 
     const summary: IListSummary = {
         count: totals?.count ?? 0,
@@ -104,5 +155,6 @@ export async function buildListSummary(
     return {
         summary,
         dayTotals: dayRows.map((row) => ({ date: row._id, total: row.total })),
+        ...(breakdownRows ? { breakdown: breakdownRows } : {}),
     };
 }

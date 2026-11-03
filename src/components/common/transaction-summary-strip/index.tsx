@@ -2,6 +2,7 @@ import type { Dayjs } from "dayjs";
 import Money, { type MoneyKind } from "@/components/common/money";
 import type { IListSummary } from "@/libs/interfaces/ApiResponseData";
 import { formatMoney } from "@/libs/utils/formatMoney";
+import { cn } from "@/libs/shadcn/utils";
 
 interface ITransactionSummaryStripProps {
     summary?: IListSummary;
@@ -10,6 +11,7 @@ interface ITransactionSummaryStripProps {
     kind: MoneyKind;
     /** Khoảng ngày đang lọc: có đủ 2 đầu thì hiện trung bình / ngày */
     dateRange?: [Dayjs | null, Dayjs | null] | null;
+    className?: string;
 }
 
 /** Dải tổng của toàn bộ kết quả lọc, đặt ngay trên danh sách giao dịch. */
@@ -18,6 +20,7 @@ export default function TransactionSummaryStrip({
     unit,
     kind,
     dateRange,
+    className,
 }: ITransactionSummaryStripProps) {
     if (!summary) return null;
     const [from, to] = dateRange ?? [];
@@ -25,7 +28,12 @@ export default function TransactionSummaryStrip({
     const signedValue = kind === "out" ? -summary.totalAmount : summary.totalAmount;
 
     return (
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 rounded-xl border border-border bg-card px-4 py-3">
+        <div
+            className={cn(
+                "flex flex-wrap items-baseline gap-x-5 gap-y-1 rounded-xl border border-border bg-card px-4 py-3",
+                className,
+            )}
+        >
             <span className="text-xs text-muted-foreground">
                 {summary.count.toLocaleString("vi-VN")} {unit}
                 {days ? ` trong ${days} ngày` : ""}

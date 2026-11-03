@@ -26,6 +26,8 @@ export interface ITransfersContextProps {
     summary?: ITransactionListResponse<ITransfersData>["summary"];
     /** Tổng theo ngày cho các ngày trong trang hiện tại */
     dayTotals: NonNullable<ITransactionListResponse<ITransfersData>["dayTotals"]>;
+    /** Phân bổ tổng theo danh mục / nơi nhận (toàn bộ kết quả lọc) */
+    breakdown?: ITransactionListResponse<ITransfersData>["breakdown"];
     isLoading: boolean;
     modalOpen: boolean;
     createDefaults: ITransferCreateDefaults | null;

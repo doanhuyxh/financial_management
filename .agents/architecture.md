@@ -68,7 +68,7 @@ UI component ──use<Feature>Context()──▶ feature context
 ### Response chuẩn
 
 - Mọi API trả `{ status, message, data, statusCode }` (`src/server/utils/responseServer.ts`).
-- Danh sách phân trang: `data: { items, pagination: { total, page, limit, totalPages } }`. Danh sách chi tiêu / thu nhập / chuyển tiền trả thêm `summary: { count, totalAmount, totalFee? }` (toàn bộ kết quả lọc) và `dayTotals: [{ date: "YYYY-MM-DD", total }]` (giờ VN, các ngày có trong trang) — `buildListSummary` ở `server/utils/listSummary.ts`, kiểu `ITransactionListResponse`. `aggregate()` không tự ép chuỗi sang ObjectId: util tự chuyển các field id.
+- Danh sách phân trang: `data: { items, pagination: { total, page, limit, totalPages } }`. Danh sách chi tiêu / thu nhập / chuyển tiền trả thêm `summary: { count, totalAmount, totalFee? }` (toàn bộ kết quả lọc) `dayTotals: [{ date: "YYYY-MM-DD", total }]` (giờ VN, các ngày có trong trang) và `breakdown: [{ id, name, icon, color, total, count }]` (top 8 theo danh mục; chuyển tiền theo nơi nhận `toSourceId`; phần còn lại client tự tính "Khác") — `buildListSummary` ở `server/utils/listSummary.ts`, kiểu `ITransactionListResponse`. `aggregate()` không tự ép chuỗi sang ObjectId: util tự chuyển các field id.
 - `page`/`limit` chuẩn hóa qua `normalizePagination` (`src/server/utils/pagination.ts`): page ≥ 1, 1 ≤ limit ≤ 100, giá trị sai dùng mặc định.
 - Mọi response 401 (`unauthorizedResponse`) cố xóa cookie `access_token` (best-effort; proxy kiểm tra `tokenVersion` cho request trang nên không phụ thuộc việc xóa cookie).
 

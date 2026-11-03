@@ -13,6 +13,16 @@ export interface IListSummary {
     totalFee?: number;
 }
 
+/** Phân bổ tổng theo danh mục (chi/thu) hoặc nơi nhận (chuyển tiền), sắp giảm dần. */
+export interface IListBreakdownItem {
+    id: string;
+    name: string;
+    icon?: string | null;
+    color?: string | null;
+    total: number;
+    count: number;
+}
+
 /** Tổng theo ngày (YYYY-MM-DD, giờ VN) cho các ngày có trong trang hiện tại. */
 export interface IDayTotal {
     date: string;
@@ -33,4 +43,5 @@ export interface PaginatedResponse<T> {
 export interface ITransactionListResponse<T> extends PaginatedResponse<T> {
     summary?: IListSummary;
     dayTotals?: IDayTotal[];
+    breakdown?: IListBreakdownItem[];
 }

@@ -74,6 +74,7 @@ export default function TransfersTable() {
                             </span>
                         }
                         subtitle={[fee, record.note].filter(Boolean).join(" · ") || "—"}
+                        columns={[fee ?? "Không phí", record.note]}
                         amount={<Money value={record.amount} />}
                         actions={ROW_ACTIONS}
                         onAction={() => handleDelete(record)}

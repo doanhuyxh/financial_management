@@ -2,12 +2,9 @@
 
 import { Select } from "antd";
 import type { Dayjs } from "dayjs";
-import { DatePicker } from "antd";
-import DateRangeFields from "@/components/common/date-range-fields";
+import TransactionDateRange from "@/components/common/transaction-date-range";
 import { useTransfersContext } from "@/components/features/transfers/context";
 import { useSourceOptions } from "@/libs/hooks/customHooks/useSourcesOfMoney";
-
-const { RangePicker } = DatePicker;
 
 export default function TransfersFilterDrawer({ layout }: { layout: "desktop" | "drawer" }) {
     const {
@@ -43,23 +40,11 @@ export default function TransfersFilterDrawer({ layout }: { layout: "desktop" | 
                 showSearch
                 optionFilterProp="label"
             />
-            {layout === "desktop" ? (
-                <RangePicker
-                    inputReadOnly
-                    value={dateRange}
-                    onChange={(dates) =>
-                        handleDateRange(dates ? [dates[0] ?? null, dates[1] ?? null] : null)
-                    }
-                    className="w-full lg:w-auto"
-                    format="DD/MM/YYYY"
-                    allowClear
-                />
-            ) : (
-                <DateRangeFields
-                    value={dateRange}
-                    onChange={handleDateRange as (range: [Dayjs | null, Dayjs | null] | null) => void}
-                />
-            )}
+            <TransactionDateRange
+                value={dateRange}
+                onChange={handleDateRange as (range: [Dayjs | null, Dayjs | null] | null) => void}
+                layout={layout}
+            />
         </>
     );
 }

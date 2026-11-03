@@ -242,9 +242,16 @@ export class ExpensesService {
                 .lean(),
             ExpensesModel.countDocuments(filter),
         ]);
-        const { summary, dayTotals } = await buildListSummary(ExpensesModel, filter, items, { dateField: "spentAt" });
+        const { summary, dayTotals, breakdown } = await buildListSummary(ExpensesModel, filter, items, {
+            dateField: "spentAt",
+            breakdown: { field: "categoryId", from: CategoriesModel.collection.name },
+        });
 
-        return successResponsePageNation(items, total, page, limit, "", { summary, dayTotals });
+        return successResponsePageNation(items, total, page, limit, "", {
+            summary,
+            dayTotals,
+            breakdown,
+        });
     }
 
     static async createExpense(data: IFromExpensesData) {

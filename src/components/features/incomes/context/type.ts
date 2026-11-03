@@ -20,6 +20,8 @@ export interface IIncomesContextProps {
     summary?: ITransactionListResponse<IIncomesData>["summary"];
     /** Tổng theo ngày cho các ngày trong trang hiện tại */
     dayTotals: NonNullable<ITransactionListResponse<IIncomesData>["dayTotals"]>;
+    /** Phân bổ tổng theo danh mục / nơi nhận (toàn bộ kết quả lọc) */
+    breakdown?: ITransactionListResponse<IIncomesData>["breakdown"];
     isLoading: boolean;
     modalOpen: boolean;
     editingItem: IIncomesData | null;

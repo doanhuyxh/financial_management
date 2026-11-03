@@ -21,7 +21,8 @@ import { formatMoney } from "@/libs/utils/formatMoney";
 import type { IExpensesContextProps } from "./type";
 import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 
-const DEFAULT_PAGE_SIZE = 10;
+// 20 dòng lấp đủ màn hình desktop; mobile cuộn tiếp
+const DEFAULT_PAGE_SIZE = 20;
 const EMPTY_ITEMS: IExpensesData[] = [];
 const EMPTY_DAY_TOTALS: IDayTotal[] = [];
 
@@ -102,6 +103,7 @@ export default function ExpensesContextProvider({
     const pagination = data?.data?.pagination;
     const summary = data?.data?.summary;
     const dayTotals = data?.data?.dayTotals ?? EMPTY_DAY_TOTALS;
+    const breakdown = data?.data?.breakdown;
 
     const handleSearch = useCallback((value: string) => {
         setSearch(value);
@@ -226,6 +228,7 @@ export default function ExpensesContextProvider({
             pagination,
             summary,
             dayTotals,
+            breakdown,
             // Only show loading for first load or a changed query (page/filter);
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
@@ -256,6 +259,7 @@ export default function ExpensesContextProvider({
             pagination,
             summary,
             dayTotals,
+            breakdown,
             isLoading,
             isFetching,
             isPlaceholderData,
