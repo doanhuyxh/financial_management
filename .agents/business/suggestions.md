@@ -16,5 +16,6 @@ Cách form dùng:
 - Select danh mục và nguồn tiền vẫn có, chia 2 nhóm "Thường dùng" và "Khác" (`groupSuggestedOptions`).
 - Chip số tiền nằm dưới ô Số tiền (`common/amount-suggestion-chips`). Khi chưa chọn danh mục, chip hiện `topAmounts`; khi đã chọn, chip chỉ hiện số tiền của danh mục đó.
 - Khi tạo mới, chọn danh mục mà ô nguồn tiền đang trống thì tự điền `byCategory[id].sourceId`. Ở chế độ sửa thì không tự điền.
+- Form chuyển tiền: chip "Từ nguồn" gồm tối đa 3 `fromSourceIds` (kèm số dư / hạn mức còn lại); chip "Đến nguồn" gồm các nguồn nhận của cặp quen với nguồn chuyển đang chọn (kèm số dư / dư nợ), chỉ những nguồn hợp lệ (không thẻ → thẻ).
 - Form chuyển tiền có dòng "Hay chuyển": bấm vào là điền cả nguồn chuyển và nguồn nhận. Chọn nguồn chuyển khi ô "đến" đang trống thì tự điền nguồn nhận của cặp quen. Chip số tiền hiện theo cặp đang chọn, hoặc `topAmounts` khi chưa chọn nguồn.
 - Query key nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`, nên các invalidate sẵn có tự làm mới gợi ý. Chỉ fetch khi modal mở; stale 5 phút.

@@ -6,6 +6,13 @@ import ExpensesFilterDrawer from "@/components/features/expenses/components/head
 import { useExpensesContext } from "@/components/features/expenses/context";
 import { useDebounce } from "@/libs/hooks/useDebounce";
 import TransactionSummaryStrip from "@/components/common/transaction-summary-strip";
+import ActiveFilterChips, {
+    dateRangeLabel,
+    optionLabel,
+} from "@/components/common/active-filter-chips";
+import { useCategoryOptions } from "@/libs/hooks/customHooks/useCategories";
+import { CategoryKind } from "@/libs/interfaces/categoriesData";
+import { useSourceOptions } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 
 export default function ExpensesHeader() {
     const {
@@ -41,6 +48,22 @@ export default function ExpensesHeader() {
 
     const fields = (layout: "desktop" | "drawer") => <ExpensesFilterDrawer layout={layout} />;
 
+    const { options: categoryOptions } = useCategoryOptions(CategoryKind.EXPENSE);
+    const { options: sourceOptions } = useSourceOptions();
+    const filterChips = [
+        {
+            key: "category",
+            label: optionLabel(categoryOptions, categoryFilter),
+            onRemove: () => handleCategoryFilter(""),
+        },
+        {
+            key: "source",
+            label: optionLabel(sourceOptions, sourceFilter),
+            onRemove: () => handleSourceFilter(""),
+        },
+        { key: "date", label: dateRangeLabel(dateRange), onRemove: () => handleDateRange(null) },
+    ];
+
     return (
         <MobileFilterShell
             searchValue={localSearch}
@@ -50,6 +73,7 @@ export default function ExpensesHeader() {
             desktopFilters={fields("desktop")}
             drawerFilters={fields("drawer")}
             onClearFilters={clearFilters}
+            activeFilters={<ActiveFilterChips chips={filterChips} onClearAll={clearFilters} />}
             createLabel="Thêm chi tiêu"
             onCreate={openCreateModal}
             mobileCreate={false}

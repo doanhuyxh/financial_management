@@ -31,6 +31,7 @@ import {
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import { groupSuggestedOptions } from "@/libs/utils/suggestionOptions";
 import { calcPercentFee } from "@/libs/utils/cardFee";
+import ChoiceChips from "@/components/common/choice-chips";
 
 type FormValues = {
     fromSourceId: string;
@@ -201,6 +202,38 @@ export default function TransferFormModalContent({
         toOptionsFlat,
         pairsFromSelected.map((pair) => pair.toSourceId),
     );
+
+    // Chip "thường dùng": nguồn hay chuyển đi, và nguồn hay nhận từ nguồn đang chọn
+    const sourceHint = (item: (typeof sources)[number]) =>
+        item.type === SourcesOfMoneyType.CREDIT_CARD
+            ? `còn ${formatMoney(getAvailableOut(item))}`
+            : formatMoney(item.balance ?? 0);
+    const fromChips = (suggestions?.fromSourceIds ?? [])
+        .map((id) => sources.find((item) => item._id === id))
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .slice(0, 3)
+        .map((item) => ({ value: item._id, label: item.name, hint: sourceHint(item) }));
+    const toChips = pairsFromSelected
+        .filter((pair) => toOptionsFlat.some((option) => option.value === pair.toSourceId))
+        .map((pair) => sources.find((item) => item._id === pair.toSourceId))
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .slice(0, 3)
+        .map((item) => ({
+            value: item._id,
+            label: item.name,
+            hint:
+                item.type === SourcesOfMoneyType.CREDIT_CARD
+                    ? `nợ ${formatMoney(item.creditDetails?.currentDebt ?? 0)}`
+                    : formatMoney(item.balance ?? 0),
+        }));
+
+    const selectFrom = (id: string) => {
+        form.setFields([{ name: "fromSourceId", value: id, errors: [] }]);
+        handleFromChange(id);
+    };
+    const selectTo = (id: string) => {
+        form.setFields([{ name: "toSourceId", value: id, errors: [] }]);
+    };
 
     useEffect(() => {
         if (!open) {
@@ -407,9 +440,8 @@ export default function TransferFormModalContent({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
                     <Form.Item
-                        name="fromSourceId"
                         label="Từ nguồn"
-                        rules={[{ required: true, message: "Nguồn chuyển là bắt buộc" }]}
+                        required
                         extra={
                             fromSource
                                 ? fromIsCredit
@@ -418,20 +450,32 @@ export default function TransferFormModalContent({
                                 : undefined
                         }
                     >
-                        <Select
-                            showSearch
-                            optionFilterProp="label"
-                            placeholder="Chọn nguồn chuyển"
-                            loading={sourcesLoading}
-                            options={fromOptions}
-                            onChange={handleFromChange}
-                        />
+                        <div className="flex flex-col gap-2">
+                            <ChoiceChips
+                                options={fromChips}
+                                value={fromSourceId}
+                                onChange={selectFrom}
+                            />
+                            <Form.Item
+                                name="fromSourceId"
+                                noStyle
+                                rules={[{ required: true, message: "Nguồn chuyển là bắt buộc" }]}
+                            >
+                                <Select
+                                    showSearch
+                                    optionFilterProp="label"
+                                    placeholder="Chọn nguồn chuyển"
+                                    loading={sourcesLoading}
+                                    options={fromOptions}
+                                    onChange={handleFromChange}
+                                />
+                            </Form.Item>
+                        </div>
                     </Form.Item>
 
                     <Form.Item
-                        name="toSourceId"
                         label="Đến nguồn"
-                        rules={[{ required: true, message: "Nguồn nhận là bắt buộc" }]}
+                        required
                         extra={
                             toIsCredit && maxToCredit != null
                                 ? `Dư nợ đang nợ: ${formatMoney(maxToCredit)}`
@@ -440,13 +484,22 @@ export default function TransferFormModalContent({
                                   : undefined
                         }
                     >
-                        <Select
-                            showSearch
-                            optionFilterProp="label"
-                            placeholder="Chọn nguồn nhận"
-                            loading={sourcesLoading}
-                            options={toOptions}
-                        />
+                        <div className="flex flex-col gap-2">
+                            <ChoiceChips options={toChips} value={toSourceId} onChange={selectTo} />
+                            <Form.Item
+                                name="toSourceId"
+                                noStyle
+                                rules={[{ required: true, message: "Nguồn nhận là bắt buộc" }]}
+                            >
+                                <Select
+                                    showSearch
+                                    optionFilterProp="label"
+                                    placeholder="Chọn nguồn nhận"
+                                    loading={sourcesLoading}
+                                    options={toOptions}
+                                />
+                            </Form.Item>
+                        </div>
                     </Form.Item>
                 </div>
 

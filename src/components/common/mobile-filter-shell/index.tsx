@@ -18,6 +18,8 @@ type MobileFilterShellProps = {
     extraActions?: ReactNode;
     /** Dòng tổng hợp dưới thanh lọc (VD: dải tổng của danh sách giao dịch) */
     summary?: ReactNode;
+    /** Chip bộ lọc đang bật (chỉ hiện trên mobile, vì desktop đã thấy ô lọc trên toolbar) */
+    activeFilters?: ReactNode;
     /**
      * Mobile: hiện nút "+" cạnh ô tìm kiếm. Tắt ở trang giao dịch vì nút "+" của thanh điều hướng dưới
      * đã tạo đúng loại đang xem.
@@ -37,6 +39,7 @@ export default function MobileFilterShell({
     onCreate,
     extraActions,
     summary,
+    activeFilters,
     mobileCreate = true,
 }: MobileFilterShellProps) {
     const isMobile = useIsMobile();
@@ -83,6 +86,7 @@ export default function MobileFilterShell({
                     </Button>
                 </div>
             </div>
+            {isMobile ? activeFilters : null}
             {summary}
             {hasFilters ? (
                 <Drawer
