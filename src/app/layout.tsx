@@ -37,8 +37,8 @@ export const metadata: Metadata = {
   },
   formatDetection: { telephone: false },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/favicon.ico?v=2",
+    apple: "/apple-touch-icon.png?v=2",
   },
   robots: {
     index: false,
