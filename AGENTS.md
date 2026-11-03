@@ -26,6 +26,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 | Sửa nguồn tiền (CRUD, điều chỉnh số dư, VietQR) | [.agents/business/sources-of-money.md](.agents/business/sources-of-money.md) |
 | Sửa lịch sử giao dịch nguồn tiền, link chia sẻ public | [.agents/business/source-history.md](.agents/business/source-history.md) |
 | Sửa phí thẻ, kỳ sao kê, lãi | [.agents/business/credit-card-fees.md](.agents/business/credit-card-fees.md) |
+| Sửa đáo hạn thẻ (ghi/xóa lần đáo hạn, phí đáo hạn) | [.agents/business/card-rollover.md](.agents/business/card-rollover.md) |
 | Sửa danh mục | [.agents/business/categories.md](.agents/business/categories.md) |
 | Sửa dashboard | [.agents/business/dashboard.md](.agents/business/dashboard.md) |
 | Sửa bảng phí thẻ trên dashboard | [.agents/business/dashboard-card-fees.md](.agents/business/dashboard-card-fees.md) |

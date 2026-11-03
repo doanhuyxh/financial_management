@@ -6,6 +6,7 @@ import ExpensesModel from "@/server/models/expenses.model";
 import IncomesModel from "@/server/models/incomes.model";
 import TransfersModel from "@/server/models/transfers.model";
 import BalanceAdjustmentsModel from "@/server/models/balance-adjustments.model";
+import CardRolloversModel from "@/server/models/card-rollovers.model";
 import { BalanceAdjustmentField } from "@/libs/interfaces/balanceAdjustmentsData";
 import {
     AnnualFeeWaiverPeriod,
@@ -106,6 +107,7 @@ const CARD_RATE_KEYS = [
     "foreignFxFeePercent",
     "foreignVndFeePercent",
     "lateFeePercentPerDay",
+    "rolloverFeePercent",
 ] as const;
 
 /** Số tiền ≥ 0, làm tròn. */
@@ -124,6 +126,7 @@ const CARD_RATE_LABELS: Record<(typeof CARD_RATE_KEYS)[number], string> = {
     foreignFxFeePercent: "Phí giao dịch ngoại tệ",
     foreignVndFeePercent: "Phí giao dịch VND tại đơn vị nước ngoài",
     lateFeePercentPerDay: "Phí chậm thanh toán",
+    rolloverFeePercent: "Phí đáo hạn",
 };
 
 const CARD_FEE_KEYS = [
@@ -307,15 +310,16 @@ function normalizeBankAccount(data: IFromSourcesOfMoneyData["bankAccount"]) {
 }
 
 async function hasTransactions(userId: string, sourceId: string) {
-    const [expense, income, transfer] = await Promise.all([
+    const [expense, income, transfer, rollover] = await Promise.all([
         ExpensesModel.exists({ userId, sourceOfMoneyId: sourceId }),
         IncomesModel.exists({ userId, sourceOfMoneyId: sourceId }),
         TransfersModel.exists({
             userId,
             $or: [{ fromSourceId: sourceId }, { toSourceId: sourceId }],
         }),
+        CardRolloversModel.exists({ userId, sourceOfMoneyId: sourceId }),
     ]);
-    return Boolean(expense || income || transfer);
+    return Boolean(expense || income || transfer || rollover);
 }
 
 const ADJUSTMENT_NOTE_MAX = 200;
@@ -577,7 +581,8 @@ export class SourcesOfMoneyService {
      * Tiến độ điều kiện miễn phí của các thẻ có cấu hình miễn phí hoặc phí thanh toán: chi tiêu,
      * số giao dịch và số lần trả nợ trong kỳ sao kê hiện tại (`getStatementCycle`), chi tiêu trong năm thẻ (12 tháng trước lần thu phí thường niên kế tiếp;
      * thẻ chưa đặt ngày thu thì tính theo năm dương lịch). Không tính phí chuyển tiền
-     * (`skipBalanceAdjust`) và các khoản phí thẻ (`cardFeeType`).
+     * (`skipBalanceAdjust`) và các khoản phí thẻ (`cardFeeType`). Kèm số lần và tổng phí
+     * đáo hạn trong kỳ (thẻ có cấu hình phí đáo hạn hoặc đã từng đáo hạn).
      */
     static async getCreditCardFeeProgress() {
         await dbConnect();
@@ -586,6 +591,9 @@ export class SourcesOfMoneyService {
             return unauthorizedResponse();
         }
 
+        const rolledCardIds = await CardRolloversModel.distinct("sourceOfMoneyId", {
+            userId: user.userId,
+        });
         const cards = await SourcesOfMoneyModel.find({
             userId: user.userId,
             type: SourcesOfMoneyType.CREDIT_CARD,
@@ -596,6 +604,8 @@ export class SourcesOfMoneyService {
                 { "creditDetails.managementFeeWaiverMinSpend": { $exists: true } },
                 { "creditDetails.paymentFee": { $exists: true } },
                 { "creditDetails.usageFee": { $exists: true } },
+                { "creditDetails.rolloverFeePercent": { $exists: true } },
+                { _id: { $in: rolledCardIds } },
             ],
         })
             .select("creditDetails")
@@ -625,7 +635,7 @@ export class SourcesOfMoneyService {
                 const inYear = {
                     $and: [{ $gte: ["$spentAt", yearStart] }, { $lt: ["$spentAt", yearEnd] }],
                 };
-                const [[row], transferPayments, incomePayments] = await Promise.all([
+                const [[row], transferPayments, incomePayments, [rolloverRow]] = await Promise.all([
                     ExpensesModel.aggregate<{
                         cycleSpend: number;
                         cycleTransactions: number;
@@ -663,6 +673,22 @@ export class SourcesOfMoneyService {
                         sourceOfMoneyId: card._id,
                         receivedAt: { $gte: cycleStart, $lt: cycleEnd },
                     }),
+                    CardRolloversModel.aggregate<{ count: number; fee: number }>([
+                        {
+                            $match: {
+                                userId: userObjectId,
+                                sourceOfMoneyId: card._id,
+                                rolledAt: { $gte: cycleStart, $lt: cycleEnd },
+                            },
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                count: { $sum: 1 },
+                                fee: { $sum: { $ifNull: ["$feeAmount", 0] } },
+                            },
+                        },
+                    ]),
                 ]);
 
                 return {
@@ -675,6 +701,8 @@ export class SourcesOfMoneyService {
                     yearSpend: row?.yearSpend ?? 0,
                     yearStart: yearStart.toISOString(),
                     yearEnd: yearEnd.toISOString(),
+                    cycleRollovers: rolloverRow?.count ?? 0,
+                    cycleRolloverFee: rolloverRow?.fee ?? 0,
                 };
             }),
         );

@@ -8,7 +8,7 @@ import {
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import { getNextAnnualDate } from "@/libs/utils/annualFeeDate";
 import { getStatementCycle } from "@/libs/utils/statementCycle";
-import { estimateInterest } from "@/libs/utils/cardFee";
+import { calcPercentFee, estimateInterest } from "@/libs/utils/cardFee";
 
 /** Cards due within this many days are flagged as "sắp đến hạn". */
 export const DUE_SOON_DAYS = 7;
@@ -82,6 +82,19 @@ export interface ILatePenalty {
     lateFeeMax: number | null;
 }
 
+/** Đáo hạn thẻ: phí dịch vụ ước tính so với lãi nếu không trả hết, và số lần đã đáo trong kỳ. */
+export interface IRolloverStatus {
+    /** % phí cấu hình trên thẻ; null khi chưa cấu hình (chỉ có lịch sử đáo hạn) */
+    feePercent: number | null;
+    /** Phí ước tính nếu đáo hạn toàn bộ dư nợ hiện tại */
+    estimatedFee: number | null;
+    /** Lãi 30 ngày trên dư nợ hiện tại để so sánh; null khi thẻ chưa có lãi suất */
+    estimatedMonthlyInterest: number | null;
+    /** Số lần và tổng phí đáo hạn trong kỳ sao kê; null khi chưa tải xong tiến độ */
+    cycleCount: number | null;
+    cycleFee: number | null;
+}
+
 export interface ICreditCardFeeItem {
     _id: string;
     name: string;
@@ -103,6 +116,7 @@ export interface ICreditCardFeeItem {
     paymentFee: IPaymentFeeStatus | null;
     usageFee: IUsageFeeStatus | null;
     latePenalty: ILatePenalty | null;
+    rollover: IRolloverStatus | null;
 }
 
 function toWaiver(current: number | undefined, target: number | undefined) {
@@ -157,8 +171,28 @@ function buildLatePenalty(details: Partial<ICreditDetails>): ILatePenalty | null
     };
 }
 
+/** Có khi thẻ cấu hình % phí đáo hạn hoặc kỳ này đã đáo hạn. */
+function buildRollover(
+    details: Partial<ICreditDetails>,
+    progress: ICreditCardFeeProgress | undefined,
+): IRolloverStatus | null {
+    const feePercent = details.rolloverFeePercent ?? null;
+    if (feePercent == null && !(progress?.cycleRollovers ?? 0)) return null;
+    const debt = details.currentDebt ?? 0;
+    return {
+        feePercent,
+        estimatedFee: feePercent != null && debt > 0 ? calcPercentFee(debt, feePercent) : null,
+        estimatedMonthlyInterest:
+            details.interestRate != null && debt > 0
+                ? estimateInterest(debt, details.interestRate)
+                : null,
+        cycleCount: progress?.cycleRollovers ?? null,
+        cycleFee: progress?.cycleRolloverFee ?? null,
+    };
+}
+
 /**
- * Thẻ có cấu hình phí (thường niên, quản lý, thanh toán dư nợ, phí sử dụng, lãi hoặc phí chậm trả), thẻ sắp thu phí thường niên trước.
+ * Thẻ có cấu hình phí (thường niên, quản lý, thanh toán dư nợ, phí sử dụng, lãi, phí chậm trả hoặc đáo hạn), thẻ sắp thu phí thường niên trước.
  * `progress` từ API; chưa tải xong thì phần tiến độ là null.
  */
 export function buildCreditCardFees(
@@ -179,12 +213,15 @@ export function buildCreditCardFees(
             details.managementFeeWaiverMinTransactions != null ||
             details.managementFeeWaiverMinSpend != null;
         const latePenalty = buildLatePenalty(details);
+        const cardProgress = progressById.get(source._id);
+        const rollover = buildRollover(details, cardProgress);
         if (
             !hasAnnual &&
             !hasManagement &&
             details.paymentFee == null &&
             details.usageFee == null &&
-            !latePenalty
+            !latePenalty &&
+            !rollover
         ) {
             continue;
         }
@@ -196,7 +233,6 @@ export function buildCreditCardFees(
         const daysLeft = nextAnnualFeeDate
             ? nextAnnualFeeDate.diff(today.startOf("day"), "day")
             : null;
-        const cardProgress = progressById.get(source._id);
         const waiverSpend =
             details.annualFeeWaiverPeriod === AnnualFeeWaiverPeriod.MONTH
                 ? cardProgress?.cycleSpend
@@ -232,6 +268,7 @@ export function buildCreditCardFees(
                       }
                     : null,
             latePenalty,
+            rollover,
         });
     }
     return items.sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity));
@@ -289,7 +326,8 @@ function describeManagementGap(waiver: IManagementFeeWaiver) {
 /**
  * Một câu tóm tắt "phí sắp tới" của thẻ, ưu tiên khoản sắp phát sinh trong kỳ này.
  * Thứ tự: phí quản lý chưa đạt miễn → phí sử dụng đã phát sinh → phí trả nợ đã phát sinh
- * → phí thường niên → đã miễn phí quản lý → phí sử dụng nếu có chi tiêu → không có phí.
+ * → đã đáo hạn kỳ này → phí thường niên → đã miễn phí quản lý → phí sử dụng nếu có chi tiêu
+ * → không có phí.
  */
 export function getCardFeeHeadline(fee: ICreditCardFeeItem | null): ICardFeeHeadline {
     if (!fee) return { text: "Chưa cấu hình phí", tone: "neutral" };
@@ -307,6 +345,12 @@ export function getCardFeeHeadline(fee: ICreditCardFeeItem | null): ICardFeeHead
     }
     if (fee.paymentFee && fee.paymentFee.estimatedTotal > 0) {
         return { text: `Phí trả nợ ≈${formatVnd(fee.paymentFee.estimatedTotal)} kỳ này`, tone: "warn" };
+    }
+    if (fee.rollover && (fee.rollover.cycleCount ?? 0) > 0) {
+        return {
+            text: `Đã đáo hạn ${fee.rollover.cycleCount} lần kỳ này · phí ${formatVnd(fee.rollover.cycleFee ?? 0)}`,
+            tone: "warn",
+        };
     }
     if ((fee.annualFee ?? 0) > 0 && fee.nextAnnualFeeDate) {
         if (fee.annualFeeWaiver?.achieved) {

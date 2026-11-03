@@ -5,6 +5,7 @@ import ExpensesModel from "@/server/models/expenses.model";
 import IncomesModel from "@/server/models/incomes.model";
 import TransfersModel from "@/server/models/transfers.model";
 import BalanceAdjustmentsModel from "@/server/models/balance-adjustments.model";
+import CardRolloversModel from "@/server/models/card-rollovers.model";
 import CategoriesModel from "@/server/models/categories.model";
 import {
     SourceTransactionFilter,
@@ -58,7 +59,8 @@ export interface ISourceTransactionsOptions {
 /**
  * Gộp mọi biến động của một nguồn tiền thành một danh sách theo thời gian.
  * `delta` là biến động số dư (nguồn thường) hoặc dư nợ (thẻ): thẻ đảo dấu so với nguồn thường.
- * Phí chuyển tiền (expense `skipBalanceAdjust`) không thành dòng riêng vì đã nằm trong transfer.
+ * Phí chuyển tiền và phí đáo hạn (expense `skipBalanceAdjust`) không thành dòng riêng vì đã nằm
+ * trong transfer / đáo hạn gốc.
  */
 export async function querySourceTransactions(options: ISourceTransactionsOptions) {
     const { kind, internal, page, limit } = options;
@@ -162,6 +164,29 @@ export async function querySourceTransactions(options: ISourceTransactionsOption
         );
     }
 
+    if (wants(SourceTransactionFilter.ROLLOVER)) {
+        branches.push({
+            model: CardRolloversModel,
+            pipeline: [
+                { $match: { userId, sourceOfMoneyId: sourceId, ...inRange("rolledAt") } },
+                {
+                    $project: {
+                        kind: { $literal: SourceTransactionKind.ROLLOVER },
+                        occurredAt: "$rolledAt",
+                        // Tiền ứng trả vào rồi quẹt lại triệt tiêu nhau: dư nợ chỉ tăng đúng phí
+                        delta: { $multiply: [{ $ifNull: ["$feeAmount", 0] }, -sign] },
+                        note: 1,
+                        feeAmount: 1,
+                        rolloverAmount: "$amount",
+                        provider: 1,
+                        categoryId: "$feeCategoryId",
+                        createdAt: 1,
+                    },
+                },
+            ],
+        });
+    }
+
     if (internal && wants(SourceTransactionFilter.ADJUSTMENT)) {
         branches.push({
             model: BalanceAdjustmentsModel,
@@ -215,6 +240,8 @@ export async function querySourceTransactions(options: ISourceTransactionsOption
                       feeAmount: 1,
                       previousValue: 1,
                       newValue: 1,
+                      rolloverAmount: 1,
+                      provider: 1,
                       category: pickRef("category"),
                       counterpartSource: pickRef("counterpartSource"),
                   },

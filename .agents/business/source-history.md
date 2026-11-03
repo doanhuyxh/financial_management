@@ -15,9 +15,10 @@
 | `TRANSFER_OUT` | transfers | `fromSourceId` | `transferredAt` | −amount | +amount |
 | `TRANSFER_IN` | transfers | `toSourceId` | `transferredAt` | +(amount − feeAmount) | −(amount − feeAmount) |
 | `ADJUSTMENT` | balanceAdjustments | `sourceOfMoneyId` | `adjustedAt` | delta | delta |
+| `ROLLOVER` | cardRollovers | `sourceOfMoneyId` (chỉ thẻ) | `rolledAt` | — | +feeAmount (kèm `rolloverAmount`, `provider`) |
 
-- Phí chuyển tiền (expense `skipBalanceAdjust`) **không** thành dòng riêng vì đã nằm trong transfer; hiện thành "Phí X" trên dòng chuyển. Phí quốc tế và phí thẻ ghi tay là expense thường nên vẫn là dòng `EXPENSE`.
-- `kind` lọc theo `EXPENSE` / `INCOME` / `TRANSFER` (gồm cả đi và đến) / `ADJUSTMENT`. `from`/`to` là `YYYY-MM-DD` theo giờ +07:00 (`server/utils/dayRange.ts`).
+- Phí chuyển tiền và phí đáo hạn (expense `skipBalanceAdjust`) **không** thành dòng riêng vì đã nằm trong transfer / đáo hạn gốc; hiện thành "Phí X" trên dòng chuyển, "Đáo X · dịch vụ" trên dòng đáo hạn. Phí quốc tế và phí thẻ ghi tay là expense thường nên vẫn là dòng `EXPENSE`.
+- `kind` lọc theo `EXPENSE` / `INCOME` / `TRANSFER` (gồm cả đi và đến) / `ADJUSTMENT` / `ROLLOVER` (UI chỉ hiện nút lọc này với thẻ). `from`/`to` là `YYYY-MM-DD` theo giờ +07:00 (`server/utils/dayRange.ts`).
 - Response: `{ items, pagination, summary: { increase, decrease } }` (tổng delta dương / âm trong bộ lọc). UI ghi nhãn "Tiền vào/Tiền ra" cho nguồn thường, "Phát sinh nợ/Giảm nợ" cho thẻ.
 - Sắp xếp `occurredAt desc, createdAt desc, _id desc`.
 - Query key `[SOURCES_OF_MONEY, "transactions", id, query]`: mọi mutation đã invalidate `SOURCES_OF_MONEY` nên tự làm mới.

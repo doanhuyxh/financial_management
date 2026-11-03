@@ -9,7 +9,7 @@ import TransactionRow from "@/components/common/grouped-transaction-list/compone
 import FeeTag from "@/components/features/expenses/components/expenses-table/components/fee-tag";
 import { useExpensesContext } from "@/components/features/expenses/context";
 import { getExpenseCategory, getExpenseSource } from "@/components/features/expenses/utils";
-import type { IExpensesData } from "@/libs/interfaces/expensesData";
+import { CardFeeType, type IExpensesData } from "@/libs/interfaces/expensesData";
 import { getCategoryColor } from "@/libs/utils/categoryColor";
 
 const ROW_ACTIONS = [
@@ -77,7 +77,13 @@ export default function ExpensesTable() {
                         columns={[source?.name, record.note]}
                         amount={<Money value={-record.amount} kind="out" signed />}
                         onClick={locked ? undefined : () => openEditModal(record)}
-                        lockedHint={locked ? "Sửa qua chuyển tiền" : undefined}
+                        lockedHint={
+                            locked
+                                ? record.cardFeeType === CardFeeType.ROLLOVER_FEE
+                                    ? "Sửa qua đáo hạn thẻ"
+                                    : "Sửa qua chuyển tiền"
+                                : undefined
+                        }
                         actions={ROW_ACTIONS}
                         onAction={(key) =>
                             key === "edit" ? openEditModal(record) : handleDelete(record)

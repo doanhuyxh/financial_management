@@ -20,6 +20,7 @@ export const RATE_FEE_FIELDS = [
     { name: "foreignFxFeeMin", label: "Tối thiểu", kind: "money" },
     { name: "foreignVndFeePercent", label: "Phí VND tại ĐV nước ngoài (%)", kind: "percent" },
     { name: "foreignVndFeeMin", label: "Tối thiểu", kind: "money" },
+    { name: "rolloverFeePercent", label: "Phí đáo hạn (%)", kind: "percent", tooltip: "Phí bên dịch vụ đáo hạn thu trên số tiền ứng trả sao kê; tự điền vào form đáo hạn trên dashboard" },
 ] as const;
 
 export type RateFeeField = (typeof RATE_FEE_FIELDS)[number];
@@ -85,6 +86,7 @@ export const CARD_FEE_SECTIONS = [
             "foreignVndFeeMin",
         ],
     },
+    { key: "rollover", title: "Đáo hạn thẻ", fields: ["rolloverFeePercent"] },
 ] as const satisfies readonly { key: string; title: string; fields: readonly (keyof FormValues)[] }[];
 
 export type CardFeeSectionKey = (typeof CARD_FEE_SECTIONS)[number]["key"];

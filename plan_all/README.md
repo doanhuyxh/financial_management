@@ -13,6 +13,7 @@ Ngày lập: 2026-10-15 · Nhánh gốc: `main` (commit `20027ab`)
 | 5 | Đánh giá giao diện tổng thể & hướng cải thiện (màu ngữ nghĩa, dashboard, nhập nhanh) | Trung bình | [05-ui-review.md](05-ui-review.md) |
 | 6 | Re-design UI: so sánh hiện tại ↔ mới, design token, lộ trình — đã duyệt 2026-11-03 | Đã duyệt | [06-re-design-ui.md](re-design-ui/06-re-design-ui.md) · [mockup](re-design-ui/06-re-design-ui-mockup.html) |
 | 7 | Plan code re-design UI: 5 giai đoạn (nền tảng → dashboard → giao dịch + điều hướng → ghi nhanh → nguồn tiền/danh mục/login) | Triển khai | [plan_code_redesign/](plan_code_redesign/README.md) |
+| 8 | Đáo hạn thẻ tín dụng: bản ghi CardRollover, dư nợ chỉ tăng phí, modal trên dashboard, so sánh với lãi — đã triển khai 2026-11-04 | Tính năng mới | [08-dao-han-the.md](08-dao-han-the.md) |
 
 ## Thứ tự thực hiện đề xuất
 

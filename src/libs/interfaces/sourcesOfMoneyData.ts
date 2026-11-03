@@ -63,6 +63,8 @@ export interface ICreditDetails {
     lateFeePercentPerDay?: number;
     lateFeeMin?: number;
     lateFeeMax?: number;
+    /** Phí dịch vụ đáo hạn thẻ (% trên số tiền đáo), tự điền vào form đáo hạn */
+    rolloverFeePercent?: number;
 }
 
 /** Loại giao dịch quốc tế trên thẻ, quyết định cách tính phí. */
@@ -92,6 +94,9 @@ export interface ICreditCardFeeProgress {
     yearSpend: number;
     yearStart: string;
     yearEnd: string;
+    /** Số lần đáo hạn và tổng phí đáo hạn trong kỳ sao kê */
+    cycleRollovers: number;
+    cycleRolloverFee: number;
 }
 
 /** Tài khoản nhận tiền của nguồn loại BANK, dùng để tạo mã VietQR. */

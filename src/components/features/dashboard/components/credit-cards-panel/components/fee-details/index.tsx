@@ -9,6 +9,7 @@ import UsageFeeInfo from "@/components/features/dashboard/components/credit-card
 import PaymentFeeInfo from "@/components/features/dashboard/components/credit-cards-panel/components/payment-fee-info";
 import WaiverProgress from "@/components/features/dashboard/components/credit-cards-panel/components/waiver-progress";
 import RecordFeeButton from "@/components/features/dashboard/components/credit-cards-panel/components/record-fee-button";
+import RolloverInfo from "@/components/features/dashboard/components/credit-cards-panel/components/rollover-info";
 import { AnnualFeeWaiverPeriod } from "@/libs/interfaces/sourcesOfMoneyData";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
@@ -21,6 +22,7 @@ export const FEE_SECTIONS = [
     { key: "paymentFee", label: "Phí thanh toán dư nợ" },
     { key: "usageFee", label: "Phí sử dụng" },
     { key: "latePenalty", label: "Lãi & chậm trả" },
+    { key: "rollover", label: "Đáo hạn" },
 ];
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
@@ -95,6 +97,11 @@ export default function FeeDetails({
                 {isShown("latePenalty") && item.latePenalty ? (
                     <Section label="Lãi & chậm trả">
                         <LatePenaltyInfo penalty={item.latePenalty} />
+                    </Section>
+                ) : null}
+                {isShown("rollover") && item.rollover ? (
+                    <Section label="Đáo hạn">
+                        <RolloverInfo status={item.rollover} />
                     </Section>
                 ) : null}
             </div>

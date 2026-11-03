@@ -26,12 +26,19 @@ const KIND_OPTIONS: { value: SourceTransactionFilter | ""; label: string }[] = [
     { value: SourceTransactionFilter.ADJUSTMENT, label: "Điều chỉnh" },
 ];
 
+/** Chỉ thẻ tín dụng mới có đáo hạn. */
+const CREDIT_KIND_OPTIONS = [
+    ...KIND_OPTIONS,
+    { value: SourceTransactionFilter.ROLLOVER, label: "Đáo hạn" },
+];
+
 const KIND_TAG_COLORS: Record<SourceTransactionKind, string> = {
     [SourceTransactionKind.EXPENSE]: "red",
     [SourceTransactionKind.INCOME]: "green",
     [SourceTransactionKind.TRANSFER_OUT]: "orange",
     [SourceTransactionKind.TRANSFER_IN]: "blue",
     [SourceTransactionKind.ADJUSTMENT]: "default",
+    [SourceTransactionKind.ROLLOVER]: "purple",
 };
 
 function TransactionMeta({ item }: { item: ISourceTransactionData }) {
@@ -55,7 +62,14 @@ function TransactionMeta({ item }: { item: ISourceTransactionData }) {
                     {counterpart.name}
                 </span>
             ) : null}
-            {item.feeAmount ? <span>· Phí {formatMoney(item.feeAmount)}</span> : null}
+            {item.kind === SourceTransactionKind.ROLLOVER ? (
+                <span>
+                    Đáo {formatMoney(item.rolloverAmount)}
+                    {item.provider ? ` · ${item.provider}` : ""}
+                </span>
+            ) : item.feeAmount ? (
+                <span>· Phí {formatMoney(item.feeAmount)}</span>
+            ) : null}
             {item.kind === SourceTransactionKind.ADJUSTMENT ? (
                 <span>
                     {formatMoney(item.previousValue)} → {formatMoney(item.newValue)}
@@ -110,7 +124,7 @@ export default function SourceHistoryModal() {
                 <Segmented
                     block
                     value={historyKind}
-                    options={KIND_OPTIONS}
+                    options={isCreditCard ? CREDIT_KIND_OPTIONS : KIND_OPTIONS}
                     onChange={(value) =>
                         handleHistoryKindChange(value as SourceTransactionFilter | "")
                     }
