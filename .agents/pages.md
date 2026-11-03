@@ -22,3 +22,5 @@ Trang Giao dịch trên desktop: mỗi trang 20 dòng; từ `lg` dòng giao dị
 Trang Giao dịch trên mobile: bộ lọc nằm trong drawer, nên các bộ lọc đang bật hiện thành chip có nút × dưới thanh tìm kiếm (`common/active-filter-chips`); desktop không hiện chip vì ô lọc đã nằm trên toolbar.
 
 Menu phẳng: `src/components/layout/navigation-config.tsx` — Tổng quan, Giao dịch, Nguồn tiền, Thẻ tín dụng (`/credit-card-compare`), Danh mục. Mobile có thêm `layout/mobile-bottom-nav` (Tổng quan · Giao dịch · [+] · Nguồn tiền · Thêm = mở sidebar); nút "+" mở `/transactions?action=create` đúng loại đang xem. Nghiệp vụ từng trang: [business/README.md](business/README.md).
+
+PWA: `src/app/manifest.ts` (standalone, shortcut "Ghi chi tiêu / thu nhập / Chuyển tiền" → `/transactions?type=...&action=create`) + `appleWebApp` trong `src/app/layout.tsx`. Viewport có `interactiveWidget: "resizes-content"` (Android co layout khi bàn phím mở). Cài trên iOS: Safari → Chia sẻ → Thêm vào MH chính (app cài riêng cookie, phải đăng nhập lại).
