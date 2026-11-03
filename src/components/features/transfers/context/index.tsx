@@ -16,9 +16,11 @@ import type {
 import { useSearchParams } from "next/navigation";
 import type { ITransferCreateDefaults, ITransfersContextProps } from "./type";
 import { formatMoney } from "@/libs/utils/formatMoney";
+import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 
 const DEFAULT_PAGE_SIZE = 10;
 const EMPTY_ITEMS: ITransfersData[] = [];
+const EMPTY_DAY_TOTALS: IDayTotal[] = [];
 
 interface ITransfersContextProviderProps {
     children: React.ReactNode;
@@ -83,6 +85,8 @@ export default function TransfersContextProvider({
 
     const items = data?.data?.items ?? EMPTY_ITEMS;
     const pagination = data?.data?.pagination;
+    const summary = data?.data?.summary;
+    const dayTotals = data?.data?.dayTotals ?? EMPTY_DAY_TOTALS;
 
     const handleSearch = useCallback((value: string) => {
         setSearch(value);
@@ -182,6 +186,8 @@ export default function TransfersContextProvider({
             pageSize,
             items,
             pagination,
+            summary,
+            dayTotals,
             // Only show loading for first load or a changed query (page/filter);
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
@@ -208,6 +214,8 @@ export default function TransfersContextProvider({
             pageSize,
             items,
             pagination,
+            summary,
+            dayTotals,
             isLoading,
             isFetching,
             isPlaceholderData,

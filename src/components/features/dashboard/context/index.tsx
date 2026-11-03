@@ -12,7 +12,7 @@ import {
     useGetSourcesOfMoney,
 } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { CardFeeType } from "@/libs/interfaces/expensesData";
-import { MENU_KEY } from "@/libs/constants/menuKey";
+import { buildTransactionsUrl } from "@/libs/utils/transactionsUrl";
 import {
     buildAttentionItems,
     buildCreditCardFees,
@@ -85,18 +85,19 @@ export default function DashboardContextProvider({
     }, []);
 
     const handleCreateExpense = useCallback(() => {
-        router.push(`${MENU_KEY.EXPENSES}?action=create`);
+        router.push(buildTransactionsUrl("expense", { action: "create" }));
     }, [router]);
 
     // Trả nợ thẻ = chuyển tiền tới thẻ: mở form chuyển tiền điền sẵn thẻ đích và số dư nợ
     const handlePayCard = useCallback(
         (cardId: string, amount: number) => {
-            const params = new URLSearchParams({
-                action: "create",
-                toSourceId: cardId,
-                amount: String(Math.round(amount)),
-            });
-            router.push(`${MENU_KEY.TRANSFERS}?${params.toString()}`);
+            router.push(
+                buildTransactionsUrl("transfer", {
+                    action: "create",
+                    toSourceId: cardId,
+                    amount: Math.round(amount),
+                }),
+            );
         },
         [router],
     );
@@ -142,14 +143,15 @@ export default function DashboardContextProvider({
                 },
             };
             const { label, period, amount } = byType[feeType];
-            const params = new URLSearchParams({
-                action: "create",
-                sourceOfMoneyId: item._id,
-                cardFeeType: feeType,
-                note: `${label} ${item.name} ${period}`,
-            });
-            if (amount) params.set("amount", String(amount));
-            router.push(`${MENU_KEY.EXPENSES}?${params.toString()}`);
+            router.push(
+                buildTransactionsUrl("expense", {
+                    action: "create",
+                    sourceOfMoneyId: item._id,
+                    cardFeeType: feeType,
+                    note: `${label} ${item.name} ${period}`,
+                    amount: amount || undefined,
+                }),
+            );
         },
         [router],
     );
@@ -158,7 +160,7 @@ export default function DashboardContextProvider({
     const handleViewDay = useCallback(
         (day: number) => {
             const date = monthValue.date(day).format("YYYY-MM-DD");
-            router.push(`${MENU_KEY.EXPENSES}?date=${date}`);
+            router.push(buildTransactionsUrl("expense", { date }));
         },
         [monthValue, router],
     );

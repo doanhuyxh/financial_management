@@ -13,9 +13,12 @@ import {
 import type { IFromIncomesData, IIncomesData } from "@/libs/interfaces/incomesData";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import type { IIncomesContextProps } from "./type";
+import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
+import { useSearchParams } from "next/navigation";
 
 const DEFAULT_PAGE_SIZE = 10;
 const EMPTY_ITEMS: IIncomesData[] = [];
+const EMPTY_DAY_TOTALS: IDayTotal[] = [];
 
 interface IIncomesContextProviderProps {
     children: React.ReactNode;
@@ -43,7 +46,11 @@ export default function IncomesContextProvider({
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(
         null,
     );
-    const [modalOpen, setModalOpen] = useState(false);
+    // `?action=create` (nút "+" / ghi giao dịch nhanh) mở sẵn form tạo mới
+    const searchParams = useSearchParams();
+    const [modalOpen, setModalOpen] = useState(
+        () => searchParams.get("action") === "create",
+    );
     const [editingItem, setEditingItem] = useState<IIncomesData | null>(null);
 
     const query = useMemo(
@@ -66,6 +73,8 @@ export default function IncomesContextProvider({
 
     const items = data?.data?.items ?? EMPTY_ITEMS;
     const pagination = data?.data?.pagination;
+    const summary = data?.data?.summary;
+    const dayTotals = data?.data?.dayTotals ?? EMPTY_DAY_TOTALS;
 
     const handleSearch = useCallback((value: string) => {
         setSearch(value);
@@ -174,6 +183,8 @@ export default function IncomesContextProvider({
             pageSize,
             items,
             pagination,
+            summary,
+            dayTotals,
             // Only show loading for first load or a changed query (page/filter);
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
@@ -201,6 +212,8 @@ export default function IncomesContextProvider({
             pageSize,
             items,
             pagination,
+            summary,
+            dayTotals,
             isLoading,
             isFetching,
             isPlaceholderData,

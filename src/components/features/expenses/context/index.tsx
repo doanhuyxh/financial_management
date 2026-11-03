@@ -19,9 +19,11 @@ import {
 } from "@/libs/interfaces/expensesData";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import type { IExpensesContextProps } from "./type";
+import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 
 const DEFAULT_PAGE_SIZE = 10;
 const EMPTY_ITEMS: IExpensesData[] = [];
+const EMPTY_DAY_TOTALS: IDayTotal[] = [];
 
 interface IExpensesContextProviderProps {
     children: React.ReactNode;
@@ -98,6 +100,8 @@ export default function ExpensesContextProvider({
 
     const items = data?.data?.items ?? EMPTY_ITEMS;
     const pagination = data?.data?.pagination;
+    const summary = data?.data?.summary;
+    const dayTotals = data?.data?.dayTotals ?? EMPTY_DAY_TOTALS;
 
     const handleSearch = useCallback((value: string) => {
         setSearch(value);
@@ -220,6 +224,8 @@ export default function ExpensesContextProvider({
             pageSize,
             items,
             pagination,
+            summary,
+            dayTotals,
             // Only show loading for first load or a changed query (page/filter);
             // background refetches keep the current rows on screen.
             isLoading: isLoading || (isFetching && isPlaceholderData),
@@ -248,6 +254,8 @@ export default function ExpensesContextProvider({
             pageSize,
             items,
             pagination,
+            summary,
+            dayTotals,
             isLoading,
             isFetching,
             isPlaceholderData,

@@ -19,6 +19,7 @@ import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
+import { buildListSummary } from "../utils/listSummary";
 
 function normalizePayload(data: IFromIncomesData) {
     const categoryId = data.categoryId?.trim();
@@ -206,8 +207,9 @@ export class IncomesService {
                 .lean(),
             IncomesModel.countDocuments(filter),
         ]);
+        const { summary, dayTotals } = await buildListSummary(IncomesModel, filter, items, { dateField: "receivedAt" });
 
-        return successResponsePageNation(items, total, page, limit);
+        return successResponsePageNation(items, total, page, limit, "", { summary, dayTotals });
     }
 
     static async createIncome(data: IFromIncomesData) {

@@ -5,6 +5,7 @@ import MobileFilterShell from "@/components/common/mobile-filter-shell";
 import TransfersFilterDrawer from "@/components/features/transfers/components/header/filter-drawer";
 import { useTransfersContext } from "@/components/features/transfers/context";
 import { useDebounce } from "@/libs/hooks/useDebounce";
+import TransactionSummaryStrip from "@/components/common/transaction-summary-strip";
 
 export default function TransfersHeader() {
     const {
@@ -18,6 +19,7 @@ export default function TransfersHeader() {
         handleDateRange,
         handleChangePage,
         openCreateModal,
+        summary,
     } = useTransfersContext();
 
     const [localSearch, setLocalSearch] = useState(search ?? "");
@@ -48,6 +50,15 @@ export default function TransfersHeader() {
             onClearFilters={clearFilters}
             createLabel="Chuyển tiền"
             onCreate={openCreateModal}
+            mobileCreate={false}
+            summary={
+                <TransactionSummaryStrip
+                    summary={summary}
+                    unit="giao dịch"
+                    kind="neutral"
+                    dateRange={dateRange}
+                />
+            }
         />
     );
 }

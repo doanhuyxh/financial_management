@@ -19,6 +19,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 | Chạy, build, lint, env, script, deploy | [.agents/commands.md](.agents/commands.md) |
 | Viết/sửa component, hook, đặt tên, cấu trúc feature | [.agents/conventions.md](.agents/conventions.md) |
 | Hiểu cây thư mục, ranh giới client/server, luồng dữ liệu, cache React Query | [.agents/architecture.md](.agents/architecture.md) |
+| Thêm/sửa trang, URL, query param, menu, điều hướng mobile | [.agents/pages.md](.agents/pages.md) |
 | Sửa model, schema, query ghi số dư, viết migration | [.agents/database.md](.agents/database.md) |
 | Nguyên tắc nghiệp vụ chung, nợ kỹ thuật | [.agents/business/README.md](.agents/business/README.md) |
 | Sửa expense / income / transfer, cập nhật số dư | [.agents/business/balance-rules.md](.agents/business/balance-rules.md) |

@@ -25,6 +25,7 @@ import { getCurrentUser } from "../utils/getCurrentUser";
 import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
+import { buildListSummary } from "../utils/listSummary";
 
 function normalizePayload(data: IFromExpensesData) {
     const categoryId = data.categoryId?.trim();
@@ -241,8 +242,9 @@ export class ExpensesService {
                 .lean(),
             ExpensesModel.countDocuments(filter),
         ]);
+        const { summary, dayTotals } = await buildListSummary(ExpensesModel, filter, items, { dateField: "spentAt" });
 
-        return successResponsePageNation(items, total, page, limit);
+        return successResponsePageNation(items, total, page, limit, "", { summary, dayTotals });
     }
 
     static async createExpense(data: IFromExpensesData) {

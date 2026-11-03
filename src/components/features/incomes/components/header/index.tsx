@@ -5,6 +5,7 @@ import MobileFilterShell from "@/components/common/mobile-filter-shell";
 import IncomesFilterDrawer from "@/components/features/incomes/components/header/filter-drawer";
 import { useIncomesContext } from "@/components/features/incomes/context";
 import { useDebounce } from "@/libs/hooks/useDebounce";
+import TransactionSummaryStrip from "@/components/common/transaction-summary-strip";
 
 export default function IncomesHeader() {
     const {
@@ -18,6 +19,7 @@ export default function IncomesHeader() {
         handleDateRange,
         handleChangePage,
         openCreateModal,
+        summary,
     } = useIncomesContext();
 
     const [localSearch, setLocalSearch] = useState(search ?? "");
@@ -48,6 +50,15 @@ export default function IncomesHeader() {
             onClearFilters={clearFilters}
             createLabel="Thêm thu nhập"
             onCreate={openCreateModal}
+            mobileCreate={false}
+            summary={
+                <TransactionSummaryStrip
+                    summary={summary}
+                    unit="khoản thu"
+                    kind="in"
+                    dateRange={dateRange}
+                />
+            }
         />
     );
 }

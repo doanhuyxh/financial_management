@@ -12,6 +12,8 @@ import {
 } from "@/components/shadcn/ui/sidebar"
 import { TooltipProvider } from "@/components/shadcn/ui/tooltip"
 import { cn } from "@/libs/shadcn/utils"
+import MobileBottomNav from "@/components/layout/mobile-bottom-nav"
+import { Suspense } from "react"
 
 export default function ShadcnLayout({
   children,
@@ -45,10 +47,13 @@ export default function ShadcnLayout({
               <ThemeToggle />
             </div>
           </header>
-          {/* Mobile: chừa chỗ cho nút "+" nổi (FloatButton) để dòng cuối danh sách không bị che */}
-          <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:p-4 md:pt-5">
+          {/* Mobile: chừa chỗ cho thanh điều hướng dưới (h-16) để nội dung cuối trang không bị che */}
+          <div className="flex min-w-0 flex-1 flex-col gap-4 p-3 pt-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-4 md:pt-5">
             {children}
           </div>
+          <Suspense fallback={null}>
+            <MobileBottomNav />
+          </Suspense>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

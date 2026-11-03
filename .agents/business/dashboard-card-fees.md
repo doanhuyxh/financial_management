@@ -39,7 +39,7 @@ Mỗi thẻ hiện một câu, chọn theo thứ tự ưu tiên:
   - "Phí sử dụng": chỉ khi kỳ này đã có chi tiêu
   - "Lãi": điền lãi ước tính
   - "Phí chậm trả": điền `lateFeeMin`
-- Chọn một mục sẽ mở `/expenses?action=create&sourceOfMoneyId=&amount=&note=&cardFeeType=`. Trang Chi tiêu điền sẵn thẻ, số tiền ước tính và ghi chú; người dùng chọn danh mục, sửa số thực tế rồi lưu. `cardFeeType` chỉ được gửi khi vẫn chọn đúng thẻ đó.
+- Chọn một mục sẽ mở `/transactions?type=expense&action=create&sourceOfMoneyId=&amount=&note=&cardFeeType=`. Trang Giao dịch (tab Chi tiêu) điền sẵn thẻ, số tiền ước tính và ghi chú; người dùng chọn danh mục, sửa số thực tế rồi lưu. `cardFeeType` chỉ được gửi khi vẫn chọn đúng thẻ đó.
 - Không lưu trạng thái "đã thu".
 
 ## Ẩn/hiện mục phí

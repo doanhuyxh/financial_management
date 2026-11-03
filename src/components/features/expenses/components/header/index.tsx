@@ -5,6 +5,7 @@ import MobileFilterShell from "@/components/common/mobile-filter-shell";
 import ExpensesFilterDrawer from "@/components/features/expenses/components/header/filter-drawer";
 import { useExpensesContext } from "@/components/features/expenses/context";
 import { useDebounce } from "@/libs/hooks/useDebounce";
+import TransactionSummaryStrip from "@/components/common/transaction-summary-strip";
 
 export default function ExpensesHeader() {
     const {
@@ -18,6 +19,7 @@ export default function ExpensesHeader() {
         handleDateRange,
         handleChangePage,
         openCreateModal,
+        summary,
     } = useExpensesContext();
 
     const [localSearch, setLocalSearch] = useState(search ?? "");
@@ -50,6 +52,15 @@ export default function ExpensesHeader() {
             onClearFilters={clearFilters}
             createLabel="Thêm chi tiêu"
             onCreate={openCreateModal}
+            mobileCreate={false}
+            summary={
+                <TransactionSummaryStrip
+                    summary={summary}
+                    unit="khoản chi"
+                    kind="out"
+                    dateRange={dateRange}
+                />
+            }
         />
     );
 }

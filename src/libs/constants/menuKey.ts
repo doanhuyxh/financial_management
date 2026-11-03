@@ -2,8 +2,7 @@ export const MENU_KEY = {
     DASHBOARD: "/dashboard",
     SOURCES_OF_MONEY: "/sources-of-money",
     CREDIT_CARD_COMPARE: "/credit-card-compare",
-    EXPENSES: "/expenses",
-    INCOMES: "/incomes",
-    TRANSFERS: "/transfers",
+    /** Chi tiêu / thu nhập / chuyển tiền: `?type=expense|income|transfer` (xem libs/utils/transactionsUrl) */
+    TRANSACTIONS: "/transactions",
     CATEGORIES: "/categories",
 }

@@ -24,6 +24,14 @@ const nextConfig: NextConfig = {
     // Giữ console.error/warn để còn đọc được lỗi server trong logs/error.log.
     removeConsole: isDevelopment ? false : { exclude: ["error", "warn"] },
   },
+  // Chi tiêu / thu nhập / chuyển tiền đã gộp vào /transactions?type=… (query cũ như action=create được giữ nguyên)
+  async redirects() {
+    return [
+      { source: "/expenses", destination: "/transactions?type=expense", permanent: false },
+      { source: "/incomes", destination: "/transactions?type=income", permanent: false },
+      { source: "/transfers", destination: "/transactions?type=transfer", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

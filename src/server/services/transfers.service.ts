@@ -21,6 +21,7 @@ import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
 import { calcPercentFee } from "@/libs/utils/cardFee";
+import { buildListSummary } from "../utils/listSummary";
 
 type SourceDoc = {
     _id: mongoose.Types.ObjectId;
@@ -367,8 +368,9 @@ export class TransfersService {
                 .lean(),
             TransfersModel.countDocuments(filter),
         ]);
+        const { summary, dayTotals } = await buildListSummary(TransfersModel, filter, items, { dateField: "transferredAt", feeField: "feeAmount" });
 
-        return successResponsePageNation(items, total, page, limit);
+        return successResponsePageNation(items, total, page, limit, "", { summary, dayTotals });
     }
 
     static async createTransfer(data: IFromTransfersData) {

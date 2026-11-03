@@ -1,5 +1,5 @@
 import type { Dayjs } from "dayjs";
-import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
+import type { ITransactionListResponse, PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 import type {
     IFromTransfersData,
     ITransfersData,
@@ -22,6 +22,10 @@ export interface ITransfersContextProps {
     pageSize: number;
     items: ITransfersData[];
     pagination?: PaginatedResponse<ITransfersData>["pagination"];
+    /** Tổng của toàn bộ kết quả lọc */
+    summary?: ITransactionListResponse<ITransfersData>["summary"];
+    /** Tổng theo ngày cho các ngày trong trang hiện tại */
+    dayTotals: NonNullable<ITransactionListResponse<ITransfersData>["dayTotals"]>;
     isLoading: boolean;
     modalOpen: boolean;
     createDefaults: ITransferCreateDefaults | null;

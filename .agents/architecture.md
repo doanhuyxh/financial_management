@@ -28,7 +28,7 @@ src/
   components/
     features/<feature>/       # Module theo trang (cấu trúc: conventions.md)
     common/                   # Component dùng chung nhiều feature (money: hiển thị số tiền theo màu nghĩa)
-    layout/                   # Khung trang, menu (navigation-config.tsx)
+    layout/                   # Khung trang, menu (navigation-config.tsx), mobile-bottom-nav
     providers/                # client-app (gate ssr:false), app-providers, antd, redux, tanstack, auth-bootstrap
     shadcn/ui/                # Component shadcn đã sinh
 scripts/                      # Script một lần + deploy.sh
@@ -68,7 +68,7 @@ UI component ──use<Feature>Context()──▶ feature context
 ### Response chuẩn
 
 - Mọi API trả `{ status, message, data, statusCode }` (`src/server/utils/responseServer.ts`).
-- Danh sách phân trang: `data: { items, pagination: { total, page, limit, totalPages } }`.
+- Danh sách phân trang: `data: { items, pagination: { total, page, limit, totalPages } }`. Danh sách chi tiêu / thu nhập / chuyển tiền trả thêm `summary: { count, totalAmount, totalFee? }` (toàn bộ kết quả lọc) và `dayTotals: [{ date: "YYYY-MM-DD", total }]` (giờ VN, các ngày có trong trang) — `buildListSummary` ở `server/utils/listSummary.ts`, kiểu `ITransactionListResponse`. `aggregate()` không tự ép chuỗi sang ObjectId: util tự chuyển các field id.
 - `page`/`limit` chuẩn hóa qua `normalizePagination` (`src/server/utils/pagination.ts`): page ≥ 1, 1 ≤ limit ≤ 100, giá trị sai dùng mặc định.
 - Mọi response 401 (`unauthorizedResponse`) cố xóa cookie `access_token` (best-effort; proxy kiểm tra `tokenVersion` cho request trang nên không phụ thuộc việc xóa cookie).
 
@@ -86,19 +86,7 @@ Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; 
 
 ## Trang và menu
 
-| URL | Feature folder | Nội dung |
-|---|---|---|
-| `/` | `auth-login` | Đăng nhập |
-| `/dashboard` | `dashboard` | Thống kê tháng, tài sản, dòng tiền, dư nợ thẻ |
-| `/expenses` | `expenses` | Bảng + form chi tiêu (tùy chọn "tiếp tục tạo"); `?action=create` mở sẵn modal, kèm `sourceOfMoneyId`/`amount`/`note`/`cardFeeType` thì điền sẵn form |
-| `/incomes` | `incomes` | Bảng + form thu nhập (tùy chọn "tiếp tục tạo") |
-| `/transfers` | `transfers` | Lịch sử chuyển tiền: tạo, xóa; `?action=create` mở sẵn modal, kèm `fromSourceId`/`toSourceId`/`amount` thì điền sẵn form (nút "Trả nợ" trên dashboard) |
-| `/sources-of-money` | `sources-of-money` | Nguồn tiền, kéo-thả, chuyển tiền nhanh, lịch sử giao dịch, tạo link chia sẻ |
-| `/credit-card-compare` | `credit-card-compare` | So sánh thẻ tín dụng theo kịch bản sử dụng (chỉ tính phía client từ danh sách nguồn tiền) |
-| `/categories` | `categories` | Danh mục, kéo-thả, lọc theo loại |
-| `/share/[token]` | `public-share` | **Public, không cần đăng nhập**: lịch sử giao dịch một nguồn qua link chia sẻ ([business/source-history.md](business/source-history.md)) |
-
-Menu: `src/components/layout/navigation-config.tsx` — Dashboard; nhóm "Giao dịch" (Chi tiêu, Thu nhập, Chuyển tiền); nhóm "Quản lý" (Nguồn tiền, Danh mục). Nghiệp vụ từng trang: [business/README.md](business/README.md).
+Bảng URL → feature, query param của từng trang, menu và điều hướng mobile: [pages.md](pages.md).
 
 ## Thêm một tính năng CRUD mới (checklist)
 
@@ -107,5 +95,5 @@ Menu: `src/components/layout/navigation-config.tsx` — Dashboard; nhóm "Giao d
 3. Service: `src/server/services/<entity>.service.ts`, lọc theo `userId`.
 4. Route: `src/app/api/<entity>/route.ts` và `[id]/route.ts`.
 5. Client: `networkApi/<entity>.api.ts` → `customHooks/use<Entity>.ts` → query key mới trong `configQueryKey`.
-6. UI: `components/features/<entity>/` theo [conventions.md](conventions.md), page ở `app/(protected)/<entity>/`, thêm menu + `menuKey`.
+6. UI: `components/features/<entity>/` theo [conventions.md](conventions.md), page ở `app/(protected)/<entity>/`, thêm menu + `menuKey`, cập nhật [pages.md](pages.md).
 7. Thêm file nghiệp vụ trong [business/](business/README.md) và dòng định tuyến tương ứng trong `AGENTS.md`.

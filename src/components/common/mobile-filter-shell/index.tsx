@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Badge, Button, Drawer, FloatButton, Input } from "antd";
+import { Badge, Button, Drawer, Input } from "antd";
 import { Plus, Search, SlidersHorizontal } from "lucide-react";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 
@@ -16,6 +16,13 @@ type MobileFilterShellProps = {
     createLabel: string;
     onCreate: () => void;
     extraActions?: ReactNode;
+    /** Dòng tổng hợp dưới thanh lọc (VD: dải tổng của danh sách giao dịch) */
+    summary?: ReactNode;
+    /**
+     * Mobile: hiện nút "+" cạnh ô tìm kiếm. Tắt ở trang giao dịch vì nút "+" của thanh điều hướng dưới
+     * đã tạo đúng loại đang xem.
+     */
+    mobileCreate?: boolean;
 };
 
 export default function MobileFilterShell({
@@ -29,6 +36,8 @@ export default function MobileFilterShell({
     createLabel,
     onCreate,
     extraActions,
+    summary,
+    mobileCreate = true,
 }: MobileFilterShellProps) {
     const isMobile = useIsMobile();
     const [open, setOpen] = useState(false);
@@ -56,6 +65,15 @@ export default function MobileFilterShell({
                         </Badge>
                     ) : null}
                     {isMobile ? extraActions : null}
+                    {isMobile && mobileCreate ? (
+                        <Button
+                            type="primary"
+                            aria-label={createLabel}
+                            title={createLabel}
+                            icon={<Plus className="size-4" />}
+                            onClick={onCreate}
+                        />
+                    ) : null}
                 </div>
                 {!isMobile ? desktopFilters : null}
                 <div className="hidden flex-1 items-center justify-end gap-2 md:flex">
@@ -65,19 +83,7 @@ export default function MobileFilterShell({
                     </Button>
                 </div>
             </div>
-            {isMobile ? (
-                <FloatButton
-                    type="primary"
-                    aria-label={createLabel}
-                    tooltip={createLabel}
-                    icon={<Plus className="size-5" />}
-                    onClick={onCreate}
-                    style={{
-                        insetInlineEnd: 16,
-                        bottom: "calc(1rem + env(safe-area-inset-bottom))",
-                    }}
-                />
-            ) : null}
+            {summary}
             {hasFilters ? (
                 <Drawer
                     title="Bộ lọc"

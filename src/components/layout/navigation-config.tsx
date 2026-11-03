@@ -1,8 +1,10 @@
 import type { ReactNode } from "react"
 import {
-    PieChartIcon,
+    CreditCardIcon,
+    LandmarkIcon,
+    LayoutGridIcon,
     ReceiptIcon,
-    FolderCogIcon,
+    TagsIcon,
     WalletIcon,
 } from "lucide-react"
 import { MENU_KEY } from "@/libs/constants/menuKey"
@@ -34,49 +36,29 @@ export const sidebarConfig: SidebarConfig = {
     },
     navMain: [
         {
-            title: "Dashboard",
-            url: `${MENU_KEY.DASHBOARD}`,
-            icon: <PieChartIcon />,
-            isActive: true,
+            title: "Tổng quan",
+            url: MENU_KEY.DASHBOARD,
+            icon: <LayoutGridIcon />,
         },
         {
             title: "Giao dịch",
-            url: "#",
+            url: MENU_KEY.TRANSACTIONS,
             icon: <ReceiptIcon />,
-            items: [
-                {
-                    title: "Chi tiêu",
-                    url: `${MENU_KEY.EXPENSES}`,
-                },
-                {
-                    title: "Thu nhập",
-                    url: `${MENU_KEY.INCOMES}`,
-                },
-                {
-                    title: "Chuyển tiền",
-                    url: `${MENU_KEY.TRANSFERS}`,
-                },
-            ],
         },
         {
-            title: "Quản lý",
-            url: "#",
-            icon: <FolderCogIcon />,
-            items: [
-                {
-                    title: "Nguồn tiền",
-                    url: `${MENU_KEY.SOURCES_OF_MONEY}`,
-                },
-                {
-                    title: "So sánh thẻ",
-                    url: `${MENU_KEY.CREDIT_CARD_COMPARE}`,
-                },
-                {
-                    title: "Danh mục",
-                    url: `${MENU_KEY.CATEGORIES}`,
-                },
-            ],
+            title: "Nguồn tiền",
+            url: MENU_KEY.SOURCES_OF_MONEY,
+            icon: <LandmarkIcon />,
+        },
+        {
+            title: "Thẻ tín dụng",
+            url: MENU_KEY.CREDIT_CARD_COMPARE,
+            icon: <CreditCardIcon />,
+        },
+        {
+            title: "Danh mục",
+            url: MENU_KEY.CATEGORIES,
+            icon: <TagsIcon />,
         },
     ],
 }
-
