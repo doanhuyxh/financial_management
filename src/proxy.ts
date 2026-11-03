@@ -111,6 +111,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
     // api/public/ và share/: link chia sẻ lịch sử nguồn tiền, xem không cần đăng nhập
     matcher: [
-        "/((?!api/auth|api/public/|share/|public|_next|favicon|robots.txt|sitemap.xml|images|static).*)",
+        // manifest.webmanifest + icon: trình duyệt tải manifest không kèm cookie, chặn thì không cài được PWA
+        "/((?!api/auth|api/public/|share/|public|_next|favicon|robots.txt|sitemap.xml|images|static|manifest.webmanifest|apple-touch-icon|icon-).*)",
     ],
 };

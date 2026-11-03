@@ -1,15 +1,22 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { createContext, useRef, useState, type ReactNode } from "react";
 import { Button, Drawer, Modal } from "antd";
 import type { ModalProps } from "antd";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
+import { useKeyboardInset } from "@/libs/hooks/useKeyboardInset";
 
 /**
  * Đặt class này lên Form.Item (hoặc phần tử bao ô nhập) để modal focus vào ô đó sau khi mở,
  * thay vì nút đóng (X) mà antd focus mặc định.
  */
 export const MODAL_AUTOFOCUS_CLASS = "js-modal-autofocus";
+
+/**
+ * Chỗ trống ở đầu footer Drawer (chỉ trên mobile) để component con portal vào, VD bàn phím số của AmountInput.
+ * null khi không ở trong ResponsiveModal mobile.
+ */
+export const ModalFooterSlotContext = createContext<HTMLElement | null>(null);
 
 /** Focus lại ô có MODAL_AUTOFOCUS_CLASS (VD: sau khi lưu với "Tạo tiếp"). */
 export function focusModalField() {
@@ -52,8 +59,11 @@ export default function ResponsiveModal({
 }: ResponsiveModalProps) {
     const isMobile = useIsMobile();
     const bodyRef = useRef<HTMLDivElement>(null);
+    const [footerSlot, setFooterSlot] = useState<HTMLDivElement | null>(null);
+    const keyboard = useKeyboardInset(isMobile && open);
     const focusInitialField = (isOpen: boolean) => {
-        if (!isOpen) return;
+        // Mobile: không tự focus để bàn phím hệ thống không bật lên che form ngay khi mở
+        if (!isOpen || isMobile) return;
         bodyRef.current
             ?.querySelector<HTMLElement>(`.${MODAL_AUTOFOCUS_CLASS} input, .${MODAL_AUTOFOCUS_CLASS} textarea`)
             ?.focus();
@@ -73,9 +83,10 @@ export default function ResponsiveModal({
         );
 
         let footerNode: ReactNode = (
-            <div className="flex flex-col-reverse gap-2 pb-safe">
-                {okButton}
+            // 1 hàng để footer không chiếm chỗ của form: Hủy hẹp bên trái, nút chính rộng bên phải
+            <div className="grid grid-cols-[1fr_2fr] gap-2 pb-safe">
                 {cancelButton}
+                {okButton}
             </div>
         );
 
@@ -89,23 +100,38 @@ export default function ResponsiveModal({
             footerNode = footer;
         }
 
+        // Bàn phím hệ thống đang mở (ô ghi chú, ô tìm trong Select...): đẩy Drawer lên trên bàn phím
+        // và cho cao vừa phần màn hình còn thấy, để footer không bị che.
+        const keyboardOpen = keyboard.bottom > 0;
+
         return (
             <Drawer
                 open={open}
                 title={title}
                 placement="bottom"
-                size="90dvh"
+                size={keyboardOpen ? keyboard.visibleHeight : "90dvh"}
                 onClose={onCancel}
                 destroyOnHidden={destroyOnHidden}
                 mask={mask}
                 classNames={{ body: "scrollbar-theme" }}
                 styles={{
-                    body: { maxHeight: "calc(90dvh - 120px)", overflowY: "auto" },
+                    wrapper: keyboardOpen ? { bottom: keyboard.bottom } : undefined,
+                    body: { overflowY: "auto" },
+                    footer: { paddingTop: 8 },
                 }}
-                footer={footerNode}
+                footer={
+                    footerNode === null ? null : (
+                        <>
+                            <div ref={setFooterSlot} />
+                            {footerNode}
+                        </>
+                    )
+                }
                 afterOpenChange={focusInitialField}
             >
-                <div ref={bodyRef}>{children}</div>
+                <ModalFooterSlotContext.Provider value={footerSlot}>
+                    <div ref={bodyRef}>{children}</div>
+                </ModalFooterSlotContext.Provider>
             </Drawer>
         );
     }

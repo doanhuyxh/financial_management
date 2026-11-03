@@ -65,7 +65,8 @@ features/<feature>/
 - Khối nội dung dạng thẻ dùng `bg-card`, không dùng `bg-background`.
 - Thêm/sửa màu: sửa token trong `src/app/globals.css` **và** hex tương ứng trong `src/libs/constants/themeColors.ts`.
 - Kéo-thả trên danh sách đã lọc phía client (tab, ẩn mục trống): ghép thứ tự bằng `mergeSubsetOrder` (`src/libs/utils/reorder.ts`) vì API reorder cần đủ toàn bộ ID.
-- Modal/Drawer qua `ResponsiveModal`: đặt `className={MODAL_AUTOFOCUS_CLASS}` lên `Form.Item` cần focus khi mở (mặc định antd focus nút đóng).
+- Modal/Drawer qua `ResponsiveModal`: đặt `className={MODAL_AUTOFOCUS_CLASS}` lên `Form.Item` cần focus khi mở (mặc định antd focus nút đóng). Chỉ áp dụng desktop: trên mobile (Drawer) không tự focus để bàn phím không che form; Drawer tự đẩy lên trên bàn phím hệ thống (`useKeyboardInset`). Footer mobile luôn 1 hàng.
+- Ô số tiền của form giao dịch dùng `AmountInput` (`common/amount-input`): desktop là ô nhập số, mobile là ô hiển thị + bàn phím số riêng portal vào footer Drawer (`ModalFooterSlotContext`). Phần tử bấm vào mà không muốn ẩn bàn phím số thì gắn `KEEP_AMOUNT_KEYPAD_ATTR`.
 
 ## Git
 

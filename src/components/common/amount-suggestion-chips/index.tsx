@@ -1,6 +1,7 @@
 "use client";
 
 import { Tag } from "antd";
+import { KEEP_AMOUNT_KEYPAD_ATTR } from "@/components/common/amount-input";
 
 const amountFormatter = new Intl.NumberFormat("vi-VN");
 
@@ -20,7 +21,7 @@ export default function AmountSuggestionChips({
     const current = Number(value);
 
     return (
-        <div className="mt-1.5 flex flex-wrap items-center gap-y-1.5">
+        <div className="mt-1.5 flex flex-wrap items-center gap-y-1.5" {...{ [KEEP_AMOUNT_KEYPAD_ATTR]: "" }}>
             <span className="mr-1.5 shrink-0 text-xs text-muted-foreground">Gợi ý:</span>
             {amounts.map((amount) => (
                 <Tag.CheckableTag

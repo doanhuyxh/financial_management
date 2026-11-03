@@ -17,6 +17,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Android Chrome: co layout khi bàn phím ảo mở để Drawer/footer không bị bàn phím che
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#171412" },
@@ -26,6 +28,14 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Money Manager",
   description: "Money Manager",
+  applicationName: "Money Manager",
+  // Mở từ "Thêm vào MH chính" trên iOS: chạy toàn màn hình như app
+  appleWebApp: {
+    capable: true,
+    title: "Money",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",

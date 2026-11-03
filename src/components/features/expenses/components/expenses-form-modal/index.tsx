@@ -11,10 +11,8 @@ import QuickDateField from "@/components/common/quick-date-field";
 import TransactionTypeSwitch from "@/components/common/transaction-type-switch";
 import { useSubmitShortcut } from "@/libs/hooks/useHotkey";
 import dayjs from "dayjs";
-import DebouncedNumberInput, {
-    LARGE_AMOUNT_INPUT_CLASS,
-} from "@/components/common/input/DebouncedNumberInput";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
+import AmountInput from "@/components/common/amount-input";
 import CardUsageFeeAlert from "@/components/features/expenses/components/expenses-form-modal/components/card-usage-fee-alert";
 import { useExpensesContext } from "@/components/features/expenses/context";
 import {
@@ -305,9 +303,9 @@ export default function ExpensesFormModal() {
             cancelText="Hủy"
             width={520}
             footer={(_, { OkBtn, CancelBtn }) => (
-                <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center justify-between gap-3">
                     {!isEdit ? (
-                        <label className="flex items-center gap-2 text-sm text-neutral-600">
+                        <label className="flex shrink-0 items-center gap-2 text-sm text-neutral-600">
                             <Switch
                                 size="small"
                                 checked={keepCreating}
@@ -315,12 +313,15 @@ export default function ExpensesFormModal() {
                             />
                             Tạo tiếp
                         </label>
-                    ) : (
-                        <span />
-                    )}
-                    <div className="flex flex-col-reverse gap-2 md:flex-row md:items-center">
-                        <CancelBtn />
-                        <OkBtn />
+                    ) : null}
+                    {/* Mobile: 1 hàng [Tạo tiếp | nút chính], bỏ Hủy vì Drawer đã có nút đóng */}
+                    <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
+                        <span className="hidden md:contents">
+                            <CancelBtn />
+                        </span>
+                        <div className="flex-1 md:flex-none">
+                            <OkBtn />
+                        </div>
                     </div>
                 </div>
             )}
@@ -339,14 +340,7 @@ export default function ExpensesFormModal() {
                         />
                     }
                 >
-                    <DebouncedNumberInput
-                        min={0}
-                        placeholder="0"
-                        delay={300}
-                        size="large"
-                        suffix="₫"
-                        className={LARGE_AMOUNT_INPUT_CLASS}
-                    />
+                    <AmountInput defaultKeypadOpen={!isEdit} />
                 </Form.Item>
 
                 <Form.Item label="Danh mục" required>
