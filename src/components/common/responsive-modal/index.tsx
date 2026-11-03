@@ -1,9 +1,15 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { Button, Drawer, Modal } from "antd";
 import type { ModalProps } from "antd";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
+
+/**
+ * Đặt class này lên Form.Item (hoặc phần tử bao ô nhập) để modal focus vào ô đó sau khi mở,
+ * thay vì nút đóng (X) mà antd focus mặc định.
+ */
+export const MODAL_AUTOFOCUS_CLASS = "js-modal-autofocus";
 
 type ResponsiveModalProps = {
     open: boolean;
@@ -36,6 +42,13 @@ export default function ResponsiveModal({
     children,
 }: ResponsiveModalProps) {
     const isMobile = useIsMobile();
+    const bodyRef = useRef<HTMLDivElement>(null);
+    const focusInitialField = (isOpen: boolean) => {
+        if (!isOpen) return;
+        bodyRef.current
+            ?.querySelector<HTMLElement>(`.${MODAL_AUTOFOCUS_CLASS} input, .${MODAL_AUTOFOCUS_CLASS} textarea`)
+            ?.focus();
+    };
     const mask = maskClosable === undefined ? undefined : { closable: maskClosable };
 
     if (isMobile) {
@@ -81,8 +94,9 @@ export default function ResponsiveModal({
                     body: { maxHeight: "calc(90dvh - 120px)", overflowY: "auto" },
                 }}
                 footer={footerNode}
+                afterOpenChange={focusInitialField}
             >
-                {children}
+                <div ref={bodyRef}>{children}</div>
             </Drawer>
         );
     }
@@ -114,8 +128,9 @@ export default function ResponsiveModal({
                     paddingRight: 10,
                 },
             }}
+            afterOpenChange={focusInitialField}
         >
-            {children}
+            <div ref={bodyRef}>{children}</div>
         </Modal>
     );
 }

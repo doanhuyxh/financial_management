@@ -46,7 +46,7 @@ const columns: ColumnsType<ICreditCardDebtItem> = [
         key: "currentDebt",
         align: "right",
         render: (value: number) => (
-            <span className="font-medium text-red-500">
+            <span className="font-medium text-debt">
                 {formatMoney(value)}
             </span>
         ),
@@ -97,7 +97,7 @@ export default function CreditCardDebts() {
     const isMobile = useIsMobile();
 
     return (
-        <div className="rounded-xl border border-border bg-background p-4">
+        <div className="rounded-xl border border-border bg-card p-4">
             <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <h2 className="text-base font-semibold">Dư nợ thẻ tín dụng</h2>
@@ -108,7 +108,7 @@ export default function CreditCardDebts() {
                 {creditCardDebts.length > 0 ? (
                     <p className="text-sm text-muted-foreground">
                         Tổng dư nợ:{" "}
-                        <span className="font-medium text-red-500">
+                        <span className="font-medium text-debt">
                             {formatMoney(totalCreditDebt)}
                         </span>
                     </p>
@@ -135,7 +135,7 @@ export default function CreditCardDebts() {
                                 <div className="flex flex-col gap-2">
                                     <div className="flex items-start justify-between gap-3">
                                         <span className="font-semibold">{item.name}</span>
-                                        <span className="font-semibold text-red-500">
+                                        <span className="font-semibold text-debt">
                                             {formatMoney(item.currentDebt)}
                                         </span>
                                     </div>

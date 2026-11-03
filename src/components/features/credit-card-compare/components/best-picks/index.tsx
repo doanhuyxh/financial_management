@@ -20,7 +20,7 @@ export default function BestPicks() {
             {bestPicks.map((item) => (
                 <div
                     key={item.key}
-                    className="flex flex-col gap-1 rounded-xl border border-border bg-background p-4"
+                    className="flex flex-col gap-1 rounded-xl border border-border bg-card p-4"
                 >
                     <span className="flex items-center gap-2 text-sm text-muted-foreground">
                         {ICONS[item.key]}

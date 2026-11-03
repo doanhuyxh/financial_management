@@ -1,9 +1,10 @@
-import { Progress, Tag } from "antd";
+import { Progress } from "antd";
 import type { IFeeWaiverProgress } from "@/components/features/dashboard/utils";
 import { cn } from "@/libs/shadcn/utils";
 
 // Đỏ: còn xa mức miễn phí, vàng: đã quá nửa, xanh: đạt
-const STROKE_COLORS = { low: "#ef4444", mid: "#f59e0b", done: "#22c55e" };
+const STROKE_COLORS = { low: "var(--debt)", mid: "var(--warn)", done: "var(--money-in)" };
+const TEXT_CLASS = { low: "text-debt", mid: "text-warn", done: "text-money-in" };
 
 /** Thanh tiến độ của một điều kiện miễn phí (chi tiêu hoặc số giao dịch). */
 export default function WaiverProgress({
@@ -22,16 +23,16 @@ export default function WaiverProgress({
         <div className="min-w-44">
             <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-muted-foreground">{label}</span>
-                <Tag color={waiver.achieved ? "green" : "red"} variant="solid" className="m-0">
+                <span className={cn("font-semibold tabular-nums", TEXT_CLASS[level])}>
                     {waiver.achieved ? "Đạt" : `${percent}%`}
-                </Tag>
+                </span>
             </div>
             <Progress
                 percent={percent}
                 size="small"
                 showInfo={false}
                 strokeColor={STROKE_COLORS[level]}
-                railColor="rgba(148, 163, 184, 0.35)"
+                railColor="var(--muted)"
             />
             <span className="text-xs text-muted-foreground">
                 {format(waiver.current)} / {format(waiver.target)}
@@ -40,7 +41,7 @@ export default function WaiverProgress({
                 <span
                     className={cn(
                         "block text-xs font-medium",
-                        level === "low" ? "text-red-500" : "text-amber-500",
+                        level === "low" ? "text-debt" : "text-warn",
                     )}
                 >
                     Còn thiếu {format(waiver.target - waiver.current)}

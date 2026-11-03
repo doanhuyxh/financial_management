@@ -28,13 +28,6 @@ export default function CategoryTable() {
     const columns: ColumnsType<ICategoriesData> = useMemo(
         () => [
             {
-                title: "STT",
-                key: "index",
-                width: 72,
-                responsive: ["md"],
-                render: (_value, _record, index) => index + 1,
-            },
-            {
                 title: "Tên danh mục",
                 dataIndex: "name",
                 key: "name",

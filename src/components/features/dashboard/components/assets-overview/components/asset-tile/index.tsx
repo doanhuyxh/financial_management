@@ -20,7 +20,7 @@ export default function AssetTile({
     return (
         <div
             className={cn(
-                "flex min-w-0 flex-col gap-1 rounded-xl border bg-background p-3 sm:p-4",
+                "flex min-w-0 flex-col gap-1 rounded-xl border bg-card p-3 sm:p-4",
                 highlight
                     ? "border-primary/40 bg-linear-to-br from-primary/15 to-transparent"
                     : "border-border",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Button, Space, Table, Tag } from "antd";
+import { Button, Space, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Trash2 } from "lucide-react";
 import MobileRecordList from "@/components/common/mobile-record-list";
@@ -13,10 +13,8 @@ import {
     getTransferSource,
 } from "@/components/features/transfers/utils";
 import type { ITransfersData } from "@/libs/interfaces/transfersData";
-import {
-    SOURCES_OF_MONEY_TYPE_LABELS,
-    SourcesOfMoneyType,
-} from "@/libs/interfaces/sourcesOfMoneyData";
+import Money from "@/components/common/money";
+import { formatDate } from "@/libs/utils/formatDate";
 
 export default function TransfersTable() {
     const {
@@ -33,19 +31,12 @@ export default function TransfersTable() {
     const columns: ColumnsType<ITransfersData> = useMemo(
         () => [
             {
-                title: "STT",
-                key: "index",
-                width: 64,
-                responsive: ["md"],
-                render: (_value, _record, index) => (page - 1) * pageSize + index + 1,
-            },
-            {
                 title: "Ngày chuyển",
                 dataIndex: "transferredAt",
                 key: "transferredAt",
                 width: 120,
                 render: (value?: string) =>
-                    value ? new Date(value).toLocaleDateString("vi-VN") : "—",
+                    formatDate(value),
             },
             {
                 title: "Từ",
@@ -53,16 +44,7 @@ export default function TransfersTable() {
                 render: (_value, record) => {
                     const source = getTransferSource(record.fromSourceId);
                     if (!source) return "—";
-                    return (
-                        <div className="flex flex-col gap-0.5">
-                            <span>{source.name}</span>
-                            <Tag className="w-fit">
-                                {SOURCES_OF_MONEY_TYPE_LABELS[
-                                    source.type as SourcesOfMoneyType
-                                ] ?? source.type}
-                            </Tag>
-                        </div>
-                    );
+                    return <span>{source.name}</span>;
                 },
             },
             {
@@ -71,16 +53,7 @@ export default function TransfersTable() {
                 render: (_value, record) => {
                     const source = getTransferSource(record.toSourceId);
                     if (!source) return "—";
-                    return (
-                        <div className="flex flex-col gap-0.5">
-                            <span>{source.name}</span>
-                            <Tag className="w-fit">
-                                {SOURCES_OF_MONEY_TYPE_LABELS[
-                                    source.type as SourcesOfMoneyType
-                                ] ?? source.type}
-                            </Tag>
-                        </div>
-                    );
+                    return <span>{source.name}</span>;
                 },
             },
             {
@@ -88,8 +61,9 @@ export default function TransfersTable() {
                 dataIndex: "amount",
                 key: "amount",
                 width: 140,
+                align: "right",
                 render: (amount: number) => (
-                    <span className="font-semibold">{formatMoney(amount)}</span>
+                    <Money value={amount} className="font-semibold" />
                 ),
             },
             {
@@ -101,7 +75,7 @@ export default function TransfersTable() {
                     const category = getTransferCategory(record.feeCategoryId);
                     return (
                         <div className="flex flex-col gap-0.5">
-                            <span className="text-rose-600">
+                            <span className="text-money-out tabular-nums">
                                 {formatMoney(record.feeAmount)}
                                 {record.feePercent
                                     ? ` (${record.feePercent}%)`
@@ -173,9 +147,7 @@ export default function TransfersTable() {
                                 <span className="font-semibold">{formatMoney(record.amount)}</span>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                {record.transferredAt
-                                    ? new Date(record.transferredAt).toLocaleDateString("vi-VN")
-                                    : "—"}
+                                {formatDate(record.transferredAt)}
                                 {record.feeAmount ? ` · Phí ${formatMoney(record.feeAmount)}` : ""}
                             </p>
                             <div className="flex items-end justify-between gap-2">

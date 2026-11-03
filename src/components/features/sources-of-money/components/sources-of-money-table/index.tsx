@@ -14,6 +14,7 @@ import {
     SourcesOfMoneyType,
     type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import Money from "@/components/common/money";
 
 const TYPE_COLORS: Record<SourcesOfMoneyType, string> = {
     [SourcesOfMoneyType.CASH]: "green",
@@ -39,13 +40,6 @@ export default function SourcesOfMoneyTable() {
 
     const columns: ColumnsType<ISourcesOfMoneyData> = useMemo(
         () => [
-            {
-                title: "STT",
-                key: "index",
-                width: 64,
-                responsive: ["md"],
-                render: (_value, _record, index) => index + 1,
-            },
             {
                 title: "Tên",
                 dataIndex: "name",
@@ -82,8 +76,8 @@ export default function SourcesOfMoneyTable() {
                             record.availableCreditLimit ?? Math.max(0, limit - debt);
                         return (
                             <div className="text-sm leading-5">
-                                <div className="font-semibold text-orange-500">
-                                    Dư nợ: {formatMoney(debt)}
+                                <div className={debt ? "font-semibold text-debt" : "font-medium text-muted-foreground"}>
+                                    {debt ? <>Dư nợ: {formatMoney(debt)}</> : "Không dư nợ"}
                                 </div>
                                 <div className="text-muted-foreground">
                                     Hạn mức: {formatMoney(limit)} · Còn lại:{" "}
@@ -93,7 +87,7 @@ export default function SourcesOfMoneyTable() {
                             </div>
                         );
                     }
-                    return formatMoney(record.balance);
+                    return <Money value={record.balance} mutedZero className="font-medium" />;
                 },
             },
             {

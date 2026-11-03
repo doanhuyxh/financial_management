@@ -7,7 +7,7 @@ export default function PaymentFeeInfo({ status }: { status: IPaymentFeeStatus |
     if (!status) return <span className="text-muted-foreground">—</span>;
     return (
         <div className="flex flex-col gap-1">
-            <span className={status.estimatedTotal > 0 ? "font-semibold text-red-500" : undefined}>
+            <span className={status.estimatedTotal > 0 ? "font-semibold text-debt" : undefined}>
                 ≈{formatMoney(status.fee)}/lần
                 {status.freePayments > 0 ? ` từ lần ${status.freePayments + 1}` : ""}
             </span>

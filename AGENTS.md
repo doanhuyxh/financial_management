@@ -1,6 +1,11 @@
 <!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 # Money Manager — Agent Hub
@@ -35,6 +40,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 4. 1 component = 1 folder `kebab-case` có `index.tsx`. Ưu tiên antd / shadcn / lucide-react.
 5. Kiểm tra `src/libs/hooks/`, `src/libs/utils/` và `hooks/` của feature trước khi tạo hàm/hook mới.
 6. Xong việc: `bun run lint` và `bun run build` không lỗi.
+7. Sản phẩm thiết kế giao diện (mockup, prototype, banner, slide, design system, kế hoạch UI — kể cả khi dùng skill `design`, `ui-ux-pro-max`, `ui-styling`, `design-system`, `banner-design`, `brand`, `slides`) **chỉ lưu local trong `plan_all/`**: đặt tên `NN-ten-ngan.md` / `NN-ten-ngan-mockup.html`, thêm 1 dòng vào bảng trong `plan_all/README.md`. **Không đẩy lên đám mây**: không dùng Artifact, Claude Docs, Figma, Cloudinary, Notion, Google Drive… trừ khi user yêu cầu rõ trong tin nhắn. Asset ảnh do skill tạo cũng lưu trong `plan_all/` (thư mục con theo tên file kế hoạch), không upload.
 
 ## Giữ tài liệu đúng
 

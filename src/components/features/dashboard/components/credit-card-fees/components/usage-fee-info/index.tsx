@@ -7,7 +7,7 @@ export default function UsageFeeInfo({ status }: { status: IUsageFeeStatus | nul
     if (!status) return <span className="text-muted-foreground">—</span>;
     return (
         <div className="flex flex-col gap-1">
-            <span className={status.charged ? "font-semibold text-red-500" : undefined}>
+            <span className={status.charged ? "font-semibold text-debt" : undefined}>
                 ≈{formatMoney(status.fee)}/kỳ có chi tiêu
             </span>
             {status.transactions != null ? (

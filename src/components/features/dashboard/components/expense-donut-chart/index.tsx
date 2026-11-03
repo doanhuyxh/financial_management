@@ -7,6 +7,7 @@ import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatMoney, formatPercent } from "@/libs/utils/formatMoney";
 import DonutLegend from "@/components/features/dashboard/components/expense-donut-chart/components/donut-legend";
+import { THEME_COLORS } from "@/libs/constants/themeColors";
 
 // G2 is ~380KB gzipped: load it in a separate chunk, client-only.
 const Pie = dynamic(() => import("@ant-design/plots").then((mod) => mod.Pie), {
@@ -113,9 +114,9 @@ export default function ExpenseDonutChart({
                 style: {
                     fontSize: 11,
                     lineHeight: 14,
-                    fill: isDark ? "#e2e8f0" : "#0f172a",
+                    fill: THEME_COLORS[isDark ? "dark" : "light"].fg,
                 },
-                connectorStroke: isDark ? "#64748b" : "#94a3b8",
+                connectorStroke: THEME_COLORS[isDark ? "dark" : "light"].muted,
             },
             tooltip: {
                 title: "name",
@@ -140,7 +141,7 @@ export default function ExpenseDonutChart({
     );
 
     return (
-        <div className="rounded-xl border border-border bg-background p-4">
+        <div className="rounded-xl border border-border bg-card p-4">
             <div className="mb-3">
                 <h2 className="text-base font-semibold">{title}</h2>
                 <p className="text-xs text-muted-foreground">{subtitle}</p>

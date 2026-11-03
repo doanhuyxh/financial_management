@@ -23,7 +23,7 @@ export default function AnnualFeeInfo({ item }: { item: ICreditCardFeeItem }) {
                 <span
                     className={cn(
                         "font-semibold",
-                        waived ? "text-green-500 line-through" : "text-red-500",
+                        waived ? "text-money-in line-through" : "text-debt",
                     )}
                 >
                     ≈{formatMoney(item.annualFee)}

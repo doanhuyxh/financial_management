@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DatePicker, Form, Input, Select, Switch } from "antd";
-import ResponsiveModal from "@/components/common/responsive-modal";
+import ResponsiveModal, { MODAL_AUTOFOCUS_CLASS } from "@/components/common/responsive-modal";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
@@ -266,6 +266,7 @@ export default function IncomesFormModal() {
 
                 <Form.Item
                     name="amount"
+                    className={MODAL_AUTOFOCUS_CLASS}
                     label="Số tiền"
                     rules={[{ required: true, message: "Số tiền là bắt buộc" }]}
                     extra={
@@ -276,7 +277,7 @@ export default function IncomesFormModal() {
                         />
                     }
                 >
-                    <DebouncedNumberInput min={0} placeholder="0" delay={300} />
+                    <DebouncedNumberInput min={0} placeholder="Nhập số tiền" delay={300} />
                 </Form.Item>
 
                 <Form.Item name="note" label="Ghi chú">

@@ -13,7 +13,7 @@ export default function ChangeText({ ratio, higherIsBetter }: IChangeTextProps) 
     if (ratio === 0) return <span>Bằng tháng trước</span>;
     const isGood = ratio > 0 === higherIsBetter;
     return (
-        <span className={cn(isGood ? "text-green-600" : "text-red-500")}>
+        <span className={cn(isGood ? "text-money-in" : "text-money-out")}>
             {ratio > 0 ? "▲" : "▼"} {formatPercent(Math.abs(ratio))} so với tháng trước
         </span>
     );

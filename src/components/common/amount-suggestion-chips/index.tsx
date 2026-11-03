@@ -1,7 +1,6 @@
 "use client";
 
 import { Tag } from "antd";
-import { Sparkles } from "lucide-react";
 
 const amountFormatter = new Intl.NumberFormat("vi-VN");
 
@@ -22,7 +21,7 @@ export default function AmountSuggestionChips({
 
     return (
         <div className="mt-1.5 flex flex-wrap items-center gap-y-1.5">
-            <Sparkles className="mr-1.5 size-3.5 shrink-0 text-neutral-400" aria-hidden />
+            <span className="mr-1.5 shrink-0 text-xs text-muted-foreground">Gợi ý:</span>
             {amounts.map((amount) => (
                 <Tag.CheckableTag
                     key={amount}

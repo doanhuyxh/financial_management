@@ -1,23 +1,20 @@
 "use client";
 
 import { useMemo } from "react";
-import { Button, Space, Table, Tag, Tooltip } from "antd";
+import { Button, Space, Table, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Pencil, Trash2 } from "lucide-react";
 import MobileRecordList from "@/components/common/mobile-record-list";
 import FeeTag from "@/components/features/expenses/components/expenses-table/components/fee-tag";
 import { useExpensesContext } from "@/components/features/expenses/context";
 import {
-    formatMoney,
     getExpenseCategory,
     getExpenseSource,
 } from "@/components/features/expenses/utils";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import type { IExpensesData } from "@/libs/interfaces/expensesData";
-import {
-    SOURCES_OF_MONEY_TYPE_LABELS,
-    SourcesOfMoneyType,
-} from "@/libs/interfaces/sourcesOfMoneyData";
+import Money from "@/components/common/money";
+import { formatDate } from "@/libs/utils/formatDate";
 
 const FEE_LOCKED_HINT = "Phí chuyển tiền: xóa giao dịch chuyển tiền gốc để thay đổi";
 
@@ -37,27 +34,21 @@ export default function ExpensesTable() {
     const columns: ColumnsType<IExpensesData> = useMemo(
         () => [
             {
-                title: "STT",
-                key: "index",
-                width: 64,
-                responsive: ["md"],
-                render: (_value, _record, index) => (page - 1) * pageSize + index + 1,
-            },
-            {
                 title: "Ngày chi",
                 dataIndex: "spentAt",
                 key: "spentAt",
                 width: 120,
                 render: (value?: string) =>
-                    value ? new Date(value).toLocaleDateString("vi-VN") : "—",
+                    formatDate(value),
             },
             {
                 title: "Số tiền",
                 dataIndex: "amount",
                 key: "amount",
                 width: 140,
+                align: "right",
                 render: (amount: number) => (
-                    <span className="font-semibold text-rose-600">{formatMoney(amount)}</span>
+                    <Money value={amount} kind="out" className="font-semibold" />
                 ),
             },
             {
@@ -76,15 +67,7 @@ export default function ExpensesTable() {
                 render: (_value, record) => {
                     const source = getExpenseSource(record);
                     if (!source) return "—";
-                    return (
-                        <div className="flex flex-col gap-0.5">
-                            <span>{source.name}</span>
-                            <Tag className="hidden w-fit md:inline-flex">
-                                {SOURCES_OF_MONEY_TYPE_LABELS[source.type as SourcesOfMoneyType] ??
-                                    source.type}
-                            </Tag>
-                        </div>
-                    );
+                    return <span>{source.name}</span>;
                 },
             },
             {
@@ -152,14 +135,10 @@ export default function ExpensesTable() {
                                     {getExpenseCategory(record)?.name ?? "—"}
                                     <FeeTag record={record} />
                                 </span>
-                                <span className="font-semibold text-rose-600">
-                                    {formatMoney(record.amount)}
-                                </span>
+                                <Money value={record.amount} kind="out" className="font-semibold" />
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                {record.spentAt
-                                    ? new Date(record.spentAt).toLocaleDateString("vi-VN")
-                                    : "—"}
+                                {formatDate(record.spentAt)}
                                 {" · "}
                                 {source?.name ?? "—"}
                             </p>

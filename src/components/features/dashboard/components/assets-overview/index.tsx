@@ -23,29 +23,28 @@ export default function AssetsOverview() {
                 <AssetTile
                     highlight
                     label="Tổng tài sản"
-                    icon={<PiggyBank className="size-4 text-primary" />}
+                    icon={<PiggyBank className="size-4 text-muted-foreground" />}
                     value={money(assets.totalAssets)}
                     description="Tiền mặt + tín dụng có thể dùng"
                 />
                 <AssetTile
                     label="Tiền mặt"
-                    icon={<Banknote className="size-4 text-green-500" />}
+                    icon={<Banknote className="size-4 text-muted-foreground" />}
                     value={money(assets.cashTotal)}
-                    valueClassName="text-green-500"
                     description={`${assets.cashSources.length} nguồn · ngân hàng, ví, tiền mặt`}
                 />
                 <AssetTile
                     label="Tín dụng có thể dùng"
-                    icon={<CreditCard className="size-4 text-blue-500" />}
+                    icon={<CreditCard className="size-4 text-credit" />}
                     value={money(assets.availableCreditTotal)}
-                    valueClassName="text-blue-500"
+                    valueClassName="text-credit"
                     description={
                         <>
                             <Progress
                                 percent={creditRemainingPercent}
                                 showInfo={false}
                                 size="small"
-                                strokeColor="#3b82f6"
+                                strokeColor="var(--credit)"
                                 className="m-0"
                             />
                             Còn {creditRemainingPercent}% của{" "}
@@ -57,7 +56,7 @@ export default function AssetsOverview() {
                     label="Tài sản ròng"
                     icon={<Scale className="size-4 text-muted-foreground" />}
                     value={money(assets.netWorth)}
-                    valueClassName={assets.netWorth < 0 ? "text-red-500" : undefined}
+                    valueClassName={assets.netWorth < 0 ? "text-debt" : undefined}
                     description="Tiền mặt − dư nợ thẻ"
                 />
             </div>

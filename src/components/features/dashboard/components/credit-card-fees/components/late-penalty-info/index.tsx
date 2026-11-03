@@ -14,7 +14,7 @@ export default function LatePenaltyInfo({ penalty }: { penalty: ILatePenalty | n
     return (
         <div className="flex flex-col gap-1">
             {interestRate != null ? (
-                <span className="font-semibold text-amber-500">Lãi {interestRate}%/năm</span>
+                <span className="font-semibold text-warn">Lãi {interestRate}%/năm</span>
             ) : null}
             {estimatedMonthlyInterest ? (
                 <span className="text-xs text-muted-foreground">

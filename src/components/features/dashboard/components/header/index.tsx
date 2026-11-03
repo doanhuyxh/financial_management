@@ -60,7 +60,7 @@ export default function DashboardHeader() {
                                 Tổng chi tiêu tháng {monthValue.format("MM/YYYY")}
                             </p>
                             {summary ? (
-                                <p className="text-xl font-bold tracking-tight wrap-break-word text-primary tabular-nums sm:text-3xl">
+                                <p className="text-xl font-bold tracking-tight wrap-break-word text-money-out tabular-nums sm:text-3xl">
                                     {formatMoney(summary.totalAmount)}
                                 </p>
                             ) : (
@@ -75,7 +75,7 @@ export default function DashboardHeader() {
                     />
 
                     <div className="flex min-w-0 items-center gap-4">
-                        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-red-500/15 text-red-500">
+                        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-debt-soft text-debt">
                             <CreditCard className="size-6" />
                         </span>
                         <div className="min-w-0">
@@ -85,7 +85,7 @@ export default function DashboardHeader() {
                             {isSourcesLoading ? (
                                 <Skeleton.Input active size="large" className="mt-1" />
                             ) : (
-                                <p className="text-xl font-bold tracking-tight wrap-break-word text-red-500 tabular-nums sm:text-3xl">
+                                <p className="text-xl font-bold tracking-tight wrap-break-word text-debt tabular-nums sm:text-3xl">
                                     {formatMoney(totalCreditDebt)}
                                 </p>
                             )}

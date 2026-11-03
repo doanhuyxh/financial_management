@@ -1,15 +1,14 @@
 import type { ReactNode } from "react"
 import {
-    GalleryVerticalEndIcon,
     PieChartIcon,
     ReceiptIcon,
     FolderCogIcon,
+    WalletIcon,
 } from "lucide-react"
 import { MENU_KEY } from "@/libs/constants/menuKey"
 export type SidebarTeam = {
     name: string
     logo: ReactNode
-    plan: string
 }
 
 export type SidebarNavMainItem = {
@@ -31,8 +30,7 @@ export type SidebarConfig = {
 export const sidebarConfig: SidebarConfig = {
     teams: {
         name: "Money Manager",
-        logo: <GalleryVerticalEndIcon />,
-        plan: "Free",
+        logo: <WalletIcon />,
     },
     navMain: [
         {

@@ -15,8 +15,8 @@ const GROUP_LABELS: Record<AssetGroup, string> = {
 };
 
 const GROUP_COLORS: Record<AssetGroup, string> = {
-    cash: "text-green-500",
-    credit: "text-blue-500",
+    cash: "text-money-in",
+    credit: "text-credit",
 };
 
 type BreakdownRow =
@@ -133,7 +133,7 @@ export default function AssetsBreakdown() {
     );
 
     return (
-        <div className="rounded-xl border border-border bg-background">
+        <div className="rounded-xl border border-border bg-card">
             <Collapse
                 ghost
                 // defaultActiveKey={["breakdown"]}

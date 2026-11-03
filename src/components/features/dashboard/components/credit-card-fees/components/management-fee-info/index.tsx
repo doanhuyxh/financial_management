@@ -9,7 +9,7 @@ export default function ManagementFeeInfo({ item }: { item: ICreditCardFeeItem }
     return (
         <div className="flex flex-col gap-1">
             <span
-                className={cn("font-semibold", waived ? "text-green-500 line-through" : "text-red-500")}
+                className={cn("font-semibold", waived ? "text-money-in line-through" : "text-debt")}
             >
                 ≈{formatMoney(item.managementFee)}/tháng
             </span>

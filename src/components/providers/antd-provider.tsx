@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ThemeConfig } from "antd";
 import { ConfigProvider, App, theme as antdTheme } from "antd";
 import vi_VN from 'antd/locale/vi_VN';
+import { THEME_COLORS } from "@/libs/constants/themeColors";
 
 export default function AntdProvider({ children }: { children: React.ReactNode }) {
     // Chỉ render trên client (xem ClientApp); class "dark" đã được inline script trong root layout gắn sẵn.
@@ -36,105 +37,84 @@ export default function AntdProvider({ children }: { children: React.ReactNode }
 
     // Stable reference: a new theme object forces antd to recompute tokens and
     // regenerate CSS-in-JS for the whole tree.
-    const themeConfig = useMemo<ThemeConfig>(() => ({
-        algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-        components: {
-            Card: {
-                headerBg: "var(--primary)",
-                headerFontSize: 16,
+    const themeConfig = useMemo<ThemeConfig>(() => {
+        const c = THEME_COLORS[theme];
+        return {
+            algorithm: theme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+            components: {
+                Table: {
+                    headerBg: c.card2,
+                    headerColor: c.muted,
+                    headerSplitColor: "transparent",
+                    headerSortActiveBg: c.card2,
+                    headerSortHoverBg: c.card2,
+                    rowHoverBg: c.bg,
+                    fontWeightStrong: 600,
+                },
+                Button: {
+                    primaryColor: "#ffffff",
+                    primaryShadow: "none",
+                    colorTextDisabled: c.disabledText,
+                    colorBgContainerDisabled: c.disabledBg,
+                },
+                Tabs: {
+                    itemColor: c.muted,
+                    itemSelectedColor: c.accentText,
+                    inkBarColor: c.primary,
+                    itemHoverColor: c.accentText,
+                    itemActiveColor: c.accentText,
+                },
+                Menu: {
+                    itemColor: c.fg,
+                    itemHoverColor: c.accentText,
+                    itemSelectedColor: c.accentText,
+                    popupBg: c.card,
+                },
+                Breadcrumb: {
+                    itemColor: c.muted,
+                    lastItemColor: c.fg,
+                    linkColor: c.muted,
+                    linkHoverColor: c.accentText,
+                    separatorColor: c.muted,
+                },
+                Typography: {
+                    titleMarginTop: 0,
+                    titleMarginBottom: 0,
+                },
             },
-            Table: {
-                headerBg: "var(--primary)",
-                headerColor: "#fff",
+            token: {
+                fontFamily: "inherit",
+                // Hex (không dùng CSS var) để antd tự sinh màu hover/active/nền nhạt.
+                colorPrimary: c.primary,
+                colorInfo: c.primary,
+                colorLink: c.accentText,
+                colorSuccess: c.moneyIn,
+                colorError: c.debt,
+                colorWarning: c.warn,
+                colorText: c.fg,
+                colorTextSecondary: c.muted,
+                colorTextPlaceholder: c.muted,
+                colorTextDisabled: c.disabledText,
+                colorBgLayout: c.bg,
+                colorBgContainer: c.card,
+                colorBgElevated: c.card,
+                colorBgContainerDisabled: c.disabledBg,
+                colorBorder: c.border,
+                colorBorderSecondary: c.border,
+                colorSplit: c.border,
+                borderRadius: 8,
+                borderRadiusLG: 12,
+                controlOutline: "rgba(188, 72, 0, 0.2)",
+                controlOutlineWidth: 2,
             },
-            Button: {
-                colorPrimary: "#BC4800",
-                colorPrimaryHover: "#BC4800",
-                colorPrimaryActive: "#BC4800",
-                primaryColor: "#ffffff",
-                colorTextDisabled: theme === "dark" ? "rgba(248, 250, 252, 0.45)" : "rgba(15, 23, 42, 0.35)",
-                colorBgContainerDisabled: theme === "dark" ? "rgba(248, 250, 252, 0.12)" : "rgba(15, 23, 42, 0.06)",
-            },
-            Tabs: {
-                itemColor: "var(--muted-foreground)",
-                itemSelectedColor: "var(--primary)",
-                inkBarColor: "var(--primary)",
-                itemHoverColor: "var(--primary)",
-                itemActiveColor: "var(--primary)",
-            },
-            Menu: {
-                itemColor: "var(--foreground)",
-                itemHoverColor: "var(--primary)",
-                itemSelectedColor: "var(--primary)",
-                popupBg: "var(--popover)",
-            },
-            Breadcrumb: {
-                itemColor: "var(--muted-foreground)",
-                lastItemColor: "var(--foreground)",
-                linkColor: "var(--muted-foreground)",
-                linkHoverColor: "var(--primary)",
-                separatorColor: "var(--muted-foreground)",
-            },
-            DatePicker: {
-                activeBorderColor: "var(--primary)",
-                hoverBorderColor: "var(--primary)",
-                cellActiveWithRangeBg: "var(--primary)",
-                cellHoverWithRangeBg: "var(--primary)",
-                colorPrimary: "var(--primary)",
-            },
-            Calendar: {
-                fullBg: "var(--background)",
-                itemActiveBg: "var(--primary)",
-            },
-            Spin: {
-                colorPrimary: "var(--primary)",
-            },
-            Pagination: {
-                itemActiveBg: "var(--foreground)",
-                itemActiveColor: "var(--primary)",
-                itemActiveColorHover: "var(--primary)",
-            },
-            Typography: {
-                titleMarginTop: 0,
-                titleMarginBottom: 0,
-            },
-            Input: {
-                colorText: theme === "dark" ? "#f8fafc" : "#0f172a",
-                colorBgContainer: theme === "dark" ? "#0f172a" : "#ffffff",
-                colorTextPlaceholder: theme === "dark" ? "#94a3b8" : "#64748b",
-            },
-            InputNumber: {
-                colorText: theme === "dark" ? "#f8fafc" : "#0f172a",
-                colorBgContainer: theme === "dark" ? "#0f172a" : "#ffffff",
-                colorTextPlaceholder: theme === "dark" ? "#94a3b8" : "#64748b",
-            },
-        },
-        token: {
-            fontFamily: "inherit",
-            // Use hex (not CSS vars) so Ant Design can derive Alert/Button/Input colors.
-            colorPrimary: "#BC4800",
-            colorInfo: "#BC4800",
-            colorLink: "#BC4800",
-            colorLinkHover: "#BC4800",
-            colorLinkActive: "#BC4800",
-            colorText: theme === "dark" ? "#f8fafc" : "#0f172a",
-            colorTextSecondary: theme === "dark" ? "#94a3b8" : "#64748b",
-            colorTextDisabled: theme === "dark" ? "rgba(248, 250, 252, 0.45)" : "rgba(15, 23, 42, 0.35)",
-            colorBgContainer: theme === "dark" ? "#0f172a" : "#ffffff",
-            colorBgContainerDisabled: theme === "dark" ? "rgba(248, 250, 252, 0.12)" : "rgba(15, 23, 42, 0.06)",
-            colorBorder: theme === "dark" ? "#1e293b" : "#e2e8f0",
-            // Focus
-            controlOutline: "rgba(188,72,0,0.2)",
-            controlOutlineWidth: 2,
-        },
-    }), [theme]);
+        };
+    }, [theme]);
 
     return (
         <ConfigProvider
             locale={vi_VN}
             theme={themeConfig}
             tooltip={{
-                className: "bg-red-500 rounded-lg text-white px-2 py-1 text-xs",
                 arrow: {
                     pointAtCenter: true,
                 }

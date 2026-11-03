@@ -6,9 +6,11 @@ import type { ColumnsType } from "antd/es/table";
 import { Pencil, Trash2 } from "lucide-react";
 import MobileRecordList from "@/components/common/mobile-record-list";
 import { useIncomesContext } from "@/components/features/incomes/context";
-import { formatMoney, getIncomeCategory, getIncomeSource } from "@/components/features/incomes/utils";
+import { getIncomeCategory, getIncomeSource } from "@/components/features/incomes/utils";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import type { IIncomesData } from "@/libs/interfaces/incomesData";
+import Money from "@/components/common/money";
+import { formatDate } from "@/libs/utils/formatDate";
 
 export default function IncomesTable() {
     const {
@@ -26,27 +28,21 @@ export default function IncomesTable() {
     const columns: ColumnsType<IIncomesData> = useMemo(
         () => [
             {
-                title: "STT",
-                key: "index",
-                width: 64,
-                responsive: ["md"],
-                render: (_value, _record, index) => (page - 1) * pageSize + index + 1,
-            },
-            {
                 title: "Ngày thu",
                 dataIndex: "receivedAt",
                 key: "receivedAt",
                 width: 120,
                 render: (value?: string) =>
-                    value ? new Date(value).toLocaleDateString("vi-VN") : "—",
+                    formatDate(value),
             },
             {
                 title: "Số tiền",
                 dataIndex: "amount",
                 key: "amount",
                 width: 140,
+                align: "right",
                 render: (amount: number) => (
-                    <span className="font-semibold text-emerald-600">{formatMoney(amount)}</span>
+                    <Money value={amount} kind="in" className="font-semibold" />
                 ),
             },
             {
@@ -123,14 +119,10 @@ export default function IncomesTable() {
                                 <span className="font-semibold">
                                     {getIncomeCategory(record)?.name ?? "—"}
                                 </span>
-                                <span className="font-semibold text-emerald-600">
-                                    {formatMoney(record.amount)}
-                                </span>
+                                <Money value={record.amount} kind="in" className="font-semibold" />
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                {record.receivedAt
-                                    ? new Date(record.receivedAt).toLocaleDateString("vi-VN")
-                                    : "—"}
+                                {formatDate(record.receivedAt)}
                                 {" · "}
                                 {source?.name ?? "—"}
                             </p>

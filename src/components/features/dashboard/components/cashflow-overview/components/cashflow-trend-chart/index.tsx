@@ -7,6 +7,7 @@ import { useDashboardContext } from "@/components/features/dashboard/context";
 import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatCompactMoney, formatMoney } from "@/libs/utils/formatMoney";
+import { THEME_COLORS } from "@/libs/constants/themeColors";
 
 // G2 is ~380KB gzipped: load it in a separate chunk, client-only.
 const Column = dynamic(() => import("@ant-design/plots").then((mod) => mod.Column), {
@@ -16,7 +17,6 @@ const Column = dynamic(() => import("@ant-design/plots").then((mod) => mod.Colum
 
 const INCOME_LABEL = "Thu nhập";
 const EXPENSE_LABEL = "Chi tiêu";
-const SERIES_COLORS = ["#22c55e", "#f43f5e"];
 
 const formatCurrency = (value: number) => formatMoney(value);
 const formatCompact = (value: number) => formatCompactMoney(value);
@@ -30,8 +30,9 @@ export default function CashflowTrendChart() {
     const hasData = (trend ?? []).some((item) => item.income > 0 || item.expense > 0);
 
     const config = useMemo(() => {
-        const tickFill = isDark ? "#cbd5e1" : "#475569";
-        const gridStroke = isDark ? "#334155" : "#e2e8f0";
+        const colors = THEME_COLORS[isDark ? "dark" : "light"];
+        const tickFill = colors.muted;
+        const gridStroke = colors.border;
         const data = (trend ?? []).flatMap((item) => [
             { label: item.label, type: INCOME_LABEL, value: item.income },
             { label: item.label, type: EXPENSE_LABEL, value: item.expense },
@@ -44,7 +45,7 @@ export default function CashflowTrendChart() {
             colorField: "type",
             group: true,
             scale: {
-                color: { domain: [INCOME_LABEL, EXPENSE_LABEL], range: SERIES_COLORS },
+                color: { domain: [INCOME_LABEL, EXPENSE_LABEL], range: [colors.moneyIn, colors.moneyOut] },
             },
             axis: {
                 x: {

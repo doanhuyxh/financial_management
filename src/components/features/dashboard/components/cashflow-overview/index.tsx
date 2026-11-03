@@ -28,7 +28,7 @@ export default function CashflowOverview() {
     const net = cashflow?.net ?? 0;
 
     return (
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-background p-4">
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
             <div>
                 <h2 className="text-base font-semibold">Dòng tiền</h2>
                 <p className="text-xs text-muted-foreground">
@@ -40,9 +40,9 @@ export default function CashflowOverview() {
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 <AssetTile
                     label="Thu nhập"
-                    icon={<ArrowDownLeft className="size-4 text-green-500" />}
+                    icon={<ArrowDownLeft className="size-4 text-money-in" />}
                     value={money(cashflow?.totalIncome)}
-                    valueClassName="text-green-500"
+                    valueClassName="text-money-in"
                     description={
                         cashflow ? (
                             <ChangeText
@@ -54,9 +54,9 @@ export default function CashflowOverview() {
                 />
                 <AssetTile
                     label="Chi tiêu"
-                    icon={<ArrowUpRight className="size-4 text-red-500" />}
+                    icon={<ArrowUpRight className="size-4 text-money-out" />}
                     value={money(cashflow?.totalExpense)}
-                    valueClassName="text-red-500"
+                    valueClassName="text-money-out"
                     description={
                         cashflow ? (
                             <ChangeText
@@ -69,16 +69,16 @@ export default function CashflowOverview() {
                 <AssetTile
                     highlight
                     label="Dòng tiền ròng"
-                    icon={<Scale className="size-4 text-primary" />}
+                    icon={<Scale className="size-4 text-muted-foreground" />}
                     value={money(cashflow?.net)}
-                    valueClassName={net < 0 ? "text-red-500" : "text-primary"}
+                    valueClassName={net < 0 ? "text-debt" : "text-money-in"}
                     description={
                         previous ? `Tháng trước: ${formatMoney(previous.net)}` : "Thu nhập − chi tiêu"
                     }
                 />
                 <AssetTile
                     label="Tỷ lệ tiết kiệm"
-                    icon={<PiggyBank className="size-4 text-blue-500" />}
+                    icon={<PiggyBank className="size-4 text-muted-foreground" />}
                     value={
                         isCashflowLoading || !cashflow ? (
                             <Skeleton.Input active size="small" />
@@ -89,7 +89,7 @@ export default function CashflowOverview() {
                         )
                     }
                     valueClassName={
-                        (cashflow?.savingsRate ?? 0) < 0 ? "text-red-500" : "text-blue-500"
+                        (cashflow?.savingsRate ?? 0) < 0 ? "text-warn" : "text-money-in"
                     }
                     description={
                         cashflow?.savingsRate === null

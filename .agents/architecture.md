@@ -22,17 +22,17 @@ src/
     hooks/customHooks/        # React Query hook dùng chung (gọi networkApi)
     hooks/                    # Hook chung khác (useDebounce, useLocalStorage, useLogout...)
     interfaces/               # Kiểu dữ liệu API dùng chung client + server
-    constants/                # configKey.ts (env, query key, storage key), menuKey.ts
+    constants/                # configKey.ts (env, query key, storage key), menuKey.ts, themeColors.ts (màu hex cho antd)
     redux/                    # authSlice, navigationSlice
     utils/                    # Util thuần, dùng được cả client và server
   components/
     features/<feature>/       # Module theo trang (cấu trúc: conventions.md)
-    common/                   # Component dùng chung nhiều feature
+    common/                   # Component dùng chung nhiều feature (money: hiển thị số tiền theo màu nghĩa)
     layout/                   # Khung trang, menu (navigation-config.tsx)
     providers/                # client-app (gate ssr:false), app-providers, antd, redux, tanstack, auth-bootstrap
     shadcn/ui/                # Component shadcn đã sinh
 scripts/                      # Script một lần + deploy.sh
-plan_all/                     # Kế hoạch cũ (lịch sử, không phải nguồn sự thật)
+plan_all/                     # Kế hoạch + mockup/thiết kế UI (chỉ lưu local, không publish cloud — luật 7 AGENTS.md); không phải nguồn sự thật
 ```
 
 ## Mô hình render (SPA phía client)
@@ -42,6 +42,7 @@ App chỉ có một người dùng nên render như SPA React: server không SSR
 - `app/layout.tsx` không đọc cookie/headers → mọi trang là **static** (`○` khi `bun run build`), HTML build sẵn chỉ chứa màn loading.
 - Toàn bộ providers (React Query, antd, Redux) và page nằm trong `ClientApp` (`components/providers/client-app`, `next/dynamic` với `ssr: false`) → chỉ render trên trình duyệt.
 - Theme: inline script trong `<head>` đọc cookie `theme` và gắn class `dark` trước lần paint đầu; `AntdProvider` đọc class đó khi khởi tạo.
+- Màu: token CSS ở `src/app/globals.css` (họ stone + màu nghĩa `--money-in/out`, `--debt`, `--warn`, `--credit`). antd không đọc được CSS var nên lấy hex từ `libs/constants/themeColors.ts`; hai nơi phải khớp nhau. Biểu đồ (`@ant-design/plots`) cũng lấy màu từ `THEME_COLORS`.
 - Server chỉ làm 3 việc: trả file tĩnh, `proxy.ts` kiểm tra JWT, và `/api/*`.
 - **Không** thêm `cookies()`/`headers()`/`await` dữ liệu vào layout/page: trang sẽ quay lại SSR động. Dữ liệu luôn lấy qua React Query.
 

@@ -7,6 +7,7 @@ import { useDashboardContext } from "@/components/features/dashboard/context";
 import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatCompactMoney, formatMoney } from "@/libs/utils/formatMoney";
+import { THEME_COLORS } from "@/libs/constants/themeColors";
 
 // G2 is ~380KB gzipped: load it in a separate chunk, client-only.
 const Column = dynamic(() => import("@ant-design/plots").then((mod) => mod.Column), {
@@ -71,8 +72,9 @@ export default function DailyBarChart() {
     }, []);
 
     const config = useMemo(() => {
-        const tickFill = isDark ? "#cbd5e1" : "#475569";
-        const gridStroke = isDark ? "#334155" : "#e2e8f0";
+        const colors = THEME_COLORS[isDark ? "dark" : "light"];
+        const tickFill = colors.muted;
+        const gridStroke = colors.border;
         return {
             data,
             theme: isDark ? "classicDark" : "classic",
@@ -106,6 +108,7 @@ export default function DailyBarChart() {
                 },
             },
             style: {
+                fill: colors.moneyOut,
                 radiusTopLeft: 4,
                 radiusTopRight: 4,
                 cursor: "pointer",
@@ -127,7 +130,7 @@ export default function DailyBarChart() {
     }, [data, isDark, yTicks, yMax]);
 
     return (
-        <div className="rounded-xl border border-border bg-background p-4">
+        <div className="rounded-xl border border-border bg-card p-4">
             <div className="mb-3">
                 <h2 className="text-base font-semibold">Chi tiêu theo ngày</h2>
                 <p className="text-xs text-muted-foreground">
