@@ -186,6 +186,25 @@ html:not(.dark) [data-sidebar="menu-sub-button"][data-active="true"] {
     body {
         @apply bg-background text-foreground;
         font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+        /* Tắt bôi đen văn bản và menu nhấn giữ (callout) trên mobile */
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Ô nhập liệu vẫn cho phép chọn/dán văn bản */
+    input,
+    textarea,
+    [contenteditable="true"] {
+        -webkit-user-select: text;
+        user-select: text;
+    }
+
+    img,
+    a {
+        -webkit-touch-callout: none;
+        -webkit-user-drag: none;
     }
 }
 
