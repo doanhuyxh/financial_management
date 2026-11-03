@@ -227,6 +227,18 @@ export default function CreditCardFields({
                 />
             </Grid>
         ),
+        rollover: (
+            <>
+                <SectionNote>
+                    Dịch vụ đáo hạn ứng tiền trả sao kê rồi quẹt lại thẻ. Dư nợ không giảm, mỗi lần
+                    mất phí; ngân hàng có thể khóa thẻ nếu phát hiện. Nhập % để app ước tính chi phí và
+                    so với lãi.
+                </SectionNote>
+                <Grid>
+                    <RateFeeItems names={["rolloverFeePercent"]} />
+                </Grid>
+            </>
+        ),
     };
 
     return (

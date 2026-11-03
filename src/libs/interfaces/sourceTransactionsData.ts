@@ -9,6 +9,8 @@ export enum SourceTransactionKind {
     TRANSFER_OUT = "TRANSFER_OUT",
     TRANSFER_IN = "TRANSFER_IN",
     ADJUSTMENT = "ADJUSTMENT",
+    /** Đáo hạn thẻ: delta = phí dịch vụ (dư nợ chỉ tăng đúng phí) */
+    ROLLOVER = "ROLLOVER",
 }
 
 export const SOURCE_TRANSACTION_KIND_LABELS: Record<SourceTransactionKind, string> = {
@@ -17,6 +19,7 @@ export const SOURCE_TRANSACTION_KIND_LABELS: Record<SourceTransactionKind, strin
     [SourceTransactionKind.TRANSFER_OUT]: "Chuyển đi",
     [SourceTransactionKind.TRANSFER_IN]: "Chuyển đến",
     [SourceTransactionKind.ADJUSTMENT]: "Điều chỉnh",
+    [SourceTransactionKind.ROLLOVER]: "Đáo hạn",
 };
 
 /** Bộ lọc loại trên UI: TRANSFER gồm cả chuyển đi và chuyển đến. */
@@ -25,6 +28,7 @@ export enum SourceTransactionFilter {
     INCOME = "INCOME",
     TRANSFER = "TRANSFER",
     ADJUSTMENT = "ADJUSTMENT",
+    ROLLOVER = "ROLLOVER",
 }
 
 type TransactionRef = { _id: string; name: string; archivedAt?: string | null };
@@ -48,6 +52,9 @@ export interface ISourceTransactionData {
     /** Chỉ có ở điều chỉnh tay. */
     previousValue?: number;
     newValue?: number;
+    /** Chỉ có ở đáo hạn: số tiền được ứng để trả sao kê (không nằm trong delta). */
+    rolloverAmount?: number;
+    provider?: string;
 }
 
 export interface ISourceTransactionSummary {

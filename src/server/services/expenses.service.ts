@@ -47,6 +47,10 @@ function normalizePayload(data: IFromExpensesData) {
     if (cardFeeType && !Object.values(CardFeeType).includes(cardFeeType)) {
         throw new Error("Loại phí thẻ không hợp lệ");
     }
+    // Phí đáo hạn chỉ sinh từ bản ghi đáo hạn (card-rollovers.service) để dư nợ và lịch sử khớp nhau
+    if (cardFeeType === CardFeeType.ROLLOVER_FEE) {
+        throw new Error("Phí đáo hạn chỉ ghi được qua nút Đáo hạn của thẻ trên Tổng quan");
+    }
 
     return { categoryId, sourceOfMoneyId, amount, note, spentAt, cardFeeType };
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button, Progress, Skeleton } from "antd";
-import { ArrowLeftRight, ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, ChevronDown, RefreshCw } from "lucide-react";
 import Money from "@/components/common/money";
 import VisibilitySettings from "@/components/common/visibility-settings";
 import { useDashboardContext } from "@/components/features/dashboard/context";
@@ -69,7 +69,7 @@ function CardRow({
     onToggle: () => void;
     hiddenKeys: string[];
 }) {
-    const { handlePayCard } = useDashboardContext();
+    const { handlePayCard, openRollover } = useDashboardContext();
     const usedPercent = card.creditLimit
         ? Math.round((card.currentDebt / card.creditLimit) * 100)
         : 0;
@@ -132,13 +132,23 @@ function CardRow({
 
                 <div className="flex items-center gap-2 md:justify-end">
                     {hasDebt ? (
-                        <Button
-                            size="small"
-                            icon={<ArrowLeftRight className="size-3.5" />}
-                            onClick={() => handlePayCard(card._id, card.currentDebt)}
-                        >
-                            Trả nợ
-                        </Button>
+                        <>
+                            <Button
+                                size="small"
+                                icon={<ArrowLeftRight className="size-3.5" />}
+                                onClick={() => handlePayCard(card._id, card.currentDebt)}
+                            >
+                                Trả nợ
+                            </Button>
+                            <Button
+                                size="small"
+                                icon={<RefreshCw className="size-3.5" />}
+                                title="Ghi lần dùng dịch vụ đáo hạn thẻ"
+                                onClick={() => openRollover(card._id)}
+                            >
+                                Đáo hạn
+                            </Button>
+                        </>
                     ) : null}
                     {card.fee ? (
                         <Button

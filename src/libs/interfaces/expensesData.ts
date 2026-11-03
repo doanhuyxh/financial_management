@@ -27,6 +27,8 @@ export enum CardFeeType {
     FOREIGN_FEE = "FOREIGN_FEE",
     INTEREST = "INTEREST",
     LATE_FEE = "LATE_FEE",
+    /** Phí dịch vụ đáo hạn thẻ: khoản chi bị khóa, chỉ thay đổi qua bản ghi đáo hạn gốc */
+    ROLLOVER_FEE = "ROLLOVER_FEE",
 }
 
 export const CARD_FEE_TYPE_LABELS: Record<CardFeeType, string> = {
@@ -37,6 +39,7 @@ export const CARD_FEE_TYPE_LABELS: Record<CardFeeType, string> = {
     [CardFeeType.FOREIGN_FEE]: "Phí giao dịch quốc tế",
     [CardFeeType.INTEREST]: "Lãi thẻ",
     [CardFeeType.LATE_FEE]: "Phí chậm thanh toán",
+    [CardFeeType.ROLLOVER_FEE]: "Phí đáo hạn",
 };
 
 export interface IExpensesData {
@@ -46,7 +49,7 @@ export interface IExpensesData {
     amount: number;
     note?: string;
     spentAt: string;
-    /** Phí chuyển tiền: chỉ thay đổi qua giao dịch chuyển tiền gốc */
+    /** Phí chuyển tiền hoặc phí đáo hạn: chỉ thay đổi qua giao dịch gốc */
     skipBalanceAdjust?: boolean;
     cardFeeType?: CardFeeType;
     createdAt?: string;

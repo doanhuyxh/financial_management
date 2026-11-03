@@ -7,6 +7,7 @@ import MonthSummary from "@/components/features/dashboard/components/month-summa
 import CashflowTrend from "@/components/features/dashboard/components/cashflow-trend";
 import SpendingBreakdown from "@/components/features/dashboard/components/spending-breakdown";
 import CreditCardsPanel from "@/components/features/dashboard/components/credit-cards-panel";
+import CardRolloverModal from "@/components/features/dashboard/components/card-rollover-modal";
 
 /** Bố cục: Cần chú ý → Tài sản ròng → Tháng này → (Xu hướng | Chi tiêu tháng) → Thẻ tín dụng. */
 export default function DashboardComponent() {
@@ -22,6 +23,7 @@ export default function DashboardComponent() {
                 </div>
                 <CreditCardsPanel />
             </div>
+            <CardRolloverModal />
         </DashboardContextProvider>
     );
 }
