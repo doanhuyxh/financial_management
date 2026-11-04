@@ -101,7 +101,7 @@ export default function FeeDetails({
                 ) : null}
                 {isShown("rollover") && item.rollover ? (
                     <Section label="Đáo hạn">
-                        <RolloverInfo status={item.rollover} />
+                        <RolloverInfo status={item.rollover} cardId={item._id} />
                     </Section>
                 ) : null}
             </div>

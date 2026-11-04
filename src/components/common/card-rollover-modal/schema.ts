@@ -12,6 +12,7 @@ const numberInput = z.union([z.string(), z.number(), z.null(), z.undefined()]);
 
 export const CardRolloverSchema = z
     .object({
+        /** Theo `inputMode` của form: số dịch vụ ứng (A) hoặc số quẹt lại gồm phí (n) */
         amount: numberInput
             .transform((value) => toNumber(value) ?? Number.NaN)
             .pipe(z.number({ message: "Số tiền là bắt buộc" }).positive("Số tiền phải lớn hơn 0")),
@@ -22,6 +23,11 @@ export const CardRolloverSchema = z
             .transform((value) => toNumber(value) ?? 0)
             .pipe(z.number({ message: "Phí không hợp lệ" }).min(0, "Phí phải >= 0")),
         feeCategoryId: z.string().optional(),
+        /** Tự trả một phần (x) bằng tiền của mình */
+        paymentAmount: numberInput
+            .transform((value) => toNumber(value) ?? 0)
+            .pipe(z.number({ message: "Số tiền tự trả không hợp lệ" }).min(0, "Phải >= 0")),
+        paymentSourceId: z.string().optional(),
         rolledAt: z.custom<Dayjs>((value) => dayjs.isDayjs(value), {
             message: "Ngày đáo hạn là bắt buộc",
         }),
@@ -34,6 +40,20 @@ export const CardRolloverSchema = z
                 code: z.ZodIssueCode.custom,
                 path: ["feeCategoryId"],
                 message: "Danh mục chi tiêu phí là bắt buộc khi có phí",
+            });
+        }
+        if (values.paymentAmount > 0 && !values.paymentSourceId) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["paymentSourceId"],
+                message: "Chọn nguồn trả khi tự trả một phần",
+            });
+        }
+        if (values.feeAmount >= values.amount) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["feeAmount"],
+                message: "Phí phải nhỏ hơn số tiền đáo hạn",
             });
         }
     });

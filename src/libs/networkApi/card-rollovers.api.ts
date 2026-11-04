@@ -32,8 +32,10 @@ export const createCardRollover = async (body: IFromCardRolloverData) => {
     });
 };
 
-export const deleteCardRollover = async (id: string) => {
-    return fetcherBackEnd<ApiResponse<null>>(`/card-rollovers/${id}`, {
-        method: "DELETE",
-    });
+/** `deletePayment`: xóa luôn khoản tự trả (Transfer) đi kèm lần đáo. */
+export const deleteCardRollover = async (id: string, deletePayment = false) => {
+    return fetcherBackEnd<ApiResponse<null>>(
+        `/card-rollovers/${id}${deletePayment ? "?deletePayment=1" : ""}`,
+        { method: "DELETE" },
+    );
 };

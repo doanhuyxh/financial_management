@@ -22,6 +22,8 @@ import { getCurrentUser } from "../utils/getCurrentUser";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
 import { formatMoney } from "@/libs/utils/formatMoney";
+import { createTransferRecord, deleteTransferRecord } from "./transfers.service";
+import { ensureOpenJourney, pruneEmptyOpenJourney } from "./rollover-journeys.service";
 
 const PROVIDER_MAX = 100;
 const NOTE_MAX = 500;
@@ -49,6 +51,11 @@ function normalizePayload(data: IFromCardRolloverData) {
             ? undefined
             : Number(data.feeAmount);
     const feeCategoryId = data.feeCategoryId?.trim() || "";
+    const paymentAmount =
+        data.paymentAmount == null || data.paymentAmount === ("" as unknown)
+            ? 0
+            : Number(data.paymentAmount);
+    const paymentSourceId = data.paymentSourceId?.trim() || "";
     const provider = (data.provider ?? "").trim().slice(0, PROVIDER_MAX);
     const note = (data.note ?? "").trim().slice(0, NOTE_MAX);
     const rolledAt = data.rolledAt ? new Date(data.rolledAt) : new Date();
@@ -66,6 +73,12 @@ function normalizePayload(data: IFromCardRolloverData) {
     if (Number.isNaN(rolledAt.getTime())) {
         throw new Error("Ngày đáo hạn không hợp lệ");
     }
+    if (!Number.isFinite(paymentAmount) || paymentAmount < 0) {
+        throw new Error("Số tiền tự trả phải >= 0");
+    }
+    if (paymentAmount > 0 && !paymentSourceId) {
+        throw new Error("Cần chọn nguồn trả khi tự trả một phần");
+    }
 
     const feeAmount =
         rawFeeAmount != null ? Math.round(rawFeeAmount) : calcPercentFee(amount, feePercent);
@@ -79,6 +92,8 @@ function normalizePayload(data: IFromCardRolloverData) {
         feePercent: Math.round(feePercent * 100) / 100,
         feeAmount,
         feeCategoryId,
+        paymentAmount: Math.round(paymentAmount),
+        paymentSourceId,
         provider,
         note,
         rolledAt,
@@ -131,7 +146,12 @@ async function removeFeeFromDebt(userId: string, cardId: mongoose.Types.ObjectId
 function populateQuery<T>(query: T) {
     return (query as any)
         .populate("sourceOfMoneyId", "name archivedAt")
-        .populate("feeCategoryId", "name archivedAt");
+        .populate("feeCategoryId", "name archivedAt")
+        .populate({
+            path: "paymentTransferId",
+            select: "amount transferredAt fromSourceId",
+            populate: { path: "fromSourceId", select: "name archivedAt" },
+        });
 }
 
 export class CardRolloversService {
@@ -184,6 +204,34 @@ export class CardRolloversService {
                 throw new Error("Đáo hạn chỉ áp dụng cho thẻ tín dụng");
             }
 
+            // 0. Tự trả một phần: Transfer nguồn → thẻ (giảm dư nợ) trước, lỗi phía sau thì xóa lại
+            let paymentTransferId: mongoose.Types.ObjectId | undefined;
+            if (payload.paymentAmount > 0) {
+                const debtBefore = card.creditDetails?.currentDebt ?? 0;
+                if (payload.paymentAmount + payload.amount > debtBefore + EPSILON) {
+                    throw new Error(
+                        `Tự trả + dịch vụ ứng (${formatMoney(payload.paymentAmount + payload.amount)}) vượt dư nợ đang nợ (${formatMoney(debtBefore)})`,
+                    );
+                }
+                const transfer = await createTransferRecord(user.userId, {
+                    fromSourceId: payload.paymentSourceId,
+                    toSourceId: payload.sourceOfMoneyId,
+                    amount: payload.paymentAmount,
+                    transferredAt: payload.rolledAt,
+                    note: payload.note || `Tự trả một phần khi đáo hạn ${card.name}`,
+                });
+                paymentTransferId = transfer?._id as mongoose.Types.ObjectId;
+                if (card.creditDetails) {
+                    card.creditDetails.currentDebt = debtBefore - payload.paymentAmount;
+                }
+            }
+            const rollbackPayment = async () => {
+                if (paymentTransferId) {
+                    await deleteTransferRecord(user.userId, paymentTransferId.toString());
+                }
+            };
+
+            try {
             const debt = card.creditDetails?.currentDebt ?? 0;
             const limit = card.creditDetails?.creditLimit ?? 0;
             if (payload.amount > debt + EPSILON) {
@@ -242,10 +290,24 @@ export class CardRolloversService {
                         ? new mongoose.Types.ObjectId(payload.feeCategoryId)
                         : undefined,
                     feeExpenseId,
+                    paymentTransferId,
                     provider: payload.provider,
                     note: payload.note,
                     rolledAt: payload.rolledAt,
                 });
+
+                // 4. Hành trình: mở mới nếu thẻ chưa có hành trình đang mở (gốc = A + x).
+                // Chỉ là dữ liệu phụ nên lỗi ở đây không hoàn lại lần đáo đã ghi.
+                try {
+                    await ensureOpenJourney(
+                        user.userId,
+                        card._id,
+                        payload.rolledAt,
+                        payload.amount + payload.paymentAmount,
+                    );
+                } catch (journeyError) {
+                    console.warn("Không mở được hành trình đáo hạn", journeyError);
+                }
 
                 const populated = await populateQuery(
                     CardRolloversModel.findOne({ _id: created._id, userId: user.userId }),
@@ -260,13 +322,18 @@ export class CardRolloversService {
                 }
                 throw createError;
             }
+            } catch (afterPaymentError) {
+                await rollbackPayment();
+                throw afterPaymentError;
+            }
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : "Ghi đáo hạn thất bại";
             return errorResponseWithStatusCode(message, 400);
         }
     }
 
-    static async deleteCardRollover(id: string) {
+    /** `deletePayment`: xóa luôn khoản tự trả đi kèm (Transfer) sau khi xóa đáo hạn. */
+    static async deleteCardRollover(id: string, options: { deletePayment?: boolean } = {}) {
         await dbConnect();
         const user = await getCurrentUser();
         if (!user?.userId) return unauthorizedResponse();
@@ -311,6 +378,22 @@ export class CardRolloversService {
                 }
                 throw deleteError;
             }
+
+            // Khoản tự trả đi kèm: xóa sau cùng, lỗi thì báo nhưng đáo hạn đã xóa xong
+            if (options.deletePayment && existing.paymentTransferId) {
+                try {
+                    await deleteTransferRecord(user.userId, existing.paymentTransferId.toString());
+                } catch (paymentError) {
+                    await pruneEmptyOpenJourney(user.userId, existing.sourceOfMoneyId);
+                    const message =
+                        paymentError instanceof Error ? paymentError.message : "Xóa khoản tự trả thất bại";
+                    return errorResponseWithStatusCode(
+                        `Đã xóa lần đáo hạn nhưng không xóa được khoản tự trả: ${message}`,
+                        400,
+                    );
+                }
+            }
+            await pruneEmptyOpenJourney(user.userId, existing.sourceOfMoneyId);
 
             return successResponse(null, "Đã xóa lần đáo hạn");
         } catch (error: unknown) {

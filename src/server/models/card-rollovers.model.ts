@@ -3,6 +3,7 @@ import { modelUserName } from "./users.model";
 import { modelCategoriesName } from "./categories.model";
 import { modelSourcesOfMoneyName } from "./sources-of-money.model";
 import { modelExpensesName } from "./expenses.model";
+import { modelTransfersName } from "./transfers.model";
 
 /**
  * Đáo hạn thẻ tín dụng: bên dịch vụ ứng `amount` trả vào thẻ rồi quẹt lại `amount + feeAmount`.
@@ -17,6 +18,8 @@ export interface ICardRollover extends Document {
     feeCategoryId?: Types.ObjectId;
     /** Expense "Phí đáo hạn" (skipBalanceAdjust) ghi nhận phí vào thống kê chi tiêu */
     feeExpenseId?: Types.ObjectId;
+    /** Transfer "tự trả một phần" (thường → thẻ) ghi cùng lần đáo này */
+    paymentTransferId?: Types.ObjectId;
     provider?: string;
     note?: string;
     rolledAt: Date;
@@ -60,6 +63,10 @@ const cardRolloversSchema = new Schema<ICardRollover>(
         feeExpenseId: {
             type: Schema.Types.ObjectId,
             ref: modelExpensesName,
+        },
+        paymentTransferId: {
+            type: Schema.Types.ObjectId,
+            ref: modelTransfersName,
         },
         provider: {
             type: String,

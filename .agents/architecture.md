@@ -81,7 +81,9 @@ Key ở `configQueryKey`. Mặc định (`tanstack-provider.tsx`): staleTime 30 
 | expense | `EXPENSES`, `SOURCES_OF_MONEY`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW` |
 | income | `INCOMES`, `SOURCES_OF_MONEY`, `DASHBOARD_CASHFLOW` |
 | transfer | `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW` |
-| card rollover (đáo hạn) | `CARD_ROLLOVERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW` |
+| transfer (thêm) | `ROLLOVER_JOURNEYS` (chuyển tiền vào thẻ là "tự trả" của hành trình) |
+| card rollover (đáo hạn) | `CARD_ROLLOVERS`, `ROLLOVER_JOURNEYS`, `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW` |
+| rollover journey (kết thúc, sửa gốc) | `ROLLOVER_JOURNEYS` |
 
 Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; lịch sử giao dịch và link chia sẻ của nguồn nằm dưới `SOURCES_OF_MONEY`, nên tự làm mới theo các invalidate trên. **Thêm mutation mới thì phải thêm invalidate tương ứng.**
 

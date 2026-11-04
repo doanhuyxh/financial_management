@@ -21,6 +21,8 @@ function invalidateTransferRelated(
     queryClient.invalidateQueries({ queryKey: [configQueryKey.EXPENSES] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_EXPENSES_SUMMARY] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_CASHFLOW] });
+    // Chuyển tiền vào thẻ là "tự trả" trong hành trình đáo hạn
+    queryClient.invalidateQueries({ queryKey: [configQueryKey.ROLLOVER_JOURNEYS] });
 }
 
 export const useGetTransfers = (query: IPaginatedTransfersQuery = {}) => {
