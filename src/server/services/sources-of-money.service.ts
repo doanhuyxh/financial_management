@@ -7,7 +7,12 @@ import IncomesModel from "@/server/models/incomes.model";
 import TransfersModel from "@/server/models/transfers.model";
 import BalanceAdjustmentsModel from "@/server/models/balance-adjustments.model";
 import CardRolloversModel from "@/server/models/card-rollovers.model";
-import { BalanceAdjustmentField } from "@/libs/interfaces/balanceAdjustmentsData";
+import RolloverJourneysModel from "@/server/models/rollover-journeys.model";
+import ShareLinksModel from "@/server/models/share-links.model";
+import {
+    BalanceAdjustmentField,
+    BalanceAdjustmentKind,
+} from "@/libs/interfaces/balanceAdjustmentsData";
 import {
     AnnualFeeWaiverPeriod,
     type ICreditCardFeeProgress,
@@ -31,6 +36,26 @@ import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 import { normalizeAccountName } from "@/libs/utils/vietQr";
 import { getNextAnnualDate } from "@/libs/utils/annualFeeDate";
 import { getStatementCycle } from "@/libs/utils/statementCycle";
+import { MAX_MONEY, parseMoney } from "../utils/money";
+import { safeRollback } from "../utils/safeRollback";
+
+/**
+ * Số dư/dư nợ gửi lên từ form: 0..MAX_MONEY. Chưa bắt số nguyên ở đây vì nguồn cũ có thể đang lưu
+ * số lẻ và form gửi lại y nguyên khi người dùng không sửa; số nguyên được kiểm khi thật sự ghi số mới.
+ */
+function parseTrackedInput(value: unknown, label: string) {
+    const amount = value == null || value === "" ? 0 : Number(value);
+    if (!Number.isFinite(amount) || amount < 0 || amount > MAX_MONEY) {
+        throw new Error(`${label} phải từ 0 đến ${MAX_MONEY.toLocaleString("vi-VN")}`);
+    }
+    return amount;
+}
+
+function assertIntegerTracked(amount: number, isCreditCard: boolean) {
+    if (!Number.isInteger(amount)) {
+        throw new Error(`${isCreditCard ? "Dư nợ" : "Số dư"} phải là số nguyên VND (không có phần lẻ)`);
+    }
+}
 
 function normalizePayload(data: IFromSourcesOfMoneyData) {
     const name = data.name?.trim();
@@ -44,8 +69,10 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
     }
 
     if (type === SourcesOfMoneyType.CREDIT_CARD) {
-        const creditLimit = Number(data.creditDetails?.creditLimit ?? 0);
-        const currentDebt = Number(data.creditDetails?.currentDebt ?? 0);
+        const creditLimit = parseMoney(data.creditDetails?.creditLimit ?? 0, "Hạn mức", {
+            allowZero: true,
+        });
+        const currentDebt = parseTrackedInput(data.creditDetails?.currentDebt, "Dư nợ");
         const statementDate = data.creditDetails?.statementDate;
         const dueDate = data.creditDetails?.dueDate;
 
@@ -84,10 +111,7 @@ function normalizePayload(data: IFromSourcesOfMoneyData) {
         };
     }
 
-    const balance = Number(data.balance ?? 0);
-    if (Number.isNaN(balance) || balance < 0) {
-        throw new Error("Số dư phải là số >= 0");
-    }
+    const balance = parseTrackedInput(data.balance, "Số dư");
 
     return {
         name,
@@ -309,8 +333,12 @@ function normalizeBankAccount(data: IFromSourcesOfMoneyData["bankAccount"]) {
     };
 }
 
+/**
+ * Nguồn đã có dữ liệu cần giữ lịch sử (chỉ lưu trữ khi xóa). Số dư ban đầu (OPENING) không tính:
+ * nguồn chỉ có số dư ban đầu vẫn xóa hẳn được (kèm bản ghi đó).
+ */
 async function hasTransactions(userId: string, sourceId: string) {
-    const [expense, income, transfer, rollover] = await Promise.all([
+    const [expense, income, transfer, rollover, adjustment, journey] = await Promise.all([
         ExpensesModel.exists({ userId, sourceOfMoneyId: sourceId }),
         IncomesModel.exists({ userId, sourceOfMoneyId: sourceId }),
         TransfersModel.exists({
@@ -318,8 +346,14 @@ async function hasTransactions(userId: string, sourceId: string) {
             $or: [{ fromSourceId: sourceId }, { toSourceId: sourceId }],
         }),
         CardRolloversModel.exists({ userId, sourceOfMoneyId: sourceId }),
+        BalanceAdjustmentsModel.exists({
+            userId,
+            sourceOfMoneyId: sourceId,
+            kind: { $ne: BalanceAdjustmentKind.OPENING },
+        }),
+        RolloverJourneysModel.exists({ userId, sourceOfMoneyId: sourceId }),
     ]);
-    return Boolean(expense || income || transfer || rollover);
+    return Boolean(expense || income || transfer || rollover || adjustment || journey);
 }
 
 const ADJUSTMENT_NOTE_MAX = 200;
@@ -414,6 +448,10 @@ export class SourcesOfMoneyService {
 
         try {
             const payload = normalizePayload(data);
+            assertIntegerTracked(
+                getTrackedAmount(payload),
+                payload.type === SourcesOfMoneyType.CREDIT_CARD,
+            );
             const last = await SourcesOfMoneyModel.findOne({ userId: user.userId })
                 .sort({ sortOrder: -1 })
                 .select("sortOrder")
@@ -424,6 +462,8 @@ export class SourcesOfMoneyService {
                 ...payload,
                 sortOrder,
                 userId: user.userId,
+                // Nguồn mới: sổ cái có đủ từ đầu (kèm bản ghi số dư ban đầu bên dưới)
+                ledgerCompleteAt: new Date(),
             });
 
             // Ghi số dư/dư nợ ban đầu để lịch sử điều chỉnh đối chiếu được từ 0
@@ -434,13 +474,24 @@ export class SourcesOfMoneyService {
                         userId: user.userId,
                         sourceOfMoneyId: created._id,
                         field: getAdjustmentField(payload.type),
+                        kind: BalanceAdjustmentKind.OPENING,
                         previousValue: 0,
                         newValue: initialAmount,
                         delta: initialAmount,
                         note: normalizeAdjustmentNote(data.adjustmentNote) || "Số dư ban đầu",
                     });
                 } catch (adjustmentError) {
-                    await SourcesOfMoneyModel.deleteOne({ _id: created._id, userId: user.userId });
+                    await safeRollback(
+                        {
+                            userId: user.userId,
+                            sourceOfMoneyId: created._id,
+                            operation: "source.create",
+                            step: "delete-source",
+                            amount: initialAmount,
+                            originalError: adjustmentError,
+                        },
+                        () => SourcesOfMoneyModel.deleteOne({ _id: created._id, userId: user.userId }),
+                    );
                     throw adjustmentError;
                 }
             }
@@ -488,6 +539,7 @@ export class SourcesOfMoneyService {
                     : getTrackedAmount(existing);
             // Người dùng không sửa số này → giữ số trong DB (có thể đã đổi do giao dịch khác)
             const amountChanged = newAmount !== expectedAmount;
+            if (amountChanged) assertIntegerTracked(newAmount, isCreditCard);
             const trackedPath = getTrackedPath(payload.type);
 
             const filter: Record<string, unknown> = {
@@ -555,15 +607,31 @@ export class SourcesOfMoneyService {
                         userId: user.userId,
                         sourceOfMoneyId: updated._id,
                         field: getAdjustmentField(payload.type),
+                        kind: BalanceAdjustmentKind.MANUAL,
                         previousValue: expectedAmount,
                         newValue: newAmount,
                         delta: newAmount - expectedAmount,
                         note: normalizeAdjustmentNote(data.adjustmentNote),
                     });
                 } catch (adjustmentError) {
-                    await SourcesOfMoneyModel.updateOne(
-                        { _id: id, userId: user.userId, [trackedPath]: newAmount },
-                        { $set: { [trackedPath]: expectedAmount } },
+                    await safeRollback(
+                        {
+                            userId: user.userId,
+                            sourceOfMoneyId: id,
+                            operation: "source.update",
+                            step: "restore-tracked-amount",
+                            amount: expectedAmount - newAmount,
+                            originalError: adjustmentError,
+                        },
+                        async () => {
+                            const restored = await SourcesOfMoneyModel.updateOne(
+                                { _id: id, userId: user.userId, [trackedPath]: newAmount },
+                                { $set: { [trackedPath]: expectedAmount } },
+                            );
+                            if (restored.matchedCount === 0) {
+                                throw new Error("Số dư đã đổi trước khi kịp hoàn số cũ");
+                            }
+                        },
                     );
                     throw adjustmentError;
                 }
@@ -800,6 +868,11 @@ export class SourcesOfMoneyService {
         if (!deleted) {
             return errorResponseWithStatusCode("Không tìm thấy nguồn tiền", 404);
         }
+        // Xóa hẳn: dọn số dư ban đầu và link chia sẻ của nguồn (không còn gì để xem)
+        await Promise.all([
+            BalanceAdjustmentsModel.deleteMany({ userId: user.userId, sourceOfMoneyId: id }),
+            ShareLinksModel.deleteMany({ userId: user.userId, sourceOfMoneyId: id }),
+        ]);
 
         return successResponse(null, "Xóa nguồn tiền thành công");
     }

@@ -5,6 +5,7 @@ import { Share2 } from "lucide-react";
 import DayRangeFilter from "@/components/common/day-range-filter";
 import ResponsiveModal from "@/components/common/responsive-modal";
 import SourceTransactionList from "@/components/common/source-transaction-list";
+import SourceReconcilePanel from "@/components/features/sources-of-money/components/source-reconcile-panel";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import { CARD_FEE_TYPE_LABELS } from "@/libs/interfaces/expensesData";
 import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
@@ -121,6 +122,13 @@ export default function SourceHistoryModal() {
                         Chia sẻ
                     </Button>
                 </div>
+                {historySource ? (
+                    <SourceReconcilePanel
+                        key={historySource._id}
+                        sourceId={historySource._id}
+                        isCreditCard={isCreditCard}
+                    />
+                ) : null}
                 <Segmented
                     block
                     value={historyKind}

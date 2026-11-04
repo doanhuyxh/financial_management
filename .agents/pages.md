@@ -12,6 +12,7 @@
 | `/credit-card-compare` | `credit-card-compare` | So sánh thẻ tín dụng theo kịch bản sử dụng (chỉ tính phía client từ danh sách nguồn tiền) |
 | `/rollover-journey` | `rollover-journey` | Hành trình đáo hạn của một thẻ (`?cardId=`): số liệu, thanh tiến độ, biểu đồ, dòng thời gian, dự kiến, danh sách hành trình; ghi đáo hạn / kết thúc / sửa gốc ngay trên trang ([business/card-rollover.md](business/card-rollover.md)) |
 | `/categories` | `categories` | Danh mục, kéo-thả, lọc theo loại |
+| `/settings` | `settings` | Khóa sổ (mốc ngày) và lịch sử sửa/xóa giao dịch ([business/ledger-lock-audit.md](business/ledger-lock-audit.md)) |
 | `/share/[token]` | `public-share` | **Public, không cần đăng nhập**: lịch sử giao dịch một nguồn qua link chia sẻ ([business/source-history.md](business/source-history.md)) |
 
 Ghi giao dịch nhanh: nút "Ghi giao dịch" trên header (desktop, `common/quick-add-button`), phím `N` ở mọi trang (`useHotkey`, bỏ qua khi đang gõ hoặc có modal/drawer mở) và nút "+" của bottom nav đều gọi `useQuickAdd` (`libs/hooks/useQuickAdd.tsx`). Form tạo có `TransactionTypeSwitch` ở tiêu đề để đổi Chi/Thu/Chuyển (dữ liệu đang nhập bị bỏ); `Ctrl/⌘+Enter` = lưu (`useSubmitShortcut`). Nút con mắt trên header bật chế độ ẩn số dư (`usePrivacyMode`, localStorage `privacy-mode`): gắn `data-privacy="on"` lên `<html>`, CSS làm mờ mọi `.money-value`.
@@ -22,6 +23,6 @@ Trang Giao dịch trên desktop: mỗi trang 20 dòng; từ `lg` dòng giao dị
 
 Trang Giao dịch trên mobile: bộ lọc nằm trong drawer, nên các bộ lọc đang bật hiện thành chip có nút × dưới thanh tìm kiếm (`common/active-filter-chips`); desktop không hiện chip vì ô lọc đã nằm trên toolbar.
 
-Menu phẳng: `src/components/layout/navigation-config.tsx` — Tổng quan, Giao dịch, Nguồn tiền, Thẻ tín dụng (`/credit-card-compare`), Đáo hạn (`/rollover-journey`), Danh mục. Mobile có thêm `layout/mobile-bottom-nav` (Tổng quan · Giao dịch · [+] · Nguồn tiền · Thêm = mở sidebar); nút "+" mở `/transactions?action=create` đúng loại đang xem. Nghiệp vụ từng trang: [business/README.md](business/README.md).
+Menu phẳng: `src/components/layout/navigation-config.tsx` — Tổng quan, Giao dịch, Nguồn tiền, Thẻ tín dụng (`/credit-card-compare`), Đáo hạn (`/rollover-journey`), Danh mục, Cài đặt (`/settings`). Mobile có thêm `layout/mobile-bottom-nav` (Tổng quan · Giao dịch · [+] · Nguồn tiền · Thêm = mở sidebar); nút "+" mở `/transactions?action=create` đúng loại đang xem. Nghiệp vụ từng trang: [business/README.md](business/README.md).
 
 PWA: `src/app/manifest.ts` (standalone, shortcut "Ghi chi tiêu / thu nhập / Chuyển tiền" → `/transactions?type=...&action=create`) + `appleWebApp` trong `src/app/layout.tsx`. Viewport có `interactiveWidget: "resizes-content"` (Android co layout khi bàn phím mở). Cài trên iOS: Safari → Chia sẻ → Thêm vào MH chính (app cài riêng cookie, phải đăng nhập lại).

@@ -10,9 +10,12 @@ Package manager là **bun** (không dùng npm/yarn/pnpm, không commit `package-
 | Dev server | `bun dev` | http://localhost:3000 |
 | Build production | `bun run build` | Chạy cả type-check của Next |
 | Lint | `bun run lint` | ESLint 9 flat config (`eslint.config.mjs`) |
+| Test | `bun run test` | `bun test` + `mongodb-memory-server` (lần đầu tải binary mongod). Test ở `src/server/__tests__/`, setup trong `bunfig.toml` |
 | Chạy production local | `bun run start` | Cần build trước |
 
-**Chưa có test tự động.** Định nghĩa "xong" cho mọi thay đổi: `bun run lint` và `bun run build` không lỗi, rồi tự kiểm tra trên UI (`bun dev`).
+Định nghĩa "xong" cho mọi thay đổi: `bun run lint`, `bun run test` và `bun run build` không lỗi, rồi tự kiểm tra trên UI (`bun dev`).
+
+**Test:** chỉ phủ service ghi số dư (chi tiêu, thu nhập, chuyển tiền, đáo hạn, nguồn tiền, đối soát, idempotency). `setup.ts` thay `dbConnect` bằng Mongo in-memory và giả lập user (`testAuth`), nên test **không bao giờ** chạm `MONGODB_URI` trong `.env`. Mỗi kịch bản nên kết thúc bằng `expectLedgerMatches` (số lưu = sổ cái). Sửa thứ tự rollback thì thêm test cho nhánh đó.
 
 ## Biến môi trường (`.env`, không commit)
 
@@ -34,6 +37,8 @@ Chạy bằng `bun scripts/<file>.ts` từ thư mục gốc (alias `@/` hoạt �
 | Script | Việc |
 |---|---|
 | `migrate-income-category-kind.ts` | Chuyển danh mục tên "Thu nhập" sang `kind = INCOME`. Mặc định chạy thử; thêm `--apply` để ghi DB |
+| `backfill-opening-balance.ts` | Chạy một lần trước khi dùng đối soát: bổ sung "Số dư ban đầu" (OPENING) cho nguồn tạo trước khi có BalanceAdjustment, đánh dấu bản ghi số dư ban đầu cũ, đặt `ledgerCompleteAt`. Mặc định chạy thử; `--apply`, `--user <id>` |
+| `reconcile-balances.ts` | So số dư/dư nợ đang lưu với sổ cái, in bù trừ lỗi chưa xử lý. `--apply` sửa số lưu về theo sổ (chỉ nguồn sửa được), `--all` gồm nguồn đã lưu trữ, `--user <id>`. Mã thoát 1 khi còn lệch |
 | `backfill-category-icons.ts` | Gán emoji cho danh mục chưa có icon, đoán theo từ khóa trong tên (bỏ dấu). Chỉ đụng danh mục chưa lưu trữ và chưa có icon; không đổi màu. Mặc định chạy thử; `--apply` để ghi DB |
 
 ## Deploy

@@ -1,4 +1,5 @@
 import { Schema, model, models, type Document, type Types } from "mongoose";
+import { INTEGER_MONEY_VALIDATOR } from "@/server/utils/money";
 import { modelUserName } from "./users.model";
 import { modelCategoriesName } from "./categories.model";
 import { modelSourcesOfMoneyName } from "./sources-of-money.model";
@@ -42,7 +43,8 @@ const transfersSchema = new Schema<ITransfer>(
         amount: {
             type: Number,
             required: true,
-            min: [0.01, "Số tiền phải lớn hơn 0"],
+            min: [1, "Số tiền phải lớn hơn 0"],
+            validate: INTEGER_MONEY_VALIDATOR,
         },
         feePercent: {
             type: Number,
@@ -53,6 +55,7 @@ const transfersSchema = new Schema<ITransfer>(
             type: Number,
             default: 0,
             min: [0, "Phí không được âm"],
+            validate: INTEGER_MONEY_VALIDATOR,
         },
         feeCategoryId: {
             type: Schema.Types.ObjectId,

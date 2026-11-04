@@ -16,7 +16,8 @@ src/
     connectDb.ts              # Kết nối Mongo (cache global)
     models/*.model.ts         # Mongoose schema (xem database.md)
     services/*.service.ts     # Toàn bộ business logic — nguồn sự thật
-    utils/                    # responseServer, pagination, monthRange, jwtUtil, getCurrentUser, archived...
+    utils/                    # responseServer, pagination, monthRange, jwtUtil, getCurrentUser, archived, money, ledgerBalance, safeRollback, idempotency, ledgerLock, transactionAudit...
+    __tests__/                # bun test + Mongo in-memory (commands.md)
   libs/                       # Dùng phía client (một số utils dùng chung với server)
     networkApi/*.api.ts       # Hàm gọi API
     hooks/customHooks/        # React Query hook dùng chung (gọi networkApi)
@@ -84,6 +85,7 @@ Key ở `configQueryKey`. Mặc định (`tanstack-provider.tsx`): staleTime 30 
 | transfer (thêm) | `ROLLOVER_JOURNEYS` (chuyển tiền vào thẻ là "tự trả" của hành trình) |
 | card rollover (đáo hạn) | `CARD_ROLLOVERS`, `ROLLOVER_JOURNEYS`, `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW` |
 | rollover journey (kết thúc, sửa gốc) | `ROLLOVER_JOURNEYS` |
+| expense / income / transfer / card rollover (thêm) | `TRANSACTION_AUDITS` · cài đặt khóa sổ: `setQueryData(SETTINGS)` |
 
 Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; lịch sử giao dịch và link chia sẻ của nguồn nằm dưới `SOURCES_OF_MONEY`, nên tự làm mới theo các invalidate trên. **Thêm mutation mới thì phải thêm invalidate tương ứng.**
 

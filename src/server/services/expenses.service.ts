@@ -26,22 +26,26 @@ import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
 import { buildListSummary } from "../utils/listSummary";
+import { buildListDateRange } from "../utils/dayRange";
+import { parseMoney } from "../utils/money";
+import { parseTransactionDate } from "../utils/transactionDate";
+import { safeRollback } from "../utils/safeRollback";
+import { assertLedgerUnlocked } from "../utils/ledgerLock";
+import { recordTransactionAudit } from "../utils/transactionAudit";
+import {
+    TransactionAuditAction,
+    TransactionAuditKind,
+} from "@/libs/interfaces/transactionAuditsData";
 
 function normalizePayload(data: IFromExpensesData) {
     const categoryId = data.categoryId?.trim();
     const sourceOfMoneyId = data.sourceOfMoneyId?.trim();
-    const amount = Number(data.amount);
     const note = data.note?.trim() || "";
-    const spentAt = data.spentAt ? new Date(data.spentAt) : new Date();
 
     if (!categoryId) throw new Error("Danh mục là bắt buộc");
     if (!sourceOfMoneyId) throw new Error("Nguồn tiền là bắt buộc");
-    if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error("Số tiền phải lớn hơn 0");
-    }
-    if (Number.isNaN(spentAt.getTime())) {
-        throw new Error("Ngày chi không hợp lệ");
-    }
+    const amount = parseMoney(data.amount, "Số tiền");
+    const spentAt = parseTransactionDate(data.spentAt, "Ngày chi");
 
     const cardFeeType = data.cardFeeType || undefined;
     if (cardFeeType && !Object.values(CardFeeType).includes(cardFeeType)) {
@@ -114,6 +118,18 @@ async function assertOwnedRefs(
     }
 
     return { category, source, sourceActive: !source.archivedAt };
+}
+
+/**
+ * Sửa số tiền trên cùng một nguồn: một lần `$inc` theo chênh lệch thay vì hoàn cũ rồi trừ mới,
+ * để không chặn nhầm (VD còn 50k, sửa 100k → 90k vẫn được) và không có khoảng hở giữa hai bước.
+ * `delta > 0` là chi thêm, `< 0` là hoàn bớt.
+ */
+async function adjustSourceBalanceByDelta(userId: string, sourceId: string, delta: number) {
+    if (delta === 0) return null;
+    return delta > 0
+        ? adjustSourceBalance(userId, sourceId, delta, "apply")
+        : adjustSourceBalance(userId, sourceId, -delta, "revert");
 }
 
 /** Apply: trừ tiền / tăng dư nợ. Revert: hoàn tiền / giảm dư nợ. */
@@ -225,16 +241,8 @@ export class ExpensesService {
         if (categoryId) filter.categoryId = categoryId;
         if (sourceOfMoneyId) filter.sourceOfMoneyId = sourceOfMoneyId;
 
-        if (from || to) {
-            const spentAt: Record<string, Date> = {};
-            if (from) spentAt.$gte = new Date(from);
-            if (to) {
-                const end = new Date(to);
-                end.setHours(23, 59, 59, 999);
-                spentAt.$lte = end;
-            }
-            filter.spentAt = spentAt;
-        }
+        const spentAt = buildListDateRange(from, to);
+        if (spentAt) filter.spentAt = spentAt;
 
         const [items, total] = await Promise.all([
             ExpensesModel.find(filter)
@@ -265,6 +273,7 @@ export class ExpensesService {
 
         try {
             const payload = normalizePayload(data);
+            await assertLedgerUnlocked(user.userId, payload.spentAt);
             const { source } = await assertOwnedRefs(
                 user.userId,
                 payload.categoryId,
@@ -316,14 +325,19 @@ export class ExpensesService {
                 );
                 return successResponse(populated, "Tạo chi tiêu thành công");
             } catch (createError) {
+                const context = {
+                    userId: user.userId,
+                    sourceOfMoneyId: payload.sourceOfMoneyId,
+                    operation: "expense.create",
+                    originalError: createError,
+                };
                 if (createdId) {
-                    await ExpensesModel.findOneAndDelete({ _id: createdId, userId: user.userId });
+                    await safeRollback({ ...context, step: "delete-expense" }, () =>
+                        ExpensesModel.findOneAndDelete({ _id: createdId, userId: user.userId }),
+                    );
                 }
-                await adjustSourceBalance(
-                    user.userId,
-                    payload.sourceOfMoneyId,
-                    totalAmount,
-                    "revert",
+                await safeRollback({ ...context, step: "revert-balance", amount: totalAmount }, () =>
+                    adjustSourceBalance(user.userId, payload.sourceOfMoneyId, totalAmount, "revert"),
                 );
                 throw createError;
             }
@@ -352,6 +366,7 @@ export class ExpensesService {
             }
 
             const payload = normalizePayload(data);
+            await assertLedgerUnlocked(user.userId, existing.spentAt, payload.spentAt);
             const oldSourceId = existing.sourceOfMoneyId.toString();
             const oldAmount = existing.amount;
             const { source: newSource, sourceActive: newSourceActive } = await assertOwnedRefs(
@@ -369,35 +384,42 @@ export class ExpensesService {
                 }),
             );
 
-            // Revert old effect, then apply new
-            if (oldSourceExists) {
-                await adjustSourceBalance(
-                    user.userId,
-                    oldSourceId,
-                    oldAmount,
-                    "revert",
-                );
-            }
+            const context = { userId: user.userId, operation: "expense.update" };
+            // Cùng nguồn còn hoạt động: một bước theo chênh lệch. Đổi nguồn: hoàn cũ rồi trừ mới.
+            const sameSource = oldSourceId === payload.sourceOfMoneyId && oldSourceExists;
+            const amountDelta = payload.amount - oldAmount;
 
-            try {
-                if (newSourceActive) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        payload.sourceOfMoneyId,
-                        payload.amount,
-                        "apply",
-                    );
-                }
-            } catch (applyError) {
+            if (sameSource) {
+                await adjustSourceBalanceByDelta(user.userId, oldSourceId, amountDelta);
+            } else {
                 if (oldSourceExists) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        oldSourceId,
-                        oldAmount,
-                        "apply",
-                    );
+                    await adjustSourceBalance(user.userId, oldSourceId, oldAmount, "revert");
                 }
-                throw applyError;
+
+                try {
+                    if (newSourceActive) {
+                        await adjustSourceBalance(
+                            user.userId,
+                            payload.sourceOfMoneyId,
+                            payload.amount,
+                            "apply",
+                        );
+                    }
+                } catch (applyError) {
+                    if (oldSourceExists) {
+                        await safeRollback(
+                            {
+                                ...context,
+                                sourceOfMoneyId: oldSourceId,
+                                step: "reapply-old-source",
+                                amount: oldAmount,
+                                originalError: applyError,
+                            },
+                            () => adjustSourceBalance(user.userId, oldSourceId, oldAmount, "apply"),
+                        );
+                    }
+                    throw applyError;
+                }
             }
 
             try {
@@ -420,25 +442,60 @@ export class ExpensesService {
                 if (!updated) {
                     throw new Error("Cập nhật chi tiêu thất bại");
                 }
+                await recordTransactionAudit({
+                    userId: user.userId,
+                    kind: TransactionAuditKind.EXPENSE,
+                    refId: id,
+                    action: TransactionAuditAction.UPDATE,
+                    before: existing,
+                    after: updated,
+                });
 
                 const populated = await getPopulatedExpense(id, user.userId);
                 return successResponse(populated, "Cập nhật chi tiêu thành công");
             } catch (updateError) {
                 // Roll back to previous balances
+                if (sameSource) {
+                    await safeRollback(
+                        {
+                            ...context,
+                            sourceOfMoneyId: oldSourceId,
+                            step: "revert-delta",
+                            amount: amountDelta,
+                            originalError: updateError,
+                        },
+                        () => adjustSourceBalanceByDelta(user.userId, oldSourceId, -amountDelta),
+                    );
+                    throw updateError;
+                }
                 if (newSourceActive) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        payload.sourceOfMoneyId,
-                        payload.amount,
-                        "revert",
+                    await safeRollback(
+                        {
+                            ...context,
+                            sourceOfMoneyId: payload.sourceOfMoneyId,
+                            step: "revert-new-source",
+                            amount: payload.amount,
+                            originalError: updateError,
+                        },
+                        () =>
+                            adjustSourceBalance(
+                                user.userId,
+                                payload.sourceOfMoneyId,
+                                payload.amount,
+                                "revert",
+                            ),
                     );
                 }
                 if (oldSourceExists) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        oldSourceId,
-                        oldAmount,
-                        "apply",
+                    await safeRollback(
+                        {
+                            ...context,
+                            sourceOfMoneyId: oldSourceId,
+                            step: "reapply-old-source",
+                            amount: oldAmount,
+                            originalError: updateError,
+                        },
+                        () => adjustSourceBalance(user.userId, oldSourceId, oldAmount, "apply"),
                     );
                 }
                 throw updateError;
@@ -466,6 +523,7 @@ export class ExpensesService {
             if (existing.skipBalanceAdjust) {
                 return errorResponseWithStatusCode(FEE_EXPENSE_LOCKED_MESSAGE, 400);
             }
+            await assertLedgerUnlocked(user.userId, existing.spentAt);
 
             const sourceExists = Boolean(
                 await SourcesOfMoneyModel.exists({
@@ -492,16 +550,34 @@ export class ExpensesService {
                 });
             } catch (deleteError) {
                 if (!skipBalance) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        existing.sourceOfMoneyId.toString(),
-                        existing.amount,
-                        "apply",
+                    await safeRollback(
+                        {
+                            userId: user.userId,
+                            sourceOfMoneyId: existing.sourceOfMoneyId,
+                            operation: "expense.delete",
+                            step: "reapply-balance",
+                            amount: existing.amount,
+                            originalError: deleteError,
+                        },
+                        () =>
+                            adjustSourceBalance(
+                                user.userId,
+                                existing.sourceOfMoneyId.toString(),
+                                existing.amount,
+                                "apply",
+                            ),
                     );
                 }
                 throw deleteError;
             }
 
+            await recordTransactionAudit({
+                userId: user.userId,
+                kind: TransactionAuditKind.EXPENSE,
+                refId: id,
+                action: TransactionAuditAction.DELETE,
+                before: existing,
+            });
             return successResponse(null, "Xóa chi tiêu thành công");
         } catch (error: unknown) {
             const message =

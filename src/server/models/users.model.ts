@@ -32,6 +32,12 @@ const userSchema = new Schema({
 		required: false,
 		default: 0,
 	},
+	/** Khóa sổ: giao dịch có ngày trước mốc này (đầu ngày giờ VN) không được tạo/sửa/xóa. null = không khóa. */
+	ledgerLockedBefore: {
+		type: Date,
+		required: false,
+		default: null,
+	},
 }, { timestamps: true });
 
 export const modelUserName = "user";

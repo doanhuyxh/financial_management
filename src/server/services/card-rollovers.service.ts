@@ -22,12 +22,21 @@ import { getCurrentUser } from "../utils/getCurrentUser";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
 import { formatMoney } from "@/libs/utils/formatMoney";
+import { buildListDateRange } from "../utils/dayRange";
+import { parseMoney } from "../utils/money";
+import { parseTransactionDate } from "../utils/transactionDate";
+import { safeRollback } from "../utils/safeRollback";
+import { assertLedgerUnlocked } from "../utils/ledgerLock";
+import { recordTransactionAudit } from "../utils/transactionAudit";
+import {
+    TransactionAuditAction,
+    TransactionAuditKind,
+} from "@/libs/interfaces/transactionAuditsData";
 import { createTransferRecord, deleteTransferRecord } from "./transfers.service";
 import { ensureOpenJourney, pruneEmptyOpenJourney } from "./rollover-journeys.service";
 
 const PROVIDER_MAX = 100;
 const NOTE_MAX = 500;
-const EPSILON = 0.0001;
 
 type CardDoc = {
     _id: mongoose.Types.ObjectId;
@@ -58,7 +67,6 @@ function normalizePayload(data: IFromCardRolloverData) {
     const paymentSourceId = data.paymentSourceId?.trim() || "";
     const provider = (data.provider ?? "").trim().slice(0, PROVIDER_MAX);
     const note = (data.note ?? "").trim().slice(0, NOTE_MAX);
-    const rolledAt = data.rolledAt ? new Date(data.rolledAt) : new Date();
 
     if (!sourceOfMoneyId) throw new Error("Thẻ tín dụng là bắt buộc");
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -70,9 +78,7 @@ function normalizePayload(data: IFromCardRolloverData) {
     if (rawFeeAmount != null && (!Number.isFinite(rawFeeAmount) || rawFeeAmount < 0)) {
         throw new Error("Phí đáo hạn phải >= 0");
     }
-    if (Number.isNaN(rolledAt.getTime())) {
-        throw new Error("Ngày đáo hạn không hợp lệ");
-    }
+    const rolledAt = parseTransactionDate(data.rolledAt, "Ngày đáo hạn");
     if (!Number.isFinite(paymentAmount) || paymentAmount < 0) {
         throw new Error("Số tiền tự trả phải >= 0");
     }
@@ -80,19 +86,26 @@ function normalizePayload(data: IFromCardRolloverData) {
         throw new Error("Cần chọn nguồn trả khi tự trả một phần");
     }
 
-    const feeAmount =
-        rawFeeAmount != null ? Math.round(rawFeeAmount) : calcPercentFee(amount, feePercent);
+    // Số đáo hạn và phí có thể suy ra từ % (A = n ÷ (1 + r)) nên làm tròn thay vì từ chối số lẻ
+    const roundedAmount = parseMoney(amount, "Số tiền đáo hạn", { round: true });
+    const feeAmount = parseMoney(
+        rawFeeAmount != null ? rawFeeAmount : calcPercentFee(roundedAmount, feePercent),
+        "Phí đáo hạn",
+        { allowZero: true, round: true },
+    );
+    const roundedPayment =
+        paymentAmount > 0 ? parseMoney(paymentAmount, "Số tiền tự trả", { round: true }) : 0;
     if (feeAmount > 0 && !feeCategoryId) {
         throw new Error("Danh mục chi tiêu phí là bắt buộc khi có phí");
     }
 
     return {
         sourceOfMoneyId,
-        amount: Math.round(amount),
+        amount: roundedAmount,
         feePercent: Math.round(feePercent * 100) / 100,
         feeAmount,
         feeCategoryId,
-        paymentAmount: Math.round(paymentAmount),
+        paymentAmount: roundedPayment,
         paymentSourceId,
         provider,
         note,
@@ -110,8 +123,8 @@ async function addFeeToDebt(userId: string, card: CardDoc, amount: number, feeAm
             type: SourcesOfMoneyType.CREDIT_CARD,
             ...NOT_ARCHIVED,
             "creditDetails.currentDebt": {
-                $gte: amount - EPSILON,
-                $lte: limit - feeAmount + EPSILON,
+                $gte: amount,
+                $lte: limit - feeAmount,
             },
         },
         { $inc: { "creditDetails.currentDebt": feeAmount } },
@@ -132,7 +145,7 @@ async function removeFeeFromDebt(userId: string, cardId: mongoose.Types.ObjectId
             _id: cardId,
             userId,
             type: SourcesOfMoneyType.CREDIT_CARD,
-            "creditDetails.currentDebt": { $gte: feeAmount - EPSILON },
+            "creditDetails.currentDebt": { $gte: feeAmount },
         },
         { $inc: { "creditDetails.currentDebt": -feeAmount } },
         { returnDocument: "after" },
@@ -163,16 +176,8 @@ export class CardRolloversService {
         const { page, limit } = normalizePagination(query.page, query.limit, 10);
         const filter: Record<string, unknown> = { userId: user.userId };
         if (query.sourceOfMoneyId) filter.sourceOfMoneyId = query.sourceOfMoneyId;
-        if (query.from || query.to) {
-            const rolledAt: Record<string, Date> = {};
-            if (query.from) rolledAt.$gte = new Date(query.from);
-            if (query.to) {
-                const end = new Date(query.to);
-                end.setHours(23, 59, 59, 999);
-                rolledAt.$lte = end;
-            }
-            filter.rolledAt = rolledAt;
-        }
+        const rolledAt = buildListDateRange(query.from, query.to);
+        if (rolledAt) filter.rolledAt = rolledAt;
 
         const [items, total] = await Promise.all([
             populateQuery(
@@ -194,6 +199,7 @@ export class CardRolloversService {
 
         try {
             const payload = normalizePayload(data);
+            await assertLedgerUnlocked(user.userId, payload.rolledAt);
             const card = (await SourcesOfMoneyModel.findOne({
                 _id: payload.sourceOfMoneyId,
                 userId: user.userId,
@@ -208,7 +214,7 @@ export class CardRolloversService {
             let paymentTransferId: mongoose.Types.ObjectId | undefined;
             if (payload.paymentAmount > 0) {
                 const debtBefore = card.creditDetails?.currentDebt ?? 0;
-                if (payload.paymentAmount + payload.amount > debtBefore + EPSILON) {
+                if (payload.paymentAmount + payload.amount > debtBefore) {
                     throw new Error(
                         `Tự trả + dịch vụ ứng (${formatMoney(payload.paymentAmount + payload.amount)}) vượt dư nợ đang nợ (${formatMoney(debtBefore)})`,
                     );
@@ -225,19 +231,29 @@ export class CardRolloversService {
                     card.creditDetails.currentDebt = debtBefore - payload.paymentAmount;
                 }
             }
-            const rollbackPayment = async () => {
+            const rollbackPayment = async (originalError: unknown) => {
                 if (paymentTransferId) {
-                    await deleteTransferRecord(user.userId, paymentTransferId.toString());
+                    await safeRollback(
+                        {
+                            userId: user.userId,
+                            sourceOfMoneyId: card._id,
+                            operation: "rollover.create",
+                            step: "delete-payment-transfer",
+                            amount: payload.paymentAmount,
+                            originalError,
+                        },
+                        () => deleteTransferRecord(user.userId, paymentTransferId!.toString()),
+                    );
                 }
             };
 
             try {
             const debt = card.creditDetails?.currentDebt ?? 0;
             const limit = card.creditDetails?.creditLimit ?? 0;
-            if (payload.amount > debt + EPSILON) {
+            if (payload.amount > debt) {
                 throw new Error(`Số tiền đáo hạn tối đa bằng dư nợ đang nợ (${formatMoney(debt)})`);
             }
-            if (debt + payload.feeAmount > limit + EPSILON) {
+            if (debt + payload.feeAmount > limit) {
                 throw new Error(
                     `Phí đáo hạn vượt hạn mức còn lại (${formatMoney(Math.max(0, limit - debt))})`,
                 );
@@ -314,16 +330,27 @@ export class CardRolloversService {
                 ).lean();
                 return successResponse(populated, "Đã ghi đáo hạn thẻ");
             } catch (createError) {
+                const context = {
+                    userId: user.userId,
+                    sourceOfMoneyId: card._id,
+                    operation: "rollover.create",
+                    originalError: createError,
+                };
                 if (feeExpenseId) {
-                    await ExpensesModel.findOneAndDelete({ _id: feeExpenseId, userId: user.userId });
+                    await safeRollback({ ...context, step: "delete-fee-expense" }, () =>
+                        ExpensesModel.findOneAndDelete({ _id: feeExpenseId, userId: user.userId }),
+                    );
                 }
                 if (payload.feeAmount > 0) {
-                    await removeFeeFromDebt(user.userId, card._id, payload.feeAmount);
+                    await safeRollback(
+                        { ...context, step: "remove-fee-from-debt", amount: payload.feeAmount },
+                        () => removeFeeFromDebt(user.userId, card._id, payload.feeAmount),
+                    );
                 }
                 throw createError;
             }
             } catch (afterPaymentError) {
-                await rollbackPayment();
+                await rollbackPayment(afterPaymentError);
                 throw afterPaymentError;
             }
         } catch (error: unknown) {
@@ -343,6 +370,7 @@ export class CardRolloversService {
             if (!existing) {
                 return errorResponseWithStatusCode("Không tìm thấy lần đáo hạn", 404);
             }
+            await assertLedgerUnlocked(user.userId, existing.rolledAt);
 
             // Thẻ đã lưu trữ hoặc xóa hẳn: không còn dư nợ để hoàn
             const cardActive = Boolean(
@@ -371,18 +399,46 @@ export class CardRolloversService {
                 await CardRolloversModel.findOneAndDelete({ _id: id, userId: user.userId });
             } catch (deleteError) {
                 if (cardActive && feeAmount > 0) {
-                    await SourcesOfMoneyModel.updateOne(
-                        { _id: existing.sourceOfMoneyId, userId: user.userId },
-                        { $inc: { "creditDetails.currentDebt": feeAmount } },
+                    await safeRollback(
+                        {
+                            userId: user.userId,
+                            sourceOfMoneyId: existing.sourceOfMoneyId,
+                            operation: "rollover.delete",
+                            step: "readd-fee-to-debt",
+                            amount: feeAmount,
+                            originalError: deleteError,
+                        },
+                        () =>
+                            SourcesOfMoneyModel.updateOne(
+                                { _id: existing.sourceOfMoneyId, userId: user.userId },
+                                { $inc: { "creditDetails.currentDebt": feeAmount } },
+                            ),
                     );
                 }
                 throw deleteError;
             }
+            await recordTransactionAudit({
+                userId: user.userId,
+                kind: TransactionAuditKind.CARD_ROLLOVER,
+                refId: id,
+                action: TransactionAuditAction.DELETE,
+                before: existing,
+            });
 
             // Khoản tự trả đi kèm: xóa sau cùng, lỗi thì báo nhưng đáo hạn đã xóa xong
             if (options.deletePayment && existing.paymentTransferId) {
                 try {
-                    await deleteTransferRecord(user.userId, existing.paymentTransferId.toString());
+                    const payment = await deleteTransferRecord(
+                        user.userId,
+                        existing.paymentTransferId.toString(),
+                    );
+                    await recordTransactionAudit({
+                        userId: user.userId,
+                        kind: TransactionAuditKind.TRANSFER,
+                        refId: payment._id as mongoose.Types.ObjectId,
+                        action: TransactionAuditAction.DELETE,
+                        before: payment,
+                    });
                 } catch (paymentError) {
                     await pruneEmptyOpenJourney(user.userId, existing.sourceOfMoneyId);
                     const message =

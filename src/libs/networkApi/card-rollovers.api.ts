@@ -25,10 +25,12 @@ export const getCardRollovers = async (query: IPaginatedCardRolloversQuery = {})
     );
 };
 
-export const createCardRollover = async (body: IFromCardRolloverData) => {
+/** `idempotencyKey`: gửi lại cùng khóa thì server trả kết quả cũ, không tạo trùng */
+export const createCardRollover = async (body: IFromCardRolloverData, idempotencyKey?: string) => {
     return fetcherBackEnd<ApiResponse<ICardRolloverData>>("/card-rollovers", {
         method: "POST",
         body,
+        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
     });
 };
 

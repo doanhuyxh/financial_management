@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIdempotencyKey } from "@/libs/hooks/useIdempotencyKey";
 import { configQueryKey, QUERY_STALE_TIME } from "@/libs/constants/configKey";
 import type {
     IFromTransfersData,
@@ -17,6 +18,7 @@ function invalidateTransferRelated(
     queryClient: ReturnType<typeof useQueryClient>,
 ) {
     queryClient.invalidateQueries({ queryKey: [configQueryKey.TRANSFERS] });
+    queryClient.invalidateQueries({ queryKey: [configQueryKey.TRANSACTION_AUDITS] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.EXPENSES] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_EXPENSES_SUMMARY] });
@@ -46,10 +48,15 @@ export const useGetTransferSuggestions = (enabled = true) => {
 
 export const useCreateTransfer = () => {
     const queryClient = useQueryClient();
+    // Một khóa cho tới khi tạo thành công: bấm đúp / gửi lại không tạo trùng
+    const idempotencyKey = useIdempotencyKey();
 
     return useMutation({
-        mutationFn: (body: IFromTransfersData) => createTransfer(body),
-        onSuccess: () => invalidateTransferRelated(queryClient),
+        mutationFn: (body: IFromTransfersData) => createTransfer(body, idempotencyKey.get()),
+        onSuccess: () => {
+            idempotencyKey.rotate();
+            invalidateTransferRelated(queryClient);
+        },
     });
 };
 

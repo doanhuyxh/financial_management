@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { errorResponseWithStatusCode } from "@/server/utils/responseServer";
+import { withIdempotency } from "@/server/utils/idempotency";
 import { ExpensesService } from "@/server/services/expenses.service";
 
 export async function GET(req: NextRequest) {
@@ -31,7 +32,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        return await ExpensesService.createExpense(body);
+        // Gửi lại cùng Idempotency-Key (bấm đúp, mạng chập chờn) không tạo thêm bản ghi
+        return await withIdempotency(req, "expense.create", body, () => ExpensesService.createExpense(body));
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Something went wrong";
         return errorResponseWithStatusCode(message);

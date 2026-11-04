@@ -3,7 +3,7 @@
 > Nguồn sự thật là code; nếu code khác tài liệu, tin code và sửa tài liệu. Nguyên tắc chung: [README.md](README.md).
 > Đáo hạn thẻ (dư nợ chỉ tăng đúng phí, fee expense bị khóa): [card-rollover.md](card-rollover.md).
 
-Mọi giao dịch đều cập nhật số dư bằng `$inc` atomic với điều kiện trong filter (ví dụ `balance: {$gte: amount}`) để tránh âm. **Không dùng Mongo transaction.** Thay vào đó, mỗi bước có rollback thủ công bằng try/catch (bù trừ ngược). Khi sửa code, phải giữ nguyên thứ tự rollback này.
+Mọi giao dịch đều cập nhật số dư bằng `$inc` atomic với điều kiện trong filter (ví dụ `balance: {$gte: amount}`) để tránh âm. **Không dùng Mongo transaction.** Thay vào đó, mỗi bước có rollback thủ công bằng try/catch (bù trừ ngược), mỗi bước bù trừ bọc `safeRollback` (lỗi thì ghi IntegrityIssue, vẫn ném lỗi gốc). Khi sửa code, phải giữ nguyên thứ tự rollback này. Số tiền là số nguyên (`parseMoney`), ngày qua `parseTransactionDate`, POST tạo có Idempotency-Key: xem [balance-integrity.md](balance-integrity.md).
 
 ## Chi tiêu (Expense) — `expenses.service.ts`
 
@@ -11,7 +11,8 @@ Mọi giao dịch đều cập nhật số dư bằng `$inc` atomic với điề
 |---|---|---|
 | Tạo (apply) | `balance −= amount`, yêu cầu `balance ≥ amount` ("Số dư nguồn tiền không đủ") | `currentDebt += amount`, yêu cầu ≤ creditLimit ("Vượt hạn mức tín dụng còn lại") |
 | Xóa (revert) | `balance += amount` | `currentDebt −= amount` (không xuống dưới 0) |
-| Sửa | revert bản cũ (nguồn cũ, số tiền cũ), rồi apply bản mới; nếu lỗi thì khôi phục | như cột bên |
+| Sửa cùng nguồn | một `$inc` theo chênh lệch (chi thêm thì cần đủ phần thêm), lỗi ghi document thì `$inc` ngược | như cột bên |
+| Sửa đổi nguồn | revert bản cũ (nguồn cũ, số tiền cũ), rồi apply bản mới; nếu lỗi thì khôi phục | như cột bên |
 
 - `cardFeeType` (`ANNUAL_FEE`/`MANAGEMENT_FEE`/`PAYMENT_FEE`/`USAGE_FEE`/`FOREIGN_FEE`/`INTEREST`/`LATE_FEE`): đánh dấu khoản chi là phí thẻ, chỉ đặt được khi **tạo** và nguồn là thẻ tín dụng ("Phí thẻ chỉ ghi được trên thẻ tín dụng"). Khi sửa thì giữ nguyên; đổi sang nguồn không phải thẻ thì bỏ đánh dấu. Vẫn trừ số dư/dư nợ và tính vào thống kê như chi tiêu thường, chỉ không tính vào điều kiện miễn phí của thẻ. UI gắn tag theo `CARD_FEE_TYPE_LABELS`.
 - **Phí giao dịch quốc tế** (`foreignFeeType`: `FX` ngoại tệ / `INTL_VND` VND tại đơn vị nước ngoài; chỉ khi **tạo**, nguồn là thẻ có cấu hình % hoặc tối thiểu của loại đó, không kèm `cardFeeType`): server tính phí theo cấu hình thẻ, trừ dư nợ **một lần** cho `amount + phí` (kiểm tra hạn mức chung), tạo khoản chi chính rồi tạo thêm một Expense phí cùng danh mục, cùng `spentAt`, `cardFeeType = FOREIGN_FEE`, note "Phí <loại> <x>% - <note>". Tạo phí lỗi thì xóa khoản chính và hoàn toàn bộ. Sau đó hai khoản độc lập, sửa/xóa như chi tiêu thường. Form chi tiêu chỉ hiện ô "Giao dịch quốc tế" khi thẻ đang chọn có cấu hình.
@@ -26,7 +27,7 @@ Mọi giao dịch đều cập nhật số dư bằng `$inc` atomic với điề
 |---|---|---|
 | Tạo (apply) | `balance += amount` | ❌ bị chặn |
 | Xóa (revert) | `balance −= amount`, yêu cầu `balance ≥ amount` (nếu đã tiêu hết thì không xóa được) | `currentDebt += amount` (trong hạn mức) |
-| Sửa | revert cũ rồi apply mới, có rollback | phải chuyển sang nguồn thường |
+| Sửa | cùng nguồn: một `$inc` theo chênh lệch (bớt thì cần số dư ≥ phần bớt); đổi nguồn: revert cũ rồi apply mới, có rollback | phải chuyển sang nguồn thường |
 
 ## Chuyển tiền (Transfer) — `transfers.service.ts`
 

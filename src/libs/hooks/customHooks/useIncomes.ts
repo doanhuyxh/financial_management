@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIdempotencyKey } from "@/libs/hooks/useIdempotencyKey";
 import { configQueryKey, QUERY_STALE_TIME } from "@/libs/constants/configKey";
 import type {
     IFromIncomesData,
@@ -16,6 +17,7 @@ import {
 
 function invalidateIncomeRelated(queryClient: ReturnType<typeof useQueryClient>) {
     queryClient.invalidateQueries({ queryKey: [configQueryKey.INCOMES] });
+    queryClient.invalidateQueries({ queryKey: [configQueryKey.TRANSACTION_AUDITS] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_CASHFLOW] });
 }
@@ -41,10 +43,15 @@ export const useGetIncomeSuggestions = (enabled = true) => {
 
 export const useCreateIncome = () => {
     const queryClient = useQueryClient();
+    // Một khóa cho tới khi tạo thành công: bấm đúp / gửi lại không tạo trùng
+    const idempotencyKey = useIdempotencyKey();
 
     return useMutation({
-        mutationFn: (body: IFromIncomesData) => createIncome(body),
-        onSuccess: () => invalidateIncomeRelated(queryClient),
+        mutationFn: (body: IFromIncomesData) => createIncome(body, idempotencyKey.get()),
+        onSuccess: () => {
+            idempotencyKey.rotate();
+            invalidateIncomeRelated(queryClient);
+        },
     });
 };
 

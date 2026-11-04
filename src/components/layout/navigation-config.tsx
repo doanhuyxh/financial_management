@@ -5,6 +5,7 @@ import {
     LayoutGridIcon,
     ReceiptIcon,
     RefreshCwIcon,
+    SettingsIcon,
     TagsIcon,
     WalletIcon,
 } from "lucide-react"
@@ -65,6 +66,11 @@ export const sidebarConfig: SidebarConfig = {
             title: "Danh mục",
             url: MENU_KEY.CATEGORIES,
             icon: <TagsIcon />,
+        },
+        {
+            title: "Cài đặt",
+            url: MENU_KEY.SETTINGS,
+            icon: <SettingsIcon />,
         },
     ],
 }

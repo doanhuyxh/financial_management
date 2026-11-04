@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIdempotencyKey } from "@/libs/hooks/useIdempotencyKey";
 import { configQueryKey, QUERY_STALE_TIME } from "@/libs/constants/configKey";
 import type {
     IFromCardRolloverData,
@@ -15,6 +16,7 @@ import {
 /** Đáo hạn đổi dư nợ thẻ và sinh một khoản chi phí, nên làm mới như một mutation chi tiêu. */
 function invalidateRolloverRelated(queryClient: ReturnType<typeof useQueryClient>) {
     queryClient.invalidateQueries({ queryKey: [configQueryKey.CARD_ROLLOVERS] });
+    queryClient.invalidateQueries({ queryKey: [configQueryKey.TRANSACTION_AUDITS] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.ROLLOVER_JOURNEYS] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.TRANSFERS] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
@@ -35,10 +37,15 @@ export const useGetCardRollovers = (query: IPaginatedCardRolloversQuery = {}, en
 
 export const useCreateCardRollover = () => {
     const queryClient = useQueryClient();
+    // Một khóa cho tới khi tạo thành công: bấm đúp / gửi lại không tạo trùng
+    const idempotencyKey = useIdempotencyKey();
 
     return useMutation({
-        mutationFn: (body: IFromCardRolloverData) => createCardRollover(body),
-        onSuccess: () => invalidateRolloverRelated(queryClient),
+        mutationFn: (body: IFromCardRolloverData) => createCardRollover(body, idempotencyKey.get()),
+        onSuccess: () => {
+            idempotencyKey.rotate();
+            invalidateRolloverRelated(queryClient);
+        },
     });
 };
 
