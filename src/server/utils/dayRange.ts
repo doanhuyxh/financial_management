@@ -18,7 +18,7 @@ export function buildDayRange(from?: string, to?: string) {
 }
 
 /** Đầu ngày giờ VN chứa thời điểm `date`. */
-function startOfVietnamDay(date: Date) {
+export function startOfVietnamDay(date: Date) {
     const shifted = date.getTime() + VN_OFFSET_MS;
     return new Date(shifted - (((shifted % DAY_MS) + DAY_MS) % DAY_MS) - VN_OFFSET_MS);
 }
@@ -39,4 +39,13 @@ function toVietnamDay(value: unknown): string | undefined {
  */
 export function buildListDateRange(from?: unknown, to?: unknown) {
     return buildDayRange(toVietnamDay(from), toVietnamDay(to));
+}
+
+/** Ngày DD/MM/YYYY theo giờ VN (dùng trong thông báo lỗi phía server, không phụ thuộc TZ server). */
+export function formatVietnamDay(date: Date) {
+    const [year, month, day] = new Date(startOfVietnamDay(date).getTime() + VN_OFFSET_MS)
+        .toISOString()
+        .slice(0, 10)
+        .split("-");
+    return `${day}/${month}/${year}`;
 }

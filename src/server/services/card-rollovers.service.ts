@@ -26,12 +26,17 @@ import { buildListDateRange } from "../utils/dayRange";
 import { parseMoney } from "../utils/money";
 import { parseTransactionDate } from "../utils/transactionDate";
 import { safeRollback } from "../utils/safeRollback";
+import { assertLedgerUnlocked } from "../utils/ledgerLock";
+import { recordTransactionAudit } from "../utils/transactionAudit";
+import {
+    TransactionAuditAction,
+    TransactionAuditKind,
+} from "@/libs/interfaces/transactionAuditsData";
 import { createTransferRecord, deleteTransferRecord } from "./transfers.service";
 import { ensureOpenJourney, pruneEmptyOpenJourney } from "./rollover-journeys.service";
 
 const PROVIDER_MAX = 100;
 const NOTE_MAX = 500;
-const EPSILON = 0.0001;
 
 type CardDoc = {
     _id: mongoose.Types.ObjectId;
@@ -118,8 +123,8 @@ async function addFeeToDebt(userId: string, card: CardDoc, amount: number, feeAm
             type: SourcesOfMoneyType.CREDIT_CARD,
             ...NOT_ARCHIVED,
             "creditDetails.currentDebt": {
-                $gte: amount - EPSILON,
-                $lte: limit - feeAmount + EPSILON,
+                $gte: amount,
+                $lte: limit - feeAmount,
             },
         },
         { $inc: { "creditDetails.currentDebt": feeAmount } },
@@ -140,7 +145,7 @@ async function removeFeeFromDebt(userId: string, cardId: mongoose.Types.ObjectId
             _id: cardId,
             userId,
             type: SourcesOfMoneyType.CREDIT_CARD,
-            "creditDetails.currentDebt": { $gte: feeAmount - EPSILON },
+            "creditDetails.currentDebt": { $gte: feeAmount },
         },
         { $inc: { "creditDetails.currentDebt": -feeAmount } },
         { returnDocument: "after" },
@@ -194,6 +199,7 @@ export class CardRolloversService {
 
         try {
             const payload = normalizePayload(data);
+            await assertLedgerUnlocked(user.userId, payload.rolledAt);
             const card = (await SourcesOfMoneyModel.findOne({
                 _id: payload.sourceOfMoneyId,
                 userId: user.userId,
@@ -208,7 +214,7 @@ export class CardRolloversService {
             let paymentTransferId: mongoose.Types.ObjectId | undefined;
             if (payload.paymentAmount > 0) {
                 const debtBefore = card.creditDetails?.currentDebt ?? 0;
-                if (payload.paymentAmount + payload.amount > debtBefore + EPSILON) {
+                if (payload.paymentAmount + payload.amount > debtBefore) {
                     throw new Error(
                         `Tự trả + dịch vụ ứng (${formatMoney(payload.paymentAmount + payload.amount)}) vượt dư nợ đang nợ (${formatMoney(debtBefore)})`,
                     );
@@ -244,10 +250,10 @@ export class CardRolloversService {
             try {
             const debt = card.creditDetails?.currentDebt ?? 0;
             const limit = card.creditDetails?.creditLimit ?? 0;
-            if (payload.amount > debt + EPSILON) {
+            if (payload.amount > debt) {
                 throw new Error(`Số tiền đáo hạn tối đa bằng dư nợ đang nợ (${formatMoney(debt)})`);
             }
-            if (debt + payload.feeAmount > limit + EPSILON) {
+            if (debt + payload.feeAmount > limit) {
                 throw new Error(
                     `Phí đáo hạn vượt hạn mức còn lại (${formatMoney(Math.max(0, limit - debt))})`,
                 );
@@ -364,6 +370,7 @@ export class CardRolloversService {
             if (!existing) {
                 return errorResponseWithStatusCode("Không tìm thấy lần đáo hạn", 404);
             }
+            await assertLedgerUnlocked(user.userId, existing.rolledAt);
 
             // Thẻ đã lưu trữ hoặc xóa hẳn: không còn dư nợ để hoàn
             const cardActive = Boolean(
@@ -410,11 +417,28 @@ export class CardRolloversService {
                 }
                 throw deleteError;
             }
+            await recordTransactionAudit({
+                userId: user.userId,
+                kind: TransactionAuditKind.CARD_ROLLOVER,
+                refId: id,
+                action: TransactionAuditAction.DELETE,
+                before: existing,
+            });
 
             // Khoản tự trả đi kèm: xóa sau cùng, lỗi thì báo nhưng đáo hạn đã xóa xong
             if (options.deletePayment && existing.paymentTransferId) {
                 try {
-                    await deleteTransferRecord(user.userId, existing.paymentTransferId.toString());
+                    const payment = await deleteTransferRecord(
+                        user.userId,
+                        existing.paymentTransferId.toString(),
+                    );
+                    await recordTransactionAudit({
+                        userId: user.userId,
+                        kind: TransactionAuditKind.TRANSFER,
+                        refId: payment._id as mongoose.Types.ObjectId,
+                        action: TransactionAuditAction.DELETE,
+                        before: payment,
+                    });
                 } catch (paymentError) {
                     await pruneEmptyOpenJourney(user.userId, existing.sourceOfMoneyId);
                     const message =

@@ -30,6 +30,12 @@ import { buildListDateRange } from "../utils/dayRange";
 import { parseMoney } from "../utils/money";
 import { parseTransactionDate } from "../utils/transactionDate";
 import { safeRollback } from "../utils/safeRollback";
+import { assertLedgerUnlocked } from "../utils/ledgerLock";
+import { recordTransactionAudit } from "../utils/transactionAudit";
+import {
+    TransactionAuditAction,
+    TransactionAuditKind,
+} from "@/libs/interfaces/transactionAuditsData";
 
 function normalizePayload(data: IFromExpensesData) {
     const categoryId = data.categoryId?.trim();
@@ -267,6 +273,7 @@ export class ExpensesService {
 
         try {
             const payload = normalizePayload(data);
+            await assertLedgerUnlocked(user.userId, payload.spentAt);
             const { source } = await assertOwnedRefs(
                 user.userId,
                 payload.categoryId,
@@ -359,6 +366,7 @@ export class ExpensesService {
             }
 
             const payload = normalizePayload(data);
+            await assertLedgerUnlocked(user.userId, existing.spentAt, payload.spentAt);
             const oldSourceId = existing.sourceOfMoneyId.toString();
             const oldAmount = existing.amount;
             const { source: newSource, sourceActive: newSourceActive } = await assertOwnedRefs(
@@ -434,6 +442,14 @@ export class ExpensesService {
                 if (!updated) {
                     throw new Error("Cập nhật chi tiêu thất bại");
                 }
+                await recordTransactionAudit({
+                    userId: user.userId,
+                    kind: TransactionAuditKind.EXPENSE,
+                    refId: id,
+                    action: TransactionAuditAction.UPDATE,
+                    before: existing,
+                    after: updated,
+                });
 
                 const populated = await getPopulatedExpense(id, user.userId);
                 return successResponse(populated, "Cập nhật chi tiêu thành công");
@@ -507,6 +523,7 @@ export class ExpensesService {
             if (existing.skipBalanceAdjust) {
                 return errorResponseWithStatusCode(FEE_EXPENSE_LOCKED_MESSAGE, 400);
             }
+            await assertLedgerUnlocked(user.userId, existing.spentAt);
 
             const sourceExists = Boolean(
                 await SourcesOfMoneyModel.exists({
@@ -554,6 +571,13 @@ export class ExpensesService {
                 throw deleteError;
             }
 
+            await recordTransactionAudit({
+                userId: user.userId,
+                kind: TransactionAuditKind.EXPENSE,
+                refId: id,
+                action: TransactionAuditAction.DELETE,
+                before: existing,
+            });
             return successResponse(null, "Xóa chi tiêu thành công");
         } catch (error: unknown) {
             const message =

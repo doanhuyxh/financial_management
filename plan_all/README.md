@@ -1,14 +1,18 @@
 # Kế hoạch — Money Manager
 
-Các kế hoạch đã triển khai xong được xóa khỏi thư mục này. `.gitignore` bỏ qua `plan_all/*`, nên chỉ các file đã `git add -f` (01–04, README) xem lại được bằng `git log -- plan_all/`.
+Các kế hoạch đã triển khai xong được xóa khỏi thư mục này. `.gitignore` bỏ qua `plan_all/*`, nên chỉ các file đã `git add -f` (01–04, README) xem lại được bằng `git log -- plan_all/`. Nghiệp vụ đã triển khai nằm trong `.agents/business/`.
 
 | # | Vấn đề | Mức độ | File kế hoạch |
 |---|--------|--------|---------------|
-| 11 | Siết chặt quản trị dòng tiền: đối soát số dư theo sổ cái, ghi vết rollback lỗi, số tiền/ngày có biên, sửa cùng nguồn một `$inc`, test tự động, idempotency — đã triển khai 2026-11-04 (trừ 4.3, 4.4) | **Cao** (toàn vẹn số dư) | [update_requement/11-chat-che-dong-tien.md](update_requement/11-chat-che-dong-tien.md) |
+| — | Hiện không có kế hoạch nào đang làm | | |
 
 ## Việc còn lại từ các kế hoạch đã xóa
 
 - Plan 03 (tối ưu web): `reactStrictMode` vẫn `false` trong `next.config.ts`.
+- Plan 11 (chặt chẽ dòng tiền) — server đã có test tự động; còn kiểm tay trên giao diện:
+  - Modal lịch sử nguồn tiền → "Đối soát": khớp sổ hiện xanh; lệch thì "Sửa về theo sổ" về đúng.
+  - Cài đặt → khóa sổ: ô ngày trong form không chọn được ngày trước mốc, sửa/xóa giao dịch cũ báo "Kỳ đã khóa sổ", bỏ khóa thì làm lại được.
+  - Sửa rồi xóa một chi tiêu → Cài đặt → Lịch sử hiện 2 dòng, dòng sửa có "cũ → mới" đúng trường đã đổi.
 
 ## Định nghĩa "xong"
 

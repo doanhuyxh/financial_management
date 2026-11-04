@@ -24,6 +24,8 @@ export const configQueryKey = {
 	DASHBOARD_CASHFLOW: "dashboard-cashflow",
 	VIETQR_BANKS: "vietqr-banks",
 	PUBLIC_SHARE: "public-share",
+	SETTINGS: "settings",
+	TRANSACTION_AUDITS: "transaction-audits",
 }
 
 export const configSessionKey = {

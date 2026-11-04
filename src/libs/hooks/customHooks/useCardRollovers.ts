@@ -16,6 +16,7 @@ import {
 /** Đáo hạn đổi dư nợ thẻ và sinh một khoản chi phí, nên làm mới như một mutation chi tiêu. */
 function invalidateRolloverRelated(queryClient: ReturnType<typeof useQueryClient>) {
     queryClient.invalidateQueries({ queryKey: [configQueryKey.CARD_ROLLOVERS] });
+    queryClient.invalidateQueries({ queryKey: [configQueryKey.TRANSACTION_AUDITS] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.ROLLOVER_JOURNEYS] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.TRANSFERS] });
     queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });

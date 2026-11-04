@@ -6,7 +6,7 @@ MongoDB qua Mongoose 9. Kết nối: `src/server/connectDb.ts` (cache trên `glo
 
 | Model | Collection | Trường chính | Index |
 |---|---|---|---|
-| User | `user` | fullName, email, password (**bcrypt**), phoneNumber, avatarUrl, tokenVersion | |
+| User | `user` | fullName, email, password (**bcrypt**), phoneNumber, avatarUrl, tokenVersion, ledgerLockedBefore (khóa sổ, null = không khóa) | |
 | LoginAttempt | `loginAttempt` | key (IP + email, unique), failCount, lockedUntil | `key` unique |
 | Category | `categories` | userId, name, kind (`EXPENSE`/`INCOME`), icon (1 emoji, ≤ 16 ký tự, null), color (`#RRGGBB`, null), sortOrder, archivedAt | `{userId, sortOrder}` |
 | SourceOfMoney | `sourcesOfMoney` | userId, name, type, balance, sortOrder, ledgerCompleteAt (sổ cái đầy đủ từ mốc này, xem [business/balance-integrity.md](business/balance-integrity.md)), creditDetails{creditLimit, currentDebt, statementDate, dueDate, annualFee, annualFeeDay, annualFeeMonth, annualFeeWaiverPeriod (`YEAR`/`MONTH`), annualFeeWaiverMinSpend, managementFee, managementFeeDay, managementFeeWaiverMinTransactions, managementFeeWaiverMinSpend, paymentFee, freePaymentsPerCycle, usageFee, interestRate, cashAdvanceFeePercent, cashAdvanceFeeMin, foreignFxFeePercent, foreignFxFeeMin, foreignVndFeePercent, foreignVndFeeMin, lateFeePercentPerDay, lateFeeMin, lateFeeMax, rolloverFeePercent}, bankAccount{bin, bankName, accountNumber, accountName} (chỉ BANK), metadata, archivedAt; virtual `availableCreditLimit = max(0, limit − debt)` | `{userId, sortOrder}` |
@@ -17,6 +17,7 @@ MongoDB qua Mongoose 9. Kết nối: `src/server/connectDb.ts` (cache trên `glo
 | CardRollover | `cardRollovers` | userId, sourceOfMoneyId (thẻ), amount, feePercent, feeAmount, feeCategoryId, feeExpenseId, paymentTransferId (Transfer tự trả đi kèm), provider, note, rolledAt ([business/card-rollover.md](business/card-rollover.md)) | `{userId, rolledAt: -1}`, `{userId, sourceOfMoneyId, rolledAt: -1}` |
 | RolloverJourney | `rolloverJourneys` | userId, sourceOfMoneyId (thẻ), startedAt, baseAmount, endedAt, endReason (`PAID_OFF`/`INSTALLMENT`/`REFINANCED`/`PAID_FULL`/`OTHER`), note; phí/số lần/tự trả **không lưu**, tính từ CardRollover và Transfer trong khoảng | `{userId, sourceOfMoneyId, startedAt: -1}` |
 | IntegrityIssue | `integrityIssues` | userId, sourceOfMoneyId, operation, step, amount, originalError, rollbackError, resolvedAt (bù trừ lỗi / vết đối soát) | `{userId, resolvedAt, createdAt: -1}` |
+| TransactionAudit | `transactionAudits` | userId, kind (`EXPENSE`/`INCOME`/`TRANSFER`/`CARD_ROLLOVER`), refId, action (`UPDATE`/`DELETE`), before, after (snapshot, `ledger-lock-audit.md`) | `{userId, createdAt: -1}`, `{userId, kind, createdAt: -1}` |
 | IdempotencyKey | `idempotencyKeys` | userId, key, route, bodyHash, status (`PENDING`/`DONE`), responseStatus, responseBody | `{userId, key}` unique, TTL 24 giờ trên `createdAt` |
 | ShareLink | `shareLinks` | userId, sourceOfMoneyId, tokenHash (SHA-256 của token), label, from/to (`YYYY-MM-DD`), expiresAt, revokedAt, viewCount, lastViewedAt ([business/source-history.md](business/source-history.md)) | `tokenHash` unique, `{userId, sourceOfMoneyId, createdAt: -1}` |
 

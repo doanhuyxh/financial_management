@@ -7,4 +7,6 @@ export const MENU_KEY = {
     /** Chi tiêu / thu nhập / chuyển tiền: `?type=expense|income|transfer` (xem libs/utils/transactionsUrl) */
     TRANSACTIONS: "/transactions",
     CATEGORIES: "/categories",
+    /** Khóa sổ + lịch sử sửa/xóa giao dịch */
+    SETTINGS: "/settings",
 }

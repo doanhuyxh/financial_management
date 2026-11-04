@@ -9,6 +9,7 @@
 |---|---|
 | Expense, Income, Transfer, `$inc`/rollback số dư | [balance-rules.md](balance-rules.md) |
 | Đối soát sổ cái, IntegrityIssue, Idempotency-Key, `parseMoney`/`parseTransactionDate` | [balance-integrity.md](balance-integrity.md) |
+| Khóa sổ (`ledgerLockedBefore`), lịch sử sửa/xóa giao dịch, trang Cài đặt | [ledger-lock-audit.md](ledger-lock-audit.md) |
 | CRUD nguồn tiền, điều chỉnh số dư, VietQR, xóa mềm nguồn | [sources-of-money.md](sources-of-money.md) |
 | Lịch sử giao dịch nguồn tiền, link chia sẻ public | [source-history.md](source-history.md) |
 | Phí thẻ, kỳ sao kê, miễn phí, lãi, `credit-card-fees` API | [credit-card-fees.md](credit-card-fees.md) |
@@ -37,6 +38,6 @@ Giữ mỗi file ≤ ~8 KB. Vượt thì tách tiếp theo domain con và thêm 
 4. Sửa trực tiếp số dư/dư nợ trên form nguồn tiền được ghi vào lịch sử điều chỉnh (BalanceAdjustment), nhưng vẫn có thể khiến xóa một giao dịch cũ bị chặn (ví dụ số dư không đủ để xóa income). Sửa số tiền trên cùng nguồn thì chỉ cần đủ phần chênh.
 5. Password lưu bcrypt. Token sống 30 ngày. Logout tăng `tokenVersion` nên thu hồi mọi thiết bị.
 6. Chuyển tiền không sửa được, chỉ xóa rồi tạo lại.
-7. Chưa có "xóa và ghi điều chỉnh" khi số dư không đủ để xóa giao dịch cũ, chưa có khóa sổ theo kỳ và lịch sử sửa giao dịch (kế hoạch 11, mục 4.3–4.4, chờ quyết định).
+7. Xóa giao dịch cũ khi số dư/dư nợ không đủ để hoàn vẫn bị chặn — **cố ý**, user không muốn "xóa và ghi điều chỉnh bù" (đừng đề xuất lại). Muốn đóng băng kỳ cũ thì dùng khóa sổ ([ledger-lock-audit.md](ledger-lock-audit.md)).
 8. `formatMoney` dùng chung ở `src/libs/utils/formatMoney.ts`. `getRefId` vẫn nằm trong utils của từng feature.
 9. **Đang gỡ antd sang shadcn** (quyết định 03/11/2026, giữ giao diện giống hiện tại). Đợt 1 xong: shadcn đủ bộ + Animate UI, thông báo/xác nhận qua `useAppFeedback` (sonner + `confirm-dialog`). Còn lại ~70 file antd: Form (9 form → react-hook-form + zod), Table có sort, Select tìm kiếm, DatePicker, Segmented, Pagination, QRCode, `AntdProvider`/`themeColors.ts`. Thứ tự dự kiến: `common/` → từng feature → gỡ package.

@@ -26,6 +26,12 @@ import { buildListDateRange } from "../utils/dayRange";
 import { parseMoney } from "../utils/money";
 import { parseTransactionDate } from "../utils/transactionDate";
 import { safeRollback } from "../utils/safeRollback";
+import { assertLedgerUnlocked } from "../utils/ledgerLock";
+import { recordTransactionAudit } from "../utils/transactionAudit";
+import {
+    TransactionAuditAction,
+    TransactionAuditKind,
+} from "@/libs/interfaces/transactionAuditsData";
 
 type SourceDoc = {
     _id: mongoose.Types.ObjectId;
@@ -323,6 +329,7 @@ async function getPopulatedTransfer(id: string, userId: string) {
  */
 export async function createTransferRecord(userId: string, data: IFromTransfersData) {
         const payload = normalizePayload(data);
+        await assertLedgerUnlocked(userId, payload.transferredAt);
         const { fromSource, toSource } = await loadOwnedSources(
             userId,
             payload.fromSourceId,
@@ -454,7 +461,10 @@ export async function createTransferRecord(userId: string, data: IFromTransfersD
         }
 }
 
-/** Lõi xóa chuyển tiền (hoàn số dư hai bên, xóa fee expense): throw Error khi không xóa được. */
+/**
+ * Lõi xóa chuyển tiền (hoàn số dư hai bên, xóa fee expense): throw Error khi không xóa được.
+ * Trả về document đã xóa để nơi gọi ghi lịch sử (không ghi ở đây vì hàm này cũng dùng để rollback).
+ */
 export async function deleteTransferRecord(userId: string, id: string) {
         const existing = await TransfersModel.findOne({
             _id: id,
@@ -463,6 +473,7 @@ export async function deleteTransferRecord(userId: string, id: string) {
         if (!existing) {
             throw new Error("Không tìm thấy giao dịch chuyển tiền");
         }
+        await assertLedgerUnlocked(userId, existing.transferredAt);
 
         // A side whose source was deleted or archived has nothing left to reverse.
         const [fromSource, toSource] = (await Promise.all([
@@ -547,6 +558,7 @@ export async function deleteTransferRecord(userId: string, id: string) {
             throw deleteError;
         }
 
+        return existing;
 }
 
 export class TransfersService {
@@ -621,7 +633,14 @@ export class TransfersService {
         if (!user?.userId) return unauthorizedResponse();
 
         try {
-            await deleteTransferRecord(user.userId, id);
+            const deleted = await deleteTransferRecord(user.userId, id);
+            await recordTransactionAudit({
+                userId: user.userId,
+                kind: TransactionAuditKind.TRANSFER,
+                refId: id,
+                action: TransactionAuditAction.DELETE,
+                before: deleted,
+            });
             return successResponse(null, "Xóa giao dịch chuyển tiền thành công");
         } catch (error: unknown) {
             const message =

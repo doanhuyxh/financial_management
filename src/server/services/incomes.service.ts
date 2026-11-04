@@ -24,6 +24,12 @@ import { buildListDateRange } from "../utils/dayRange";
 import { parseMoney } from "../utils/money";
 import { parseTransactionDate } from "../utils/transactionDate";
 import { safeRollback } from "../utils/safeRollback";
+import { assertLedgerUnlocked } from "../utils/ledgerLock";
+import { recordTransactionAudit } from "../utils/transactionAudit";
+import {
+    TransactionAuditAction,
+    TransactionAuditKind,
+} from "@/libs/interfaces/transactionAuditsData";
 
 function normalizePayload(data: IFromIncomesData) {
     const categoryId = data.categoryId?.trim();
@@ -227,6 +233,7 @@ export class IncomesService {
 
         try {
             const payload = normalizePayload(data);
+            await assertLedgerUnlocked(user.userId, payload.receivedAt);
             const { source } = await assertOwnedRefs(
                 user.userId,
                 payload.categoryId,
@@ -300,6 +307,7 @@ export class IncomesService {
             }
 
             const payload = normalizePayload(data);
+            await assertLedgerUnlocked(user.userId, existing.receivedAt, payload.receivedAt);
             const oldSourceId = existing.sourceOfMoneyId.toString();
             const oldAmount = existing.amount;
             const { source: newSource, sourceActive: newSourceActive } = await assertOwnedRefs(
@@ -377,6 +385,14 @@ export class IncomesService {
                 if (!updated) {
                     throw new Error("Cập nhật thu nhập thất bại");
                 }
+                await recordTransactionAudit({
+                    userId: user.userId,
+                    kind: TransactionAuditKind.INCOME,
+                    refId: id,
+                    action: TransactionAuditAction.UPDATE,
+                    before: existing,
+                    after: updated,
+                });
 
                 const populated = await getPopulatedIncome(id, user.userId);
                 return successResponse(populated, "Cập nhật thu nhập thành công");
@@ -446,6 +462,7 @@ export class IncomesService {
             if (!existing) {
                 return errorResponseWithStatusCode("Không tìm thấy thu nhập", 404);
             }
+            await assertLedgerUnlocked(user.userId, existing.receivedAt);
 
             const sourceExists = Boolean(
                 await SourcesOfMoneyModel.exists({
@@ -492,6 +509,13 @@ export class IncomesService {
                 throw deleteError;
             }
 
+            await recordTransactionAudit({
+                userId: user.userId,
+                kind: TransactionAuditKind.INCOME,
+                refId: id,
+                action: TransactionAuditAction.DELETE,
+                before: existing,
+            });
             return successResponse(null, "Xóa thu nhập thành công");
         } catch (error: unknown) {
             const message =
