@@ -277,3 +277,125 @@ html[data-privacy="on"] .money-value:hover,
 html[data-privacy="on"] .money-value:active {
     filter: none;
 }
+
+/*
+ * Loading (plan 12). CSS thuần vì màn hình boot là HTML tĩnh, hiện trước khi JS chạy.
+ * .boot-*: splash "Ví tiền" (common/loading). .skeleton-shimmer: skeleton theo bố cục (common/route-loading).
+ */
+@layer components {
+    /* Hiện sau 150ms để mạng nhanh không thấy loading chớp */
+    .boot-delay {
+        opacity: 0;
+        animation: boot-fade-in 0.3s ease 0.15s forwards;
+    }
+
+    .boot-logo {
+        animation: boot-bump 1.4s ease-in-out infinite;
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 28%, transparent);
+    }
+
+    .boot-coin {
+        animation: boot-drop 1.4s cubic-bezier(0.5, 0, 0.75, 0) infinite;
+    }
+
+    .boot-bar::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 40%;
+        border-radius: inherit;
+        background: var(--primary);
+        animation: boot-indeterminate 1.1s ease-in-out infinite;
+    }
+
+    .skeleton-shimmer {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .skeleton-shimmer::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.75) 50%, transparent 80%);
+        animation: skeleton-shimmer 1.6s ease-in-out infinite;
+    }
+
+    .dark .skeleton-shimmer::after {
+        background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.06) 50%, transparent 80%);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .boot-delay {
+            opacity: 1;
+            animation: none;
+        }
+
+        .boot-logo,
+        .boot-coin,
+        .boot-bar::after,
+        .skeleton-shimmer::after {
+            animation: none;
+        }
+
+        .boot-coin {
+            display: none;
+        }
+    }
+}
+
+@keyframes boot-fade-in {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes boot-drop {
+    0% {
+        transform: translateY(-14px);
+        opacity: 0;
+    }
+    15% {
+        opacity: 1;
+    }
+    55% {
+        transform: translateY(38px);
+        opacity: 1;
+    }
+    62%,
+    100% {
+        transform: translateY(38px);
+        opacity: 0;
+    }
+}
+
+@keyframes boot-bump {
+    0%,
+    52%,
+    100% {
+        transform: scale(1);
+    }
+    60% {
+        transform: scale(0.94);
+    }
+    70% {
+        transform: scale(1.04);
+    }
+}
+
+@keyframes boot-indeterminate {
+    0% {
+        left: -40%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+@keyframes skeleton-shimmer {
+    to {
+        transform: translateX(100%);
+    }
+}

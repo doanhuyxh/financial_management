@@ -1,4 +1,4 @@
-import LoadingComponent from "@/components/common/loading"
+import RouteLoading from "@/components/common/route-loading"
 import DashboardComponent from "@/components/features/dashboard"
 import { Suspense } from "react"
 
@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function Dashboard() {
   return (
-    <Suspense fallback={<LoadingComponent />}>
+    <Suspense fallback={<RouteLoading variant="dashboard" />}>
       <DashboardComponent />
     </Suspense>
   )

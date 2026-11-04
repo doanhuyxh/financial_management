@@ -4,7 +4,7 @@ Các kế hoạch đã triển khai xong được xóa khỏi thư mục này. `
 
 | # | Vấn đề | Mức độ | File kế hoạch |
 |---|--------|--------|---------------|
-| — | Hiện không có kế hoạch nào đang làm | | |
+| 12 | Thiết kế lại loading toàn trang (3 phương án: Ví tiền / Khung app / Dòng tiền) | Thấp | [redesign-loading-ui/12-redesign-loading-ui.md](redesign-loading-ui/12-redesign-loading-ui.md) · [mockup](redesign-loading-ui/12-redesign-loading-ui-mockup.html) |
 
 ## Việc còn lại từ các kế hoạch đã xóa
 

@@ -1,4 +1,4 @@
-import LoadingComponent from "@/components/common/loading"
+import RouteLoading from "@/components/common/route-loading"
 import TransactionsComponent from "@/components/features/transactions"
 import { Suspense } from "react"
 
@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function TransactionsPage() {
   return (
-    <Suspense fallback={<LoadingComponent />}>
+    <Suspense fallback={<RouteLoading />}>
       <TransactionsComponent />
     </Suspense>
   )
