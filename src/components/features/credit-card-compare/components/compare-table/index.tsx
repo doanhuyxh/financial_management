@@ -57,6 +57,22 @@ function renderCell(key: string, m: ICardMetrics): ReactNode {
             return formatMoney(m.paymentFeeYear);
         case "usageFee":
             return formatMoney(m.usageFeeYear);
+        case "rollover":
+            return m.rolloverFee != null ? (
+                <>
+                    <div>{formatMoney(m.rolloverFee)}</div>
+                    <Sub>
+                        {m.rolloverFeePercent}%/lần
+                        {m.interestCost != null
+                            ? m.rolloverFee < m.interestCost
+                                ? " · rẻ hơn lãi"
+                                : " · đắt hơn lãi"
+                            : ""}
+                    </Sub>
+                </>
+            ) : (
+                <Missing />
+            );
         case "interest":
             return m.interestCost != null ? (
                 <>

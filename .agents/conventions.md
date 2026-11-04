@@ -41,7 +41,7 @@ features/<feature>/
 - **Kiểm tra trùng trước khi tạo mới**: tìm trong `src/libs/hooks/` (gồm `customHooks/`), `hooks/` của feature, và `src/libs/utils/`.
 - Hook dữ liệu dùng chung (React Query gọi `networkApi`) đặt ở `src/libs/hooks/customHooks/`.
 - Hook UI/state chỉ dùng trong một feature đặt ở `features/<feature>/hooks/`.
-- Util dùng chung client + server (ví dụ `getTrackedAmount`, `filterCategoriesByKind`, `formatMoney`) đặt ở `src/libs/utils/`. Util chỉ dùng phía server đặt ở `src/server/utils/`.
+- Util dùng chung client + server (ví dụ `getTrackedAmount`, `filterCategoriesByKind`, `formatMoney`, `getNextDueDate` trong `dueDate.ts`) đặt ở `src/libs/utils/`. Util chỉ dùng phía server đặt ở `src/server/utils/`.
 
 ## Hằng số và key
 

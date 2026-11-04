@@ -9,6 +9,7 @@ import {
 import { getNextAnnualDate } from "@/libs/utils/annualFeeDate";
 import { getStatementCycle } from "@/libs/utils/statementCycle";
 import { calcPercentFee, estimateInterest } from "@/libs/utils/cardFee";
+import { getNextDueDate } from "@/libs/utils/dueDate";
 
 /** Cards due within this many days are flagged as "sắp đến hạn". */
 export const DUE_SOON_DAYS = 7;
@@ -17,16 +18,7 @@ export const DUE_URGENT_DAYS = 3;
 
 export type CreditDueStatus = "no-due-date" | "today" | "urgent" | "soon" | "normal";
 
-/** Next occurrence of `dueDay` (1–31) from `today`, clamped to the month length. */
-export function getNextDueDate(dueDay: number, today: Dayjs = dayjs()): Dayjs {
-    const start = today.startOf("day");
-    const inMonth = (month: Dayjs) =>
-        month.date(Math.min(dueDay, month.daysInMonth()));
-
-    const thisMonth = inMonth(start.startOf("month"));
-    if (!thisMonth.isBefore(start, "day")) return thisMonth;
-    return inMonth(start.startOf("month").add(1, "month"));
-}
+export { getNextDueDate };
 
 function getDueStatus(daysLeft: number | null): CreditDueStatus {
     if (daysLeft == null) return "no-due-date";
@@ -426,6 +418,8 @@ export interface IAttentionItem {
     description: string;
     /** Thẻ cần trả nợ: nút "Thanh toán" mở form chuyển tiền điền sẵn */
     payCard?: { _id: string; amount: number };
+    /** Thẻ có cấu hình phí đáo hạn: nút "Đáo hạn" mở modal, kèm phí ước tính */
+    rolloverCard?: { _id: string; estimatedFee: number };
 }
 
 /** Số mục tối đa trong hàng "Cần chú ý" */
@@ -447,13 +441,17 @@ export function buildAttentionItems(
     for (const card of cards) {
         if (card.currentDebt <= 0 || card.daysLeft == null || card.daysLeft > DUE_SOON_DAYS) continue;
         const when = card.daysLeft === 0 ? "hôm nay" : `${card.nextDueDate?.format("DD/MM")} · còn ${card.daysLeft} ngày`;
+        const rolloverFee = card.fee?.rollover?.estimatedFee ?? null;
         items.push({
             key: `due-${card._id}`,
             tone: card.daysLeft <= DUE_URGENT_DAYS ? "debt" : "warn",
             icon: "due",
             title: `${card.name} đến hạn ${when}`,
-            description: `Cần trả ${formatVnd(card.currentDebt)}`,
+            description: `Cần trả ${formatVnd(card.currentDebt)}${
+                rolloverFee != null ? ` · đáo hạn mất ≈${formatVnd(rolloverFee)}` : ""
+            }`,
             payCard: { _id: card._id, amount: card.currentDebt },
+            rolloverCard: rolloverFee != null ? { _id: card._id, estimatedFee: rolloverFee } : undefined,
         });
     }
 

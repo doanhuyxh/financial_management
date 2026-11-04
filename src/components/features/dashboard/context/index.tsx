@@ -12,13 +12,7 @@ import {
     useGetSourcesOfMoney,
 } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { CardFeeType } from "@/libs/interfaces/expensesData";
-import type { ICardRolloverData, IFromCardRolloverData } from "@/libs/interfaces/cardRolloversData";
-import {
-    useCreateCardRollover,
-    useDeleteCardRollover,
-    useGetCardRollovers,
-} from "@/libs/hooks/customHooks/useCardRollovers";
-import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
+import { useCardRollover } from "@/libs/hooks/useCardRollover";
 import { buildTransactionsUrl } from "@/libs/utils/transactionsUrl";
 import {
     buildAttentionItems,
@@ -91,61 +85,11 @@ export default function DashboardContextProvider({
         if (value) setMonthValue(value);
     }, []);
 
-    // Đáo hạn thẻ: modal ghi lần dùng dịch vụ + xem/xóa các lần gần đây
-    const { notification, modal } = useAppFeedback();
-    const [rolloverCardId, setRolloverCardId] = useState<string | null>(null);
-    const rolloverCard = useMemo(
-        () => creditCards.find((card) => card._id === rolloverCardId) ?? null,
-        [creditCards, rolloverCardId],
-    );
-    const { data: rolloversData, isLoading: isRolloverLoading } = useGetCardRollovers(
-        { sourceOfMoneyId: rolloverCardId ?? undefined, page: 1, limit: 5 },
-        Boolean(rolloverCardId),
-    );
-    const { mutateAsync: createRollover, isPending: isRolloverSubmitting } =
-        useCreateCardRollover();
-    const { mutateAsync: deleteRollover } = useDeleteCardRollover();
-
-    const openRollover = useCallback((cardId: string) => setRolloverCardId(cardId), []);
-    const closeRollover = useCallback(() => setRolloverCardId(null), []);
-
-    const handleRolloverSubmit = useCallback(
-        async (values: IFromCardRolloverData) => {
-            try {
-                const res = await createRollover(values);
-                notification.success({ title: res?.message || "Đã ghi đáo hạn thẻ" });
-                closeRollover();
-                return true;
-            } catch (error: unknown) {
-                notification.error({
-                    title: (error as { message?: string })?.message || "Ghi đáo hạn thất bại",
-                });
-                return false;
-            }
-        },
-        [createRollover, notification, closeRollover],
-    );
-
-    const handleDeleteRollover = useCallback(
-        (item: ICardRolloverData) => {
-            modal.confirm({
-                title: "Xóa lần đáo hạn này?",
-                content: "Dư nợ thẻ sẽ giảm đúng phần phí đã ghi và khoản chi phí đáo hạn bị xóa.",
-                okText: "Xóa",
-                okType: "danger",
-                onOk: async () => {
-                    try {
-                        await deleteRollover(item._id);
-                        notification.success({ title: "Đã xóa lần đáo hạn" });
-                    } catch (error: unknown) {
-                        notification.error({
-                            title: (error as { message?: string })?.message || "Xóa đáo hạn thất bại",
-                        });
-                    }
-                },
-            });
-        },
-        [deleteRollover, modal, notification],
+    // Đáo hạn thẻ: modal ghi lần dùng dịch vụ + xem/xóa các lần gần đây (dùng chung với trang Nguồn tiền)
+    const rollover = useCardRollover();
+    const rolloverSource = useMemo(
+        () => sources?.find((source) => source._id === rollover.rolloverCardId) ?? null,
+        [sources, rollover.rolloverCardId],
     );
 
     // Trả nợ thẻ = chuyển tiền tới thẻ: mở form chuyển tiền điền sẵn thẻ đích và số dư nợ
@@ -246,14 +190,14 @@ export default function DashboardContextProvider({
             handlePayCard,
             handleRecordCardFee,
             handleViewDay,
-            rolloverCard,
-            openRollover,
-            closeRollover,
-            rolloverItems: rolloversData?.data?.items ?? [],
-            isRolloverLoading,
-            isRolloverSubmitting,
-            handleRolloverSubmit,
-            handleDeleteRollover,
+            rolloverSource,
+            openRollover: rollover.openRollover,
+            closeRollover: rollover.closeRollover,
+            rolloverItems: rollover.rolloverItems,
+            isRolloverLoading: rollover.isRolloverLoading,
+            isRolloverSubmitting: rollover.isRolloverSubmitting,
+            handleRolloverSubmit: rollover.handleRolloverSubmit,
+            handleDeleteRollover: rollover.handleDeleteRollover,
         }),
         [
             monthValue,
@@ -274,14 +218,8 @@ export default function DashboardContextProvider({
             handlePayCard,
             handleRecordCardFee,
             handleViewDay,
-            rolloverCard,
-            openRollover,
-            closeRollover,
-            rolloversData?.data?.items,
-            isRolloverLoading,
-            isRolloverSubmitting,
-            handleRolloverSubmit,
-            handleDeleteRollover,
+            rolloverSource,
+            rollover,
         ],
     );
 

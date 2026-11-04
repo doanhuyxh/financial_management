@@ -9,6 +9,7 @@ import SourcesTransferFormModal from "@/components/features/sources-of-money/com
 import SourceHistoryModal from "@/components/features/sources-of-money/components/source-history-modal";
 import ShareLinksModal from "@/components/features/sources-of-money/components/share-links-modal";
 import BankQrModal from "@/components/features/sources-of-money/components/bank-qr-modal";
+import SourcesCardRolloverModal from "@/components/features/sources-of-money/components/card-rollover-modal";
 
 export default function SourcesOfMoneyComponent() {
     return (
@@ -22,6 +23,7 @@ export default function SourcesOfMoneyComponent() {
                 <SourceHistoryModal />
                 <ShareLinksModal />
                 <BankQrModal />
+                <SourcesCardRolloverModal />
             </div>
         </SourcesOfMoneyContextProvider>
     );
