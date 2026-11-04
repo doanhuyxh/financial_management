@@ -1,10 +1,12 @@
+import Link from "next/link";
 import type { IRolloverStatus } from "@/components/features/dashboard/utils";
+import { MENU_KEY } from "@/libs/constants/menuKey";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
 /** Phí đáo hạn ước tính trên dư nợ hiện tại, so với lãi nếu không trả hết, và số lần đã đáo trong kỳ. */
-export default function RolloverInfo({ status }: { status: IRolloverStatus | null }) {
+export default function RolloverInfo({ status, cardId }: { status: IRolloverStatus | null; cardId: string }) {
     if (!status) return <span className="text-muted-foreground">—</span>;
-    const { feePercent, estimatedFee, estimatedMonthlyInterest, cycleCount, cycleFee } = status;
+    const { feePercent, estimatedFee, estimatedMonthlyInterest, cycleCount, cycleFee, journey } = status;
     const cheaperThanInterest =
         estimatedFee != null && estimatedMonthlyInterest != null
             ? estimatedFee < estimatedMonthlyInterest
@@ -36,6 +38,16 @@ export default function RolloverInfo({ status }: { status: IRolloverStatus | nul
                 <span className={cycleCount > 0 ? "text-xs font-medium text-debt" : "text-xs text-muted-foreground"}>
                     Kỳ này: {cycleCount} lần
                     {cycleCount > 0 ? ` · phí ${formatMoney(cycleFee ?? 0)}` : ""}
+                </span>
+            ) : null}
+            {journey ? (
+                <span className="rounded-r-md border-l-2 border-primary bg-primary-soft px-2 py-1 text-xs">
+                    Đã mất {Math.round(journey.feeRatio * 100)}% gốc sau {journey.rolloverCount} lần
+                    {journey.remainingToBreakEven != null ? ` · hòa gốc sau ~${journey.remainingToBreakEven} lần nữa` : ""}
+                    {" · "}
+                    <Link href={`${MENU_KEY.ROLLOVER_JOURNEY}?cardId=${cardId}`} className="text-accent-text underline">
+                        Hành trình
+                    </Link>
                 </span>
             ) : null}
         </div>

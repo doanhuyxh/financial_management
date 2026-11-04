@@ -54,14 +54,20 @@ export function useCardRollover() {
 
     const handleDeleteRollover = useCallback(
         (item: ICardRolloverData) => {
+            const payment =
+                item.paymentTransferId && typeof item.paymentTransferId === "object"
+                    ? item.paymentTransferId
+                    : null;
             modal.confirm({
                 title: "Xóa lần đáo hạn này?",
-                content: "Dư nợ thẻ sẽ giảm đúng phần phí đã ghi và khoản chi phí đáo hạn bị xóa.",
+                content: payment
+                    ? `Dư nợ thẻ sẽ giảm đúng phần phí đã ghi, khoản chi phí đáo hạn bị xóa, và khoản tự trả ${payment.amount.toLocaleString("vi-VN")} ₫ đi kèm cũng bị xóa (tiền hoàn về nguồn đã trả).`
+                    : "Dư nợ thẻ sẽ giảm đúng phần phí đã ghi và khoản chi phí đáo hạn bị xóa.",
                 okText: "Xóa",
                 okType: "danger",
                 onOk: async () => {
                     try {
-                        await deleteRollover(item._id);
+                        await deleteRollover({ id: item._id, deletePayment: Boolean(payment) });
                         notification.success({ title: "Đã xóa lần đáo hạn" });
                     } catch (error: unknown) {
                         notification.error({

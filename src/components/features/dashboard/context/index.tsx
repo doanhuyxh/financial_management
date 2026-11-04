@@ -13,6 +13,7 @@ import {
 } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { CardFeeType } from "@/libs/interfaces/expensesData";
 import { useCardRollover } from "@/libs/hooks/useCardRollover";
+import { useGetRolloverJourneys } from "@/libs/hooks/customHooks/useRolloverJourneys";
 import { buildTransactionsUrl } from "@/libs/utils/transactionsUrl";
 import {
     buildAttentionItems,
@@ -60,9 +61,11 @@ export default function DashboardContextProvider({
 
     const { data: feeProgressData } = useGetCreditCardFeeProgress();
     const feeProgress = feeProgressData?.data;
+    const { data: journeysData } = useGetRolloverJourneys();
+    const journeys = journeysData?.data;
     const creditCardFees = useMemo(
-        () => buildCreditCardFees(sources ?? [], feeProgress ?? []),
-        [sources, feeProgress],
+        () => buildCreditCardFees(sources ?? [], feeProgress ?? [], undefined, journeys ?? []),
+        [sources, feeProgress, journeys],
     );
     const creditCards = useMemo(
         () => buildCreditCardsOverview(sources ?? [], creditCardFees),

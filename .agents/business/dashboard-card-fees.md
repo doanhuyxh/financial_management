@@ -12,7 +12,7 @@ Code: `src/components/features/dashboard/components/credit-cards-panel/` (danh s
 - Điều kiện miễn phí: thanh tiến độ "đã đạt / mức tối thiểu", % đã đạt (hoặc "Đạt") và dòng "Còn thiếu …". Miễn phí quản lý hiện hai thanh nối bằng "hoặc".
 - Phí thanh toán dư nợ: số lần đã trả trong kỳ và phí ước tính = max(0, số lần − số lần miễn phí) × `paymentFee`.
 - "Lãi & chậm trả": lãi suất, lãi ước tính 30 ngày trên dư nợ hiện tại và quy tắc phí chậm trả.
-- "Đáo hạn" (`rollover-info`, có khi thẻ cấu hình `rolloverFeePercent` hoặc kỳ này đã đáo hạn): % phí, phí nếu đáo hết dư nợ so với lãi 30 ngày (xanh "rẻ hơn lãi" / đỏ "đắt hơn lãi"), số lần và phí kỳ này. Nút "Đáo hạn" trên dòng thẻ: [card-rollover.md](card-rollover.md).
+- "Đáo hạn" (`rollover-info`, có khi thẻ cấu hình `rolloverFeePercent`, kỳ này đã đáo hạn, hoặc có hành trình đang mở): % phí, phí nếu đáo hết dư nợ so với lãi 30 ngày (xanh "rẻ hơn lãi" / đỏ "đắt hơn lãi"), số lần và phí kỳ này, dòng "Đã mất x% gốc sau N lần · hòa gốc sau ~M lần nữa" + link Hành trình. Nút "Đáo hạn" trên dòng thẻ: [card-rollover.md](card-rollover.md).
 
 ## Câu tóm tắt "Phí sắp tới" (`getCardFeeHeadline`)
 

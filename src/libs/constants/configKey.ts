@@ -19,6 +19,7 @@ export const configQueryKey = {
 	INCOMES: "incomes",
 	TRANSFERS: "transfers",
 	CARD_ROLLOVERS: "card-rollovers",
+	ROLLOVER_JOURNEYS: "rollover-journeys",
 	DASHBOARD_EXPENSES_SUMMARY: "dashboard-expenses-summary",
 	DASHBOARD_CASHFLOW: "dashboard-cashflow",
 	VIETQR_BANKS: "vietqr-banks",

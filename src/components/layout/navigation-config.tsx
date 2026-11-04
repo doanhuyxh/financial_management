@@ -4,6 +4,7 @@ import {
     LandmarkIcon,
     LayoutGridIcon,
     ReceiptIcon,
+    RefreshCwIcon,
     TagsIcon,
     WalletIcon,
 } from "lucide-react"
@@ -54,6 +55,11 @@ export const sidebarConfig: SidebarConfig = {
             title: "Thẻ tín dụng",
             url: MENU_KEY.CREDIT_CARD_COMPARE,
             icon: <CreditCardIcon />,
+        },
+        {
+            title: "Đáo hạn",
+            url: MENU_KEY.ROLLOVER_JOURNEY,
+            icon: <RefreshCwIcon />,
         },
         {
             title: "Danh mục",

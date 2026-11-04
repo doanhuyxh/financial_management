@@ -3,12 +3,15 @@ import { errorResponseWithStatusCode } from "@/server/utils/responseServer";
 import { CardRolloversService } from "@/server/services/card-rollovers.service";
 
 export async function DELETE(
-    _req: NextRequest,
+    req: NextRequest,
     { params }: { params: Promise<{ id: string }> },
 ) {
     try {
         const { id } = await params;
-        return await CardRolloversService.deleteCardRollover(id);
+        const { searchParams } = new URL(req.url);
+        return await CardRolloversService.deleteCardRollover(id, {
+            deletePayment: searchParams.get("deletePayment") === "1",
+        });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Something went wrong";
         return errorResponseWithStatusCode(message);

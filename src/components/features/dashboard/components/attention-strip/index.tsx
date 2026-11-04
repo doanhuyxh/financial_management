@@ -1,7 +1,9 @@
 "use client";
 
 import { Button } from "antd";
-import { ArrowLeftRight, CalendarClock, CircleAlert, CreditCard, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeftRight, CalendarClock, ChartLine, CircleAlert, CreditCard, RefreshCw } from "lucide-react";
+import { MENU_KEY } from "@/libs/constants/menuKey";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import type { IAttentionItem } from "@/components/features/dashboard/utils";
 import { cn } from "@/libs/shadcn/utils";
@@ -10,6 +12,7 @@ const ICONS: Record<IAttentionItem["icon"], React.ReactNode> = {
     due: <CalendarClock className="size-4" />,
     fee: <CreditCard className="size-4" />,
     "net-worth": <CircleAlert className="size-4" />,
+    rollover: <RefreshCw className="size-4" />,
 };
 
 const TONE_CLASS: Record<IAttentionItem["tone"], string> = {
@@ -44,7 +47,7 @@ export default function AttentionStrip() {
                     <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold leading-snug">{item.title}</p>
                         <p className="money-value text-xs text-muted-foreground">{item.description}</p>
-                        {item.payCard || item.rolloverCard ? (
+                        {item.payCard || item.rolloverCard || item.journeyCard ? (
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {item.payCard ? (
                                     <Button
@@ -65,6 +68,13 @@ export default function AttentionStrip() {
                                     >
                                         Đáo hạn
                                     </Button>
+                                ) : null}
+                                {item.journeyCard ? (
+                                    <Link href={`${MENU_KEY.ROLLOVER_JOURNEY}?cardId=${item.journeyCard._id}`}>
+                                        <Button size="small" icon={<ChartLine className="size-3.5" />}>
+                                            Phân tích
+                                        </Button>
+                                    </Link>
                                 ) : null}
                             </div>
                         ) : null}

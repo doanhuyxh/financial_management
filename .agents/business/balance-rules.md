@@ -30,7 +30,7 @@ Mọi giao dịch đều cập nhật số dư bằng `$inc` atomic với điề
 
 ## Chuyển tiền (Transfer) — `transfers.service.ts`
 
-Chỉ có **tạo** và **xóa**. **Không có sửa** (không có PUT).
+Chỉ có **tạo** và **xóa**. **Không có sửa** (không có PUT). Lõi `createTransferRecord` / `deleteTransferRecord` (throw Error) được service đáo hạn dùng lại cho khoản "tự trả một phần".
 
 Các trường hợp được phép (`validateTransferRules`):
 

@@ -13,6 +13,8 @@ import {
     SourcesOfMoneyType,
     type ISourcesOfMoneyData,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import { useRouter } from "next/navigation";
+import { MENU_KEY } from "@/libs/constants/menuKey";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import { maskAccountNumber } from "@/libs/utils/maskAccountNumber";
@@ -86,6 +88,7 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
         openRollover,
     } = useSourcesOfMoneyContext();
     const isMobile = useIsMobile();
+    const router = useRouter();
 
     const columns: ColumnsType<ISourcesOfMoneyData> = useMemo(() => {
         const hasQr = (record: ISourcesOfMoneyData) =>
@@ -103,7 +106,12 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
                           ...(hasQr(record) ? [{ key: "qr", label: "Mã QR nhận tiền" }] : []),
                       ]
                     : []),
-                ...(canRollover(record) ? [{ key: "rollover", label: "Đáo hạn thẻ" }] : []),
+                ...(canRollover(record)
+                    ? [
+                          { key: "rollover", label: "Đáo hạn thẻ" },
+                          { key: "journey", label: "Hành trình đáo hạn" },
+                      ]
+                    : []),
                 { key: "edit", label: "Sửa" },
                 { key: "delete", label: "Xóa", danger: true },
             ],
@@ -111,6 +119,8 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
                 if (key === "history") openHistory(record);
                 else if (key === "qr") openQr(record);
                 else if (key === "rollover") openRollover(record._id);
+                else if (key === "journey")
+                    router.push(`${MENU_KEY.ROLLOVER_JOURNEY}?cardId=${record._id}`);
                 else if (key === "edit") openEditModal(record);
                 else handleDelete(record);
             },
@@ -176,7 +186,7 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
             },
             { title: "", key: "actions", width: 200, render: (_value, record) => actions(record) },
         ];
-    }, [isMobile, openEditModal, openHistory, openQr, handleDelete, openRollover]);
+    }, [isMobile, openEditModal, openHistory, openQr, handleDelete, openRollover, router]);
 
     if (!isLoading && items.length === 0 && hiddenCount === 0) return null;
 

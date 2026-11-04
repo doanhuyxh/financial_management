@@ -321,6 +321,182 @@ async function getPopulatedTransfer(id: string, userId: string) {
         .lean();
 }
 
+/**
+ * Lõi tạo chuyển tiền (dùng chung với đáo hạn có tự trả một phần): throw Error khi không hợp lệ,
+ * trả về transfer đã populate. Thứ tự ghi và rollback giữ nguyên như mô tả ở balance-rules.md.
+ */
+export async function createTransferRecord(userId: string, data: IFromTransfersData) {
+        const payload = normalizePayload(data);
+        const { fromSource, toSource } = await loadOwnedSources(
+            userId,
+            payload.fromSourceId,
+            payload.toSourceId,
+        );
+
+        // Phí rút tiền mặt tối thiểu của thẻ áp dụng cho mọi lần chuyển có phí từ thẻ
+        const cashAdvanceFeeMin = fromSource.creditDetails?.cashAdvanceFeeMin;
+        if (
+            payload.feePercent > 0 &&
+            fromSource.type === SourcesOfMoneyType.CREDIT_CARD &&
+            cashAdvanceFeeMin
+        ) {
+            payload.feeAmount = calcPercentFee(
+                payload.amount,
+                payload.feePercent,
+                cashAdvanceFeeMin,
+            );
+        }
+
+        const { receiveAmount } = validateTransferRules(
+            fromSource,
+            toSource,
+            payload.amount,
+            payload.feePercent,
+            payload.feeAmount,
+            payload.feeCategoryId,
+        );
+
+        if (payload.feeAmount > 0) {
+            const category = await CategoriesModel.findOne({
+                _id: payload.feeCategoryId,
+                userId: userId,
+                ...NOT_ARCHIVED,
+            }).select("_id kind");
+            if (!category) {
+                throw new Error("Không tìm thấy danh mục phí");
+            }
+            if (category.kind && category.kind !== CategoryKind.EXPENSE) {
+                throw new Error("Danh mục phí phải là danh mục chi tiêu");
+            }
+        }
+
+        await debitSource(userId, fromSource, payload.amount);
+
+        try {
+            await creditSource(userId, toSource, receiveAmount);
+        } catch (creditError) {
+            await creditBackDebit(userId, fromSource, payload.amount);
+            throw creditError;
+        }
+
+        let feeExpenseId: mongoose.Types.ObjectId | undefined;
+
+        try {
+            if (payload.feeAmount > 0) {
+                const feeExpense = await ExpensesModel.create({
+                    userId: userId,
+                    categoryId: new mongoose.Types.ObjectId(
+                        payload.feeCategoryId,
+                    ),
+                    sourceOfMoneyId: fromSource._id,
+                    amount: payload.feeAmount,
+                    note:
+                        payload.note ||
+                        `Phí chuyển đổi ${payload.feePercent}%`,
+                    spentAt: payload.transferredAt,
+                    skipBalanceAdjust: true,
+                });
+                feeExpenseId = feeExpense._id as mongoose.Types.ObjectId;
+            }
+
+            const created = await TransfersModel.create({
+                userId: userId,
+                fromSourceId: new mongoose.Types.ObjectId(
+                    payload.fromSourceId,
+                ),
+                toSourceId: new mongoose.Types.ObjectId(payload.toSourceId),
+                amount: payload.amount,
+                feePercent: payload.feePercent,
+                feeAmount: payload.feeAmount,
+                feeCategoryId: payload.feeCategoryId
+                    ? new mongoose.Types.ObjectId(payload.feeCategoryId)
+                    : undefined,
+                feeExpenseId,
+                note: payload.note,
+                transferredAt: payload.transferredAt,
+            });
+
+            return getPopulatedTransfer(created._id.toString(), userId);
+        } catch (createError) {
+            if (feeExpenseId) {
+                await ExpensesModel.findOneAndDelete({
+                    _id: feeExpenseId,
+                    userId: userId,
+                });
+            }
+            await debitBackCredit(userId, toSource, receiveAmount);
+            await creditBackDebit(userId, fromSource, payload.amount);
+            throw createError;
+        }
+}
+
+/** Lõi xóa chuyển tiền (hoàn số dư hai bên, xóa fee expense): throw Error khi không xóa được. */
+export async function deleteTransferRecord(userId: string, id: string) {
+        const existing = await TransfersModel.findOne({
+            _id: id,
+            userId: userId,
+        });
+        if (!existing) {
+            throw new Error("Không tìm thấy giao dịch chuyển tiền");
+        }
+
+        // A side whose source was deleted or archived has nothing left to reverse.
+        const [fromSource, toSource] = (await Promise.all([
+            SourcesOfMoneyModel.findOne({
+                _id: existing.fromSourceId,
+                userId: userId,
+                ...NOT_ARCHIVED,
+            }),
+            SourcesOfMoneyModel.findOne({
+                _id: existing.toSourceId,
+                userId: userId,
+                ...NOT_ARCHIVED,
+            }),
+        ])) as [SourceDoc | null, SourceDoc | null];
+
+        const receiveAmount = existing.amount - (existing.feeAmount || 0);
+
+        // Reverse: take back from destination, restore from source
+        if (toSource) {
+            await debitBackCredit(userId, toSource, receiveAmount);
+        }
+
+        try {
+            if (fromSource) {
+                await creditBackDebit(userId, fromSource, existing.amount);
+            }
+        } catch (restoreError) {
+            if (toSource) {
+                await creditSource(userId, toSource, receiveAmount);
+            }
+            throw restoreError;
+        }
+
+        try {
+            if (existing.feeExpenseId) {
+                // Fee expense never adjusted balances — delete document only
+                await ExpensesModel.findOneAndDelete({
+                    _id: existing.feeExpenseId,
+                    userId: userId,
+                });
+            }
+
+            await TransfersModel.findOneAndDelete({
+                _id: id,
+                userId: userId,
+            });
+        } catch (deleteError) {
+            if (fromSource) {
+                await debitSource(userId, fromSource, existing.amount);
+            }
+            if (toSource) {
+                await creditSource(userId, toSource, receiveAmount);
+            }
+            throw deleteError;
+        }
+
+}
+
 export class TransfersService {
     static async getTransfers(query: IPaginatedTransfersQuery) {
         await dbConnect();
@@ -386,112 +562,8 @@ export class TransfersService {
         if (!user?.userId) return unauthorizedResponse();
 
         try {
-            const payload = normalizePayload(data);
-            const { fromSource, toSource } = await loadOwnedSources(
-                user.userId,
-                payload.fromSourceId,
-                payload.toSourceId,
-            );
-
-            // Phí rút tiền mặt tối thiểu của thẻ áp dụng cho mọi lần chuyển có phí từ thẻ
-            const cashAdvanceFeeMin = fromSource.creditDetails?.cashAdvanceFeeMin;
-            if (
-                payload.feePercent > 0 &&
-                fromSource.type === SourcesOfMoneyType.CREDIT_CARD &&
-                cashAdvanceFeeMin
-            ) {
-                payload.feeAmount = calcPercentFee(
-                    payload.amount,
-                    payload.feePercent,
-                    cashAdvanceFeeMin,
-                );
-            }
-
-            const { receiveAmount } = validateTransferRules(
-                fromSource,
-                toSource,
-                payload.amount,
-                payload.feePercent,
-                payload.feeAmount,
-                payload.feeCategoryId,
-            );
-
-            if (payload.feeAmount > 0) {
-                const category = await CategoriesModel.findOne({
-                    _id: payload.feeCategoryId,
-                    userId: user.userId,
-                    ...NOT_ARCHIVED,
-                }).select("_id kind");
-                if (!category) {
-                    throw new Error("Không tìm thấy danh mục phí");
-                }
-                if (category.kind && category.kind !== CategoryKind.EXPENSE) {
-                    throw new Error("Danh mục phí phải là danh mục chi tiêu");
-                }
-            }
-
-            await debitSource(user.userId, fromSource, payload.amount);
-
-            try {
-                await creditSource(user.userId, toSource, receiveAmount);
-            } catch (creditError) {
-                await creditBackDebit(user.userId, fromSource, payload.amount);
-                throw creditError;
-            }
-
-            let feeExpenseId: mongoose.Types.ObjectId | undefined;
-
-            try {
-                if (payload.feeAmount > 0) {
-                    const feeExpense = await ExpensesModel.create({
-                        userId: user.userId,
-                        categoryId: new mongoose.Types.ObjectId(
-                            payload.feeCategoryId,
-                        ),
-                        sourceOfMoneyId: fromSource._id,
-                        amount: payload.feeAmount,
-                        note:
-                            payload.note ||
-                            `Phí chuyển đổi ${payload.feePercent}%`,
-                        spentAt: payload.transferredAt,
-                        skipBalanceAdjust: true,
-                    });
-                    feeExpenseId = feeExpense._id as mongoose.Types.ObjectId;
-                }
-
-                const created = await TransfersModel.create({
-                    userId: user.userId,
-                    fromSourceId: new mongoose.Types.ObjectId(
-                        payload.fromSourceId,
-                    ),
-                    toSourceId: new mongoose.Types.ObjectId(payload.toSourceId),
-                    amount: payload.amount,
-                    feePercent: payload.feePercent,
-                    feeAmount: payload.feeAmount,
-                    feeCategoryId: payload.feeCategoryId
-                        ? new mongoose.Types.ObjectId(payload.feeCategoryId)
-                        : undefined,
-                    feeExpenseId,
-                    note: payload.note,
-                    transferredAt: payload.transferredAt,
-                });
-
-                const populated = await getPopulatedTransfer(
-                    created._id.toString(),
-                    user.userId,
-                );
-                return successResponse(populated, "Chuyển tiền thành công");
-            } catch (createError) {
-                if (feeExpenseId) {
-                    await ExpensesModel.findOneAndDelete({
-                        _id: feeExpenseId,
-                        userId: user.userId,
-                    });
-                }
-                await debitBackCredit(user.userId, toSource, receiveAmount);
-                await creditBackDebit(user.userId, fromSource, payload.amount);
-                throw createError;
-            }
+            const populated = await createTransferRecord(user.userId, data);
+            return successResponse(populated, "Chuyển tiền thành công");
         } catch (error: unknown) {
             const message =
                 error instanceof Error ? error.message : "Chuyển tiền thất bại";
@@ -505,79 +577,15 @@ export class TransfersService {
         if (!user?.userId) return unauthorizedResponse();
 
         try {
-            const existing = await TransfersModel.findOne({
-                _id: id,
-                userId: user.userId,
-            });
-            if (!existing) {
-                return errorResponseWithStatusCode(
-                    "Không tìm thấy giao dịch chuyển tiền",
-                    404,
-                );
-            }
-
-            // A side whose source was deleted or archived has nothing left to reverse.
-            const [fromSource, toSource] = (await Promise.all([
-                SourcesOfMoneyModel.findOne({
-                    _id: existing.fromSourceId,
-                    userId: user.userId,
-                    ...NOT_ARCHIVED,
-                }),
-                SourcesOfMoneyModel.findOne({
-                    _id: existing.toSourceId,
-                    userId: user.userId,
-                    ...NOT_ARCHIVED,
-                }),
-            ])) as [SourceDoc | null, SourceDoc | null];
-
-            const receiveAmount = existing.amount - (existing.feeAmount || 0);
-
-            // Reverse: take back from destination, restore from source
-            if (toSource) {
-                await debitBackCredit(user.userId, toSource, receiveAmount);
-            }
-
-            try {
-                if (fromSource) {
-                    await creditBackDebit(user.userId, fromSource, existing.amount);
-                }
-            } catch (restoreError) {
-                if (toSource) {
-                    await creditSource(user.userId, toSource, receiveAmount);
-                }
-                throw restoreError;
-            }
-
-            try {
-                if (existing.feeExpenseId) {
-                    // Fee expense never adjusted balances — delete document only
-                    await ExpensesModel.findOneAndDelete({
-                        _id: existing.feeExpenseId,
-                        userId: user.userId,
-                    });
-                }
-
-                await TransfersModel.findOneAndDelete({
-                    _id: id,
-                    userId: user.userId,
-                });
-            } catch (deleteError) {
-                if (fromSource) {
-                    await debitSource(user.userId, fromSource, existing.amount);
-                }
-                if (toSource) {
-                    await creditSource(user.userId, toSource, receiveAmount);
-                }
-                throw deleteError;
-            }
-
+            await deleteTransferRecord(user.userId, id);
             return successResponse(null, "Xóa giao dịch chuyển tiền thành công");
         } catch (error: unknown) {
             const message =
                 error instanceof Error
                     ? error.message
                     : "Xóa giao dịch chuyển tiền thất bại";
-            return errorResponseWithStatusCode(message, 400);
+            const status = message === "Không tìm thấy giao dịch chuyển tiền" ? 404 : 400;
+            return errorResponseWithStatusCode(message, status);
         }
     }
 }

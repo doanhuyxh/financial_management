@@ -10,6 +10,8 @@ import { getNextAnnualDate } from "@/libs/utils/annualFeeDate";
 import { getStatementCycle } from "@/libs/utils/statementCycle";
 import { calcPercentFee, estimateInterest } from "@/libs/utils/cardFee";
 import { getNextDueDate } from "@/libs/utils/dueDate";
+import type { IRolloverJourneyData } from "@/libs/interfaces/rolloverJourneysData";
+import { projectRollovers } from "@/libs/utils/rolloverProjection";
 
 /** Cards due within this many days are flagged as "sắp đến hạn". */
 export const DUE_SOON_DAYS = 7;
@@ -85,6 +87,17 @@ export interface IRolloverStatus {
     /** Số lần và tổng phí đáo hạn trong kỳ sao kê; null khi chưa tải xong tiến độ */
     cycleCount: number | null;
     cycleFee: number | null;
+    /** Hành trình đang mở của thẻ (null khi chưa có) */
+    journey: {
+        _id: string;
+        baseAmount: number;
+        totalFee: number;
+        /** Phí tích lũy / gốc, 0–1+ */
+        feeRatio: number;
+        rolloverCount: number;
+        /** Số lần nữa thì phí bằng gốc nếu không trả thêm; null khi không tính được */
+        remainingToBreakEven: number | null;
+    } | null;
 }
 
 export interface ICreditCardFeeItem {
@@ -167,11 +180,34 @@ function buildLatePenalty(details: Partial<ICreditDetails>): ILatePenalty | null
 function buildRollover(
     details: Partial<ICreditDetails>,
     progress: ICreditCardFeeProgress | undefined,
+    openJourney: IRolloverJourneyData | undefined,
 ): IRolloverStatus | null {
     const feePercent = details.rolloverFeePercent ?? null;
-    if (feePercent == null && !(progress?.cycleRollovers ?? 0)) return null;
+    if (feePercent == null && !(progress?.cycleRollovers ?? 0) && !openJourney) return null;
     const debt = details.currentDebt ?? 0;
+    let journey: IRolloverStatus["journey"] = null;
+    if (openJourney) {
+        const rate = feePercent ?? 0;
+        const remaining =
+            rate > 0 && debt > 0
+                ? projectRollovers({
+                      debt,
+                      feePercent: rate,
+                      baseAmount: openJourney.baseAmount,
+                      startCumulativeFee: openJourney.stats.totalFee,
+                  }).breakEvenPeriod
+                : null;
+        journey = {
+            _id: openJourney._id,
+            baseAmount: openJourney.baseAmount,
+            totalFee: openJourney.stats.totalFee,
+            feeRatio: openJourney.baseAmount > 0 ? openJourney.stats.totalFee / openJourney.baseAmount : 0,
+            rolloverCount: openJourney.stats.rolloverCount,
+            remainingToBreakEven: remaining,
+        };
+    }
     return {
+        journey,
         feePercent,
         estimatedFee: feePercent != null && debt > 0 ? calcPercentFee(debt, feePercent) : null,
         estimatedMonthlyInterest:
@@ -191,8 +227,17 @@ export function buildCreditCardFees(
     sources: ISourcesOfMoneyData[],
     progress: ICreditCardFeeProgress[] = [],
     today: Dayjs = dayjs(),
+    journeys: IRolloverJourneyData[] = [],
 ): ICreditCardFeeItem[] {
     const progressById = new Map(progress.map((item) => [item.sourceOfMoneyId, item]));
+    // Hành trình đang mở theo thẻ (API trả hành trình mở trước)
+    const openJourneyByCard = new Map<string, IRolloverJourneyData>();
+    for (const journey of journeys) {
+        if (journey.endedAt) continue;
+        const cardId =
+            typeof journey.sourceOfMoneyId === "string" ? journey.sourceOfMoneyId : journey.sourceOfMoneyId._id;
+        if (!openJourneyByCard.has(cardId)) openJourneyByCard.set(cardId, journey);
+    }
     const items: ICreditCardFeeItem[] = [];
 
     for (const source of sources) {
@@ -206,7 +251,7 @@ export function buildCreditCardFees(
             details.managementFeeWaiverMinSpend != null;
         const latePenalty = buildLatePenalty(details);
         const cardProgress = progressById.get(source._id);
-        const rollover = buildRollover(details, cardProgress);
+        const rollover = buildRollover(details, cardProgress, openJourneyByCard.get(source._id));
         if (
             !hasAnnual &&
             !hasManagement &&
@@ -413,19 +458,23 @@ export type AttentionTone = "debt" | "warn";
 export interface IAttentionItem {
     key: string;
     tone: AttentionTone;
-    icon: "due" | "fee" | "net-worth";
+    icon: "due" | "fee" | "net-worth" | "rollover";
     title: string;
     description: string;
     /** Thẻ cần trả nợ: nút "Thanh toán" mở form chuyển tiền điền sẵn */
     payCard?: { _id: string; amount: number };
     /** Thẻ có cấu hình phí đáo hạn: nút "Đáo hạn" mở modal, kèm phí ước tính */
     rolloverCard?: { _id: string; estimatedFee: number };
+    /** Hành trình đáo hạn đã mất ≥ 50% gốc: nút "Phân tích" mở trang Hành trình */
+    journeyCard?: { _id: string };
 }
 
 /** Số mục tối đa trong hàng "Cần chú ý" */
 const MAX_ATTENTION_ITEMS = 4;
 /** Phí thường niên được nhắc khi còn ≤ số ngày này */
 const ANNUAL_FEE_REMIND_DAYS = 30;
+/** Nhắc khi phí đáo hạn tích lũy đạt tỷ lệ này so với gốc */
+const ROLLOVER_FEE_WARN_RATIO = 0.5;
 
 /**
  * Thứ tự ưu tiên: thẻ đến hạn ≤ 7 ngày (gần nhất trước) → phí sắp tính chưa đạt miễn → tài sản ròng âm.
@@ -453,6 +502,20 @@ export function buildAttentionItems(
             payCard: { _id: card._id, amount: card.currentDebt },
             rolloverCard: rolloverFee != null ? { _id: card._id, estimatedFee: rolloverFee } : undefined,
         });
+    }
+
+    for (const card of cards) {
+        const journey = card.fee?.rollover?.journey;
+        if (journey && journey.feeRatio >= ROLLOVER_FEE_WARN_RATIO) {
+            items.push({
+                key: `rollover-${card._id}`,
+                tone: "debt",
+                icon: "rollover",
+                title: `Phí đáo hạn ${card.name} đã vượt ${Math.round(journey.feeRatio * 100)}% số gốc`,
+                description: `Đã mất ${formatVnd(journey.totalFee)} sau ${journey.rolloverCount} lần · xem hành trình để tìm cách thoát`,
+                journeyCard: { _id: card._id },
+            });
+        }
     }
 
     for (const card of cards) {
