@@ -62,6 +62,9 @@ export interface ICardMetrics {
     foreignFxFee: number | null;
     foreignVndFee: number | null;
     lateFeeMin: number | null;
+    /** Phí một lần đáo hạn `carriedDebt`; null nếu chưa nhập % phí đáo hạn */
+    rolloverFeePercent: number | null;
+    rolloverFee: number | null;
     /** Các nhóm phí/lãi chưa nhập, nên kết quả so sánh có thể chưa đủ */
     missing: string[];
 }
@@ -154,6 +157,7 @@ export function buildCardMetrics(
         details.lateFeeMin == null && details.lateFeePercentPerDay == null
             ? "phí chậm trả"
             : null,
+        details.rolloverFeePercent == null ? "phí đáo hạn" : null,
     ].filter((item): item is string => Boolean(item));
 
     return {
@@ -184,6 +188,11 @@ export function buildCardMetrics(
             details.foreignVndFeeMin,
         ),
         lateFeeMin: details.lateFeeMin ?? null,
+        rolloverFeePercent: details.rolloverFeePercent ?? null,
+        rolloverFee:
+            details.rolloverFeePercent != null
+                ? calcPercentFee(scenario.carriedDebt, details.rolloverFeePercent)
+                : null,
         missing,
     };
 }
@@ -272,6 +281,13 @@ export const COMPARE_CRITERIA: ICompareCriterion[] = [
         label: "Phí chậm trả tối thiểu",
         short: "phí chậm trả",
         value: (m) => m.lateFeeMin,
+    },
+    {
+        key: "rollover",
+        label: "Đáo hạn dư nợ (phí 1 lần)",
+        short: "phí đáo hạn",
+        hint: "Phí dịch vụ đáo hạn trên dư nợ chưa trả của kịch bản; so với dòng lãi 30 ngày để biết cách nào rẻ hơn",
+        value: (m) => m.rolloverFee,
     },
 ];
 

@@ -83,12 +83,17 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
         openHistory,
         openQr,
         handleDelete,
+        openRollover,
     } = useSourcesOfMoneyContext();
     const isMobile = useIsMobile();
 
     const columns: ColumnsType<ISourcesOfMoneyData> = useMemo(() => {
         const hasQr = (record: ISourcesOfMoneyData) =>
             record.type === SourcesOfMoneyType.BANK && Boolean(record.bankAccount);
+
+        // Đáo hạn chỉ có nghĩa khi thẻ còn dư nợ
+        const canRollover = (record: ISourcesOfMoneyData) =>
+            isCredit(record) && (record.creditDetails?.currentDebt ?? 0) > 0;
 
         const menu = (record: ISourcesOfMoneyData) => ({
             items: [
@@ -98,12 +103,14 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
                           ...(hasQr(record) ? [{ key: "qr", label: "Mã QR nhận tiền" }] : []),
                       ]
                     : []),
+                ...(canRollover(record) ? [{ key: "rollover", label: "Đáo hạn thẻ" }] : []),
                 { key: "edit", label: "Sửa" },
                 { key: "delete", label: "Xóa", danger: true },
             ],
             onClick: ({ key }: { key: string }) => {
                 if (key === "history") openHistory(record);
                 else if (key === "qr") openQr(record);
+                else if (key === "rollover") openRollover(record._id);
                 else if (key === "edit") openEditModal(record);
                 else handleDelete(record);
             },
@@ -169,7 +176,7 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
             },
             { title: "", key: "actions", width: 200, render: (_value, record) => actions(record) },
         ];
-    }, [isMobile, openEditModal, openHistory, openQr, handleDelete]);
+    }, [isMobile, openEditModal, openHistory, openQr, handleDelete, openRollover]);
 
     if (!isLoading && items.length === 0 && hiddenCount === 0) return null;
 

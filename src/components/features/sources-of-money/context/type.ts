@@ -5,6 +5,7 @@ import type {
     SourcesOfMoneyType,
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import type { IFromTransfersData } from "@/libs/interfaces/transfersData";
+import type { ICardRolloverData, IFromCardRolloverData } from "@/libs/interfaces/cardRolloversData";
 import type {
     ISourceTransactionData,
     ISourceTransactionSummary,
@@ -84,4 +85,13 @@ export interface ISourcesOfMoneyContextProps {
         values: IFromTransfersData,
         options?: { keepOpen?: boolean },
     ) => Promise<boolean>;
+    /** Thẻ đang mở modal đáo hạn (null = đóng). */
+    rolloverSource: ISourcesOfMoneyData | null;
+    openRollover: (cardId: string) => void;
+    closeRollover: () => void;
+    rolloverItems: ICardRolloverData[];
+    isRolloverLoading: boolean;
+    isRolloverSubmitting: boolean;
+    handleRolloverSubmit: (values: IFromCardRolloverData) => Promise<boolean>;
+    handleDeleteRollover: (item: ICardRolloverData) => void;
 }

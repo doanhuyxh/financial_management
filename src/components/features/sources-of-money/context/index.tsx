@@ -17,6 +17,7 @@ import {
     useUpdateSourcesOfMoney,
 } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { useCreateTransfer } from "@/libs/hooks/customHooks/useTransfers";
+import { useCardRollover } from "@/libs/hooks/useCardRollover";
 import {
     SourcesOfMoneyType,
     type IFromSourcesOfMoneyData,
@@ -163,6 +164,15 @@ export default function SourcesOfMoneyContextProvider({
     const assets = useMemo(
         () => buildAssetsSummary(allSourcesData?.data?.items ?? []),
         [allSourcesData?.data?.items],
+    );
+
+    // Đáo hạn thẻ (menu "⋯" của thẻ còn dư nợ), dùng chung modal với dashboard
+    const rollover = useCardRollover();
+    const rolloverSource = useMemo(
+        () =>
+            allSourcesData?.data?.items?.find((item) => item._id === rollover.rolloverCardId) ??
+            null,
+        [allSourcesData?.data?.items, rollover.rolloverCardId],
     );
 
     const openCreateModal = useCallback(() => {
@@ -427,6 +437,14 @@ export default function SourcesOfMoneyContextProvider({
             openTransferModal,
             closeTransferModal,
             handleTransferSubmit,
+            rolloverSource,
+            openRollover: rollover.openRollover,
+            closeRollover: rollover.closeRollover,
+            rolloverItems: rollover.rolloverItems,
+            isRolloverLoading: rollover.isRolloverLoading,
+            isRolloverSubmitting: rollover.isRolloverSubmitting,
+            handleRolloverSubmit: rollover.handleRolloverSubmit,
+            handleDeleteRollover: rollover.handleDeleteRollover,
         }),
         [
             search,
@@ -482,6 +500,8 @@ export default function SourcesOfMoneyContextProvider({
             openTransferModal,
             closeTransferModal,
             handleTransferSubmit,
+            rolloverSource,
+            rollover,
         ],
     );
 

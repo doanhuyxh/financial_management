@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "antd";
-import { ArrowLeftRight, CalendarClock, CircleAlert, CreditCard } from "lucide-react";
+import { ArrowLeftRight, CalendarClock, CircleAlert, CreditCard, RefreshCw } from "lucide-react";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import type { IAttentionItem } from "@/components/features/dashboard/utils";
 import { cn } from "@/libs/shadcn/utils";
@@ -19,7 +19,7 @@ const TONE_CLASS: Record<IAttentionItem["tone"], string> = {
 
 /** Hàng "Cần chú ý" đầu dashboard: hạn trả thẻ, phí sắp tính, tài sản ròng âm. Không có gì thì ẩn. */
 export default function AttentionStrip() {
-    const { attentionItems, handlePayCard } = useDashboardContext();
+    const { attentionItems, handlePayCard, openRollover } = useDashboardContext();
 
     if (attentionItems.length === 0) return null;
 
@@ -44,17 +44,29 @@ export default function AttentionStrip() {
                     <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold leading-snug">{item.title}</p>
                         <p className="money-value text-xs text-muted-foreground">{item.description}</p>
-                        {item.payCard ? (
-                            <Button
-                                size="small"
-                                className="mt-2"
-                                icon={<ArrowLeftRight className="size-3.5" />}
-                                onClick={() =>
-                                    handlePayCard(item.payCard!._id, item.payCard!.amount)
-                                }
-                            >
-                                Thanh toán
-                            </Button>
+                        {item.payCard || item.rolloverCard ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                                {item.payCard ? (
+                                    <Button
+                                        size="small"
+                                        icon={<ArrowLeftRight className="size-3.5" />}
+                                        onClick={() =>
+                                            handlePayCard(item.payCard!._id, item.payCard!.amount)
+                                        }
+                                    >
+                                        Thanh toán
+                                    </Button>
+                                ) : null}
+                                {item.rolloverCard ? (
+                                    <Button
+                                        size="small"
+                                        icon={<RefreshCw className="size-3.5" />}
+                                        onClick={() => openRollover(item.rolloverCard!._id)}
+                                    >
+                                        Đáo hạn
+                                    </Button>
+                                ) : null}
+                            </div>
                         ) : null}
                     </div>
                 </div>

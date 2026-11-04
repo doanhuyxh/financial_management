@@ -1,6 +1,7 @@
 import type { Dayjs } from "dayjs";
 import type { CardFeeType } from "@/libs/interfaces/expensesData";
 import type { ICardRolloverData, IFromCardRolloverData } from "@/libs/interfaces/cardRolloversData";
+import type { ISourcesOfMoneyData } from "@/libs/interfaces/sourcesOfMoneyData";
 import type {
     IDashboardCashflowSummary,
     IDashboardExpensesSummary,
@@ -28,8 +29,8 @@ export interface IDashboardContextProps {
     handlePayCard: (cardId: string, amount: number) => void;
     handleRecordCardFee: (item: ICreditCardFeeItem, feeType: CardFeeType) => void;
     handleViewDay: (day: number) => void;
-    /** Thẻ đang mở modal đáo hạn (null = đóng); lấy từ `creditCards` nên dư nợ luôn mới */
-    rolloverCard: ICreditCardOverviewItem | null;
+    /** Thẻ đang mở modal đáo hạn (null = đóng); lấy từ danh sách nguồn nên dư nợ luôn mới */
+    rolloverSource: ISourcesOfMoneyData | null;
     openRollover: (cardId: string) => void;
     closeRollover: () => void;
     /** Các lần đáo hạn gần đây của thẻ đang mở */
