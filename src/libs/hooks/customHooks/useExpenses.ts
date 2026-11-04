@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIdempotencyKey } from "@/libs/hooks/useIdempotencyKey";
 import { configQueryKey, QUERY_STALE_TIME } from "@/libs/constants/configKey";
 import type {
     IFromExpensesData,
@@ -42,10 +43,15 @@ export const useGetExpenseSuggestions = (enabled = true) => {
 
 export const useCreateExpense = () => {
     const queryClient = useQueryClient();
+    // Một khóa cho tới khi tạo thành công: bấm đúp / gửi lại không tạo trùng
+    const idempotencyKey = useIdempotencyKey();
 
     return useMutation({
-        mutationFn: (body: IFromExpensesData) => createExpense(body),
-        onSuccess: () => invalidateExpenseRelated(queryClient),
+        mutationFn: (body: IFromExpensesData) => createExpense(body, idempotencyKey.get()),
+        onSuccess: () => {
+            idempotencyKey.rotate();
+            invalidateExpenseRelated(queryClient);
+        },
     });
 };
 

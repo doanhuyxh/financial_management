@@ -22,7 +22,7 @@
 - Response: `{ items, pagination, summary: { increase, decrease } }` (tổng delta dương / âm trong bộ lọc). UI ghi nhãn "Tiền vào/Tiền ra" cho nguồn thường, "Phát sinh nợ/Giảm nợ" cho thẻ.
 - Sắp xếp `occurredAt desc, createdAt desc, _id desc`.
 - Query key `[SOURCES_OF_MONEY, "transactions", id, query]`: mọi mutation đã invalidate `SOURCES_OF_MONEY` nên tự làm mới.
-- **Tổng delta không chắc bằng số dư hiện tại:** nguồn tạo trước khi có BalanceAdjustment không có dòng "Số dư ban đầu". Vì vậy chưa làm "số dư sau mỗi giao dịch".
+- **Tổng delta bằng số dư hiện tại** khi nguồn có sổ cái đầy đủ (`ledgerCompleteAt`; nguồn cũ cần chạy `scripts/backfill-opening-balance.ts`). Nút "Đối soát" trong modal so hai số này ([balance-integrity.md](balance-integrity.md)). Chưa làm "số dư sau mỗi giao dịch".
 
 ## Link chia sẻ public
 

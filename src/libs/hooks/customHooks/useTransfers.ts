@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIdempotencyKey } from "@/libs/hooks/useIdempotencyKey";
 import { configQueryKey, QUERY_STALE_TIME } from "@/libs/constants/configKey";
 import type {
     IFromTransfersData,
@@ -46,10 +47,15 @@ export const useGetTransferSuggestions = (enabled = true) => {
 
 export const useCreateTransfer = () => {
     const queryClient = useQueryClient();
+    // Một khóa cho tới khi tạo thành công: bấm đúp / gửi lại không tạo trùng
+    const idempotencyKey = useIdempotencyKey();
 
     return useMutation({
-        mutationFn: (body: IFromTransfersData) => createTransfer(body),
-        onSuccess: () => invalidateTransferRelated(queryClient),
+        mutationFn: (body: IFromTransfersData) => createTransfer(body, idempotencyKey.get()),
+        onSuccess: () => {
+            idempotencyKey.rotate();
+            invalidateTransferRelated(queryClient);
+        },
     });
 };
 

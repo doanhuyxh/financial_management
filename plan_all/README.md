@@ -16,6 +16,7 @@ Ngày lập: 2026-10-15 · Nhánh gốc: `main` (commit `20027ab`)
 | 8 | Đáo hạn thẻ tín dụng: bản ghi CardRollover, dư nợ chỉ tăng phí, modal trên dashboard, so sánh với lãi — đã triển khai 2026-11-04 | Tính năng mới | [08-dao-han-the.md](08-dao-han-the.md) |
 | 9 | Đáo hạn có tự trả một phần (x · A · n) & tab Phân tích: hòa gốc sau bao nhiêu lần, mô phỏng, so sánh phương án — đã triển khai 2026-11-04 | Tính năng mới | [dao_han/09-phan-tich-dao-han.md](dao_han/09-phan-tich-dao-han.md) · [mockup](dao_han/09-phan-tich-dao-han-mockup.html) |
 | 10 | Trang "Hành trình đáo hạn": theo dõi một thẻ từ lần đáo đầu đến khi sạch nợ, dòng thời gian, dự kiến, tổng kết — đã triển khai 2026-11-04 | Tính năng mới | [dao_han/10-hanh-trinh-dao-han.md](dao_han/10-hanh-trinh-dao-han.md) · [mockup](dao_han/10-hanh-trinh-dao-han-mockup.html) |
+| 11 | Siết chặt quản trị dòng tiền: đối soát số dư theo sổ cái, ghi vết rollback lỗi, số tiền/ngày có biên, sửa cùng nguồn một `$inc`, test tự động, idempotency — đã triển khai 2026-11-04 (trừ 4.3, 4.4) | **Cao** (toàn vẹn số dư) | [update_requement/11-chat-che-dong-tien.md](update_requement/11-chat-che-dong-tien.md) |
 
 ## Thứ tự thực hiện đề xuất
 

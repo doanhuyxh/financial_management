@@ -34,10 +34,12 @@ export const getTransferSuggestions = async () => {
     });
 };
 
-export const createTransfer = async (body: IFromTransfersData) => {
+/** `idempotencyKey`: gửi lại cùng khóa thì server trả kết quả cũ, không tạo trùng */
+export const createTransfer = async (body: IFromTransfersData, idempotencyKey?: string) => {
     return fetcherBackEnd<ApiResponse<ITransfersData>>("/transfers", {
         method: "POST",
         body,
+        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
     });
 };
 

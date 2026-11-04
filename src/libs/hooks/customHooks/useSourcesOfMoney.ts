@@ -9,12 +9,15 @@ import type {
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import type { IFromShareLinkData } from "@/libs/interfaces/shareLinksData";
 import type { ISourceTransactionQuery } from "@/libs/interfaces/sourceTransactionsData";
+import type { IApplyReconcileData } from "@/libs/interfaces/balanceReconcileData";
 import {
+    applySourceReconcile,
     createShareLink,
     createSourcesOfMoney,
     deleteSourcesOfMoney,
     getCreditCardFeeProgress,
     getShareLinks,
+    getSourceReconcile,
     getSourceTransactions,
     getSourcesOfMoney,
     reorderSourcesOfMoney,
@@ -160,6 +163,32 @@ export const useDeleteSourcesOfMoney = () => {
         mutationFn: (id: string) => deleteSourcesOfMoney(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
+        },
+    });
+};
+
+/**
+ * Đối soát số dư một nguồn. Key nằm dưới SOURCES_OF_MONEY nên mọi mutation giao dịch tự làm mới.
+ * `enabled = false` cho tới khi người dùng bấm "Đối soát" (tính tổng trên toàn bộ giao dịch).
+ */
+export const useGetSourceReconcile = (sourceId: string | null, enabled: boolean) => {
+    return useQuery({
+        queryKey: [configQueryKey.SOURCES_OF_MONEY, "reconcile", sourceId],
+        queryFn: () => getSourceReconcile(sourceId as string),
+        enabled: Boolean(sourceId) && enabled,
+    });
+};
+
+export const useApplySourceReconcile = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ sourceId, body }: { sourceId: string; body: IApplyReconcileData }) =>
+            applySourceReconcile(sourceId, body),
+        // Cả khi 409 cũng tải lại để thấy số mới nhất
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: [configQueryKey.SOURCES_OF_MONEY] });
+            queryClient.invalidateQueries({ queryKey: [configQueryKey.DASHBOARD_CASHFLOW] });
         },
     });
 };

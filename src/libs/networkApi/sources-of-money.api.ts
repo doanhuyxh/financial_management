@@ -11,6 +11,10 @@ import type {
 } from "@/libs/interfaces/sourceTransactionsData";
 import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 import type {
+    IApplyReconcileData,
+    IBalanceReconcileData,
+} from "@/libs/interfaces/balanceReconcileData";
+import type {
     ICreditCardFeeProgress,
     IFromSourcesOfMoneyData,
     IPaginatedSourcesOfMoneyQuery,
@@ -99,5 +103,21 @@ export const getCreditCardFeeProgress = async () => {
     return fetcherBackEnd<ApiResponse<ICreditCardFeeProgress[]>>(
         "/sources-of-money/credit-card-fees",
         { method: "GET" },
+    );
+};
+
+/** So số dư/dư nợ đang lưu với tổng giao dịch (sổ cái) của một nguồn. */
+export const getSourceReconcile = async (sourceId: string) => {
+    return fetcherBackEnd<ApiResponse<IBalanceReconcileData>>(
+        `/sources-of-money/${sourceId}/reconcile`,
+        { method: "GET" },
+    );
+};
+
+/** Sửa số lưu về đúng sổ cái; 409 nếu số đã đổi so với lúc xem. */
+export const applySourceReconcile = async (sourceId: string, body: IApplyReconcileData) => {
+    return fetcherBackEnd<ApiResponse<IBalanceReconcileData>>(
+        `/sources-of-money/${sourceId}/reconcile`,
+        { method: "POST", body },
     );
 };

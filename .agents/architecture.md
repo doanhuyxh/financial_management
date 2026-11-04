@@ -16,7 +16,8 @@ src/
     connectDb.ts              # Kết nối Mongo (cache global)
     models/*.model.ts         # Mongoose schema (xem database.md)
     services/*.service.ts     # Toàn bộ business logic — nguồn sự thật
-    utils/                    # responseServer, pagination, monthRange, jwtUtil, getCurrentUser, archived...
+    utils/                    # responseServer, pagination, monthRange, jwtUtil, getCurrentUser, archived, money, ledgerBalance, safeRollback, idempotency...
+    __tests__/                # bun test + Mongo in-memory (commands.md)
   libs/                       # Dùng phía client (một số utils dùng chung với server)
     networkApi/*.api.ts       # Hàm gọi API
     hooks/customHooks/        # React Query hook dùng chung (gọi networkApi)

@@ -34,10 +34,12 @@ export const getExpenseSuggestions = async () => {
     });
 };
 
-export const createExpense = async (body: IFromExpensesData) => {
+/** `idempotencyKey`: gửi lại cùng khóa thì server trả kết quả cũ, không tạo trùng */
+export const createExpense = async (body: IFromExpensesData, idempotencyKey?: string) => {
     return fetcherBackEnd<ApiResponse<IExpensesData>>("/expenses", {
         method: "POST",
         body,
+        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
     });
 };
 

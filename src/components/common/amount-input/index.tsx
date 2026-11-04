@@ -85,6 +85,8 @@ export default function AmountInput({ value, onChange, defaultKeypadOpen = false
                 value={value}
                 onChange={onChange}
                 min={0}
+                // Tiền là số nguyên VND: server từ chối số lẻ
+                precision={0}
                 placeholder="0"
                 delay={300}
                 size="large"

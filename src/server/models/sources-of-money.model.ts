@@ -5,6 +5,7 @@ import {
   SourcesOfMoneyType,
   type IBankAccount,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import { INTEGER_MONEY_VALIDATOR } from "@/server/utils/money";
 
 export interface ISourcesOfMoney extends Document {
   userId: Types.ObjectId;
@@ -46,6 +47,11 @@ export interface ISourcesOfMoney extends Document {
   metadata?: Record<string, any>;
   /** Xóa mềm: nguồn đã có giao dịch chỉ được lưu trữ để giữ lịch sử */
   archivedAt?: Date | null;
+  /**
+   * Từ mốc này sổ cái (giao dịch + điều chỉnh) giải thích đủ số dư/dư nợ: đặt khi tạo nguồn mới
+   * hoặc khi script backfill-opening-balance bổ sung số dư ban đầu. Thiếu thì không cho đối soát sửa số.
+   */
+  ledgerCompleteAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,6 +81,7 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
         return this.type !== SourcesOfMoneyType.CREDIT_CARD;
       },
       default: 0,
+      validate: INTEGER_MONEY_VALIDATOR,
     },
     sortOrder: {
       type: Number,
@@ -83,8 +90,8 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
       index: true,
     },
     creditDetails: {
-      creditLimit: { type: Number, default: 0, min: 0 },
-      currentDebt: { type: Number, default: 0, min: 0 },
+      creditLimit: { type: Number, default: 0, min: 0, validate: INTEGER_MONEY_VALIDATOR },
+      currentDebt: { type: Number, default: 0, min: 0, validate: INTEGER_MONEY_VALIDATOR },
       statementDate: { type: Number, min: 1, max: 31 },
       dueDate: { type: Number, min: 1, max: 31 },
       annualFee: { type: Number, min: 0 },
@@ -127,6 +134,10 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
       default: {},
     },
     archivedAt: {
+      type: Date,
+      default: null,
+    },
+    ledgerCompleteAt: {
       type: Date,
       default: null,
     },

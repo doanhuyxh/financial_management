@@ -23,6 +23,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 | Sửa model, schema, query ghi số dư, viết migration | [.agents/database.md](.agents/database.md) |
 | Nguyên tắc nghiệp vụ chung, nợ kỹ thuật | [.agents/business/README.md](.agents/business/README.md) |
 | Sửa expense / income / transfer, cập nhật số dư | [.agents/business/balance-rules.md](.agents/business/balance-rules.md) |
+| Đối soát số dư, ghi vết rollback lỗi, chống gửi trùng, kiểm tiền/ngày đầu vào | [.agents/business/balance-integrity.md](.agents/business/balance-integrity.md) |
 | Sửa nguồn tiền (CRUD, điều chỉnh số dư, VietQR) | [.agents/business/sources-of-money.md](.agents/business/sources-of-money.md) |
 | Sửa lịch sử giao dịch nguồn tiền, link chia sẻ public | [.agents/business/source-history.md](.agents/business/source-history.md) |
 | Sửa phí thẻ, kỳ sao kê, lãi | [.agents/business/credit-card-fees.md](.agents/business/credit-card-fees.md) |

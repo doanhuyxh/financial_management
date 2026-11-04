@@ -14,7 +14,7 @@ Có hai cách theo dõi tiền:
 Quy tắc CRUD:
 
 - Khi tạo/sửa, người dùng **nhập trực tiếp** số dư hoặc dư nợ. Đây là cách duy nhất để "điều chỉnh" số dư thủ công. Mỗi lần điều chỉnh sinh một bản ghi **BalanceAdjustment** (không phải giao dịch, không tính vào thống kê):
-  - Tạo nguồn với số dư/dư nợ ≠ 0 thì ghi bản ghi "Số dư ban đầu" (0 → giá trị).
+  - Tạo nguồn với số dư/dư nợ ≠ 0 thì ghi bản ghi "Số dư ban đầu" (0 → giá trị, `kind = OPENING`) và đặt `ledgerCompleteAt` (sổ cái đầy đủ, dùng cho đối soát: [balance-integrity.md](balance-integrity.md)). Số dư/dư nợ/hạn mức là số nguyên VND.
   - Khi sửa, client gửi `expectedAmount` = số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form. Nếu giá trị mới **bằng** `expectedAmount` (người dùng không sửa số) thì server **giữ nguyên** số trong DB, kể cả khi giao dịch khác đã làm nó đổi. Với thẻ thì khi đó thêm điều kiện hạn mức mới ≥ dư nợ hiện tại ("Hạn mức mới không được thấp hơn dư nợ hiện tại"); thẻ cũ thiếu `currentDebt` được coi là 0. Quy tắc "dư nợ với thẻ, số dư với nguồn thường" nằm ở `getTrackedAmount` (`src/libs/utils/trackedAmount.ts`), dùng chung cho server và form.
   - Nếu giá trị mới **khác**, server chỉ ghi đè khi DB vẫn bằng `expectedAmount` (điều kiện nằm trong filter). Ngược lại trả 409 "Số dư/Dư nợ vừa thay đổi do giao dịch khác..."; client tải lại danh sách, cập nhật bản ghi đang sửa (form nhận số và `expectedAmount` mới) và báo người dùng kiểm tra rồi lưu lại. Ghi đè thành công thì ghi BalanceAdjustment kèm `adjustmentNote` (tối đa 200 ký tự). Nếu ghi lịch sử lỗi thì hoàn số cũ.
   - Thẻ tín dụng cập nhật theo từng trường (`creditDetails.creditLimit`, ...), nên sửa tên/hạn mức không ghi đè dư nợ.
@@ -25,7 +25,7 @@ Quy tắc CRUD:
 - Có sắp xếp kéo-thả (`sortOrder`, API `/reorder`). API yêu cầu `orderedIds` gồm **toàn bộ** nguồn tiền của user; kéo trong một nhóm (kể cả khi đang ẩn nguồn trống) thì thứ tự nhóm được ghép vào danh sách đầy đủ (`mergeSubsetOrder`, `src/libs/utils/reorder.ts`). UI chỉ ẩn tay kéo khi đang tìm kiếm hoặc lọc loại (lọc phía server nên danh sách không đủ).
 - Công tắc **"Ẩn nguồn trống"** (lọc phía client, nhớ trong localStorage `sources-of-money-hide-empty`, **mặc định bật**): chỉ ẩn nguồn thường có số dư = 0; thẻ tín dụng luôn hiện (hạn mức vẫn dùng được). Cuối nhóm tiền hiện "N nguồn đang 0 ₫ đã ẩn · Hiện". Chỉ ảnh hưởng trang Nguồn tiền, không ảnh hưởng ô chọn nguồn ở các form hay dashboard. Bản ghi mới nhận `sortOrder = max + 1`. Nếu dữ liệu cũ thiếu `sortOrder`, hệ thống tự backfill khi GET.
 - **Xóa nguồn tiền (xóa mềm):**
-  - Nguồn **chưa có** Expense/Income/Transfer thì xóa hẳn.
+  - Nguồn **chưa có** Expense/Income/Transfer/CardRollover/RolloverJourney/điều chỉnh tay (MANUAL) thì xóa hẳn, kèm số dư ban đầu (OPENING) và link chia sẻ của nó.
   - Nguồn **đã có** giao dịch thì chỉ đặt `archivedAt` (lưu trữ). Yêu cầu số dư = 0 (nguồn thường) hoặc dư nợ = 0 (thẻ); điều kiện này nằm trong filter của `findOneAndUpdate`. Nếu không thỏa thì báo "Nguồn tiền còn số dư hoặc dư nợ...".
   - Nguồn đã lưu trữ bị ẩn khỏi GET danh sách, reorder, gợi ý và ô chọn; không sửa được và không dùng được cho giao dịch mới. Lịch sử vẫn hiện tên kèm "(đã xóa)" (populate có `archivedAt`, xử lý ở `withArchivedLabel`).
   - Giao dịch cũ trên nguồn đã lưu trữ hoặc đã xóa hẳn (dữ liệu cũ) vẫn sửa/xóa được: phía nguồn đó được bỏ qua (không điều chỉnh số dư), phía còn hoạt động vẫn điều chỉnh bình thường. Khi sửa, được **giữ nguyên** nguồn đã lưu trữ, nhưng không được chọn một nguồn đã lưu trữ khác.

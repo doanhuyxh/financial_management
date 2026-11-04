@@ -20,22 +20,20 @@ import { escapeRegex } from "../utils/escapeRegex";
 import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
 import { buildListSummary } from "../utils/listSummary";
+import { buildListDateRange } from "../utils/dayRange";
+import { parseMoney } from "../utils/money";
+import { parseTransactionDate } from "../utils/transactionDate";
+import { safeRollback } from "../utils/safeRollback";
 
 function normalizePayload(data: IFromIncomesData) {
     const categoryId = data.categoryId?.trim();
     const sourceOfMoneyId = data.sourceOfMoneyId?.trim();
-    const amount = Number(data.amount);
     const note = data.note?.trim() || "";
-    const receivedAt = data.receivedAt ? new Date(data.receivedAt) : new Date();
 
     if (!categoryId) throw new Error("Danh mục là bắt buộc");
     if (!sourceOfMoneyId) throw new Error("Nguồn tiền là bắt buộc");
-    if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error("Số tiền phải lớn hơn 0");
-    }
-    if (Number.isNaN(receivedAt.getTime())) {
-        throw new Error("Ngày thu không hợp lệ");
-    }
+    const amount = parseMoney(data.amount, "Số tiền");
+    const receivedAt = parseTransactionDate(data.receivedAt, "Ngày thu");
 
     return { categoryId, sourceOfMoneyId, amount, note, receivedAt };
 }
@@ -154,6 +152,17 @@ async function adjustSourceBalance(
     return updated;
 }
 
+/**
+ * Sửa số tiền trên cùng một nguồn: một lần `$inc` theo chênh lệch (`delta > 0` thu thêm,
+ * `< 0` bớt — chỉ cần đủ phần bớt, không cần đủ cả khoản cũ).
+ */
+async function adjustSourceBalanceByDelta(userId: string, sourceId: string, delta: number) {
+    if (delta === 0) return null;
+    return delta > 0
+        ? adjustSourceBalance(userId, sourceId, delta, "apply")
+        : adjustSourceBalance(userId, sourceId, -delta, "revert");
+}
+
 async function getPopulatedIncome(id: string, userId: string) {
     return IncomesModel.findOne({ _id: id, userId })
         .populate("categoryId", "name icon color archivedAt")
@@ -186,16 +195,8 @@ export class IncomesService {
         if (categoryId) filter.categoryId = categoryId;
         if (sourceOfMoneyId) filter.sourceOfMoneyId = sourceOfMoneyId;
 
-        if (from || to) {
-            const receivedAt: Record<string, Date> = {};
-            if (from) receivedAt.$gte = new Date(from);
-            if (to) {
-                const end = new Date(to);
-                end.setHours(23, 59, 59, 999);
-                receivedAt.$lte = end;
-            }
-            filter.receivedAt = receivedAt;
-        }
+        const receivedAt = buildListDateRange(from, to);
+        if (receivedAt) filter.receivedAt = receivedAt;
 
         const [items, total] = await Promise.all([
             IncomesModel.find(filter)
@@ -258,11 +259,22 @@ export class IncomesService {
                 );
                 return successResponse(populated, "Tạo thu nhập thành công");
             } catch (createError) {
-                await adjustSourceBalance(
-                    user.userId,
-                    payload.sourceOfMoneyId,
-                    payload.amount,
-                    "revert",
+                await safeRollback(
+                    {
+                        userId: user.userId,
+                        sourceOfMoneyId: payload.sourceOfMoneyId,
+                        operation: "income.create",
+                        step: "revert-balance",
+                        amount: payload.amount,
+                        originalError: createError,
+                    },
+                    () =>
+                        adjustSourceBalance(
+                            user.userId,
+                            payload.sourceOfMoneyId,
+                            payload.amount,
+                            "revert",
+                        ),
                 );
                 throw createError;
             }
@@ -309,29 +321,42 @@ export class IncomesService {
                 }),
             );
 
-            if (oldSourceExists) {
-                await adjustSourceBalance(user.userId, oldSourceId, oldAmount, "revert");
-            }
+            const context = { userId: user.userId, operation: "income.update" };
+            // Cùng nguồn còn hoạt động: một bước theo chênh lệch. Đổi nguồn: hoàn cũ rồi cộng mới.
+            const sameSource = oldSourceId === payload.sourceOfMoneyId && oldSourceExists;
+            const amountDelta = payload.amount - oldAmount;
 
-            try {
-                if (newSourceActive) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        payload.sourceOfMoneyId,
-                        payload.amount,
-                        "apply",
-                    );
-                }
-            } catch (applyError) {
+            if (sameSource) {
+                await adjustSourceBalanceByDelta(user.userId, oldSourceId, amountDelta);
+            } else {
                 if (oldSourceExists) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        oldSourceId,
-                        oldAmount,
-                        "apply",
-                    );
+                    await adjustSourceBalance(user.userId, oldSourceId, oldAmount, "revert");
                 }
-                throw applyError;
+
+                try {
+                    if (newSourceActive) {
+                        await adjustSourceBalance(
+                            user.userId,
+                            payload.sourceOfMoneyId,
+                            payload.amount,
+                            "apply",
+                        );
+                    }
+                } catch (applyError) {
+                    if (oldSourceExists) {
+                        await safeRollback(
+                            {
+                                ...context,
+                                sourceOfMoneyId: oldSourceId,
+                                step: "reapply-old-source",
+                                amount: oldAmount,
+                                originalError: applyError,
+                            },
+                            () => adjustSourceBalance(user.userId, oldSourceId, oldAmount, "apply"),
+                        );
+                    }
+                    throw applyError;
+                }
             }
 
             try {
@@ -356,20 +381,47 @@ export class IncomesService {
                 const populated = await getPopulatedIncome(id, user.userId);
                 return successResponse(populated, "Cập nhật thu nhập thành công");
             } catch (updateError) {
+                if (sameSource) {
+                    await safeRollback(
+                        {
+                            ...context,
+                            sourceOfMoneyId: oldSourceId,
+                            step: "revert-delta",
+                            amount: amountDelta,
+                            originalError: updateError,
+                        },
+                        () => adjustSourceBalanceByDelta(user.userId, oldSourceId, -amountDelta),
+                    );
+                    throw updateError;
+                }
                 if (newSourceActive) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        payload.sourceOfMoneyId,
-                        payload.amount,
-                        "revert",
+                    await safeRollback(
+                        {
+                            ...context,
+                            sourceOfMoneyId: payload.sourceOfMoneyId,
+                            step: "revert-new-source",
+                            amount: payload.amount,
+                            originalError: updateError,
+                        },
+                        () =>
+                            adjustSourceBalance(
+                                user.userId,
+                                payload.sourceOfMoneyId,
+                                payload.amount,
+                                "revert",
+                            ),
                     );
                 }
                 if (oldSourceExists) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        oldSourceId,
-                        oldAmount,
-                        "apply",
+                    await safeRollback(
+                        {
+                            ...context,
+                            sourceOfMoneyId: oldSourceId,
+                            step: "reapply-old-source",
+                            amount: oldAmount,
+                            originalError: updateError,
+                        },
+                        () => adjustSourceBalance(user.userId, oldSourceId, oldAmount, "apply"),
                     );
                 }
                 throw updateError;
@@ -419,11 +471,22 @@ export class IncomesService {
                 });
             } catch (deleteError) {
                 if (sourceExists) {
-                    await adjustSourceBalance(
-                        user.userId,
-                        existing.sourceOfMoneyId.toString(),
-                        existing.amount,
-                        "apply",
+                    await safeRollback(
+                        {
+                            userId: user.userId,
+                            sourceOfMoneyId: existing.sourceOfMoneyId,
+                            operation: "income.delete",
+                            step: "reapply-balance",
+                            amount: existing.amount,
+                            originalError: deleteError,
+                        },
+                        () =>
+                            adjustSourceBalance(
+                                user.userId,
+                                existing.sourceOfMoneyId.toString(),
+                                existing.amount,
+                                "apply",
+                            ),
                     );
                 }
                 throw deleteError;

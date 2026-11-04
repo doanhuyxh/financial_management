@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIdempotencyKey } from "@/libs/hooks/useIdempotencyKey";
 import { configQueryKey, QUERY_STALE_TIME } from "@/libs/constants/configKey";
 import type {
     IFromCardRolloverData,
@@ -35,10 +36,15 @@ export const useGetCardRollovers = (query: IPaginatedCardRolloversQuery = {}, en
 
 export const useCreateCardRollover = () => {
     const queryClient = useQueryClient();
+    // Một khóa cho tới khi tạo thành công: bấm đúp / gửi lại không tạo trùng
+    const idempotencyKey = useIdempotencyKey();
 
     return useMutation({
-        mutationFn: (body: IFromCardRolloverData) => createCardRollover(body),
-        onSuccess: () => invalidateRolloverRelated(queryClient),
+        mutationFn: (body: IFromCardRolloverData) => createCardRollover(body, idempotencyKey.get()),
+        onSuccess: () => {
+            idempotencyKey.rotate();
+            invalidateRolloverRelated(queryClient);
+        },
     });
 };
 

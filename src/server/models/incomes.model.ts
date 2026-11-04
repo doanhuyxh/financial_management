@@ -1,4 +1,5 @@
 import { Schema, model, models, type Document, type Types } from "mongoose";
+import { INTEGER_MONEY_VALIDATOR } from "@/server/utils/money";
 import { modelUserName } from "./users.model";
 import { modelCategoriesName } from "./categories.model";
 import { modelSourcesOfMoneyName } from "./sources-of-money.model";
@@ -37,7 +38,8 @@ const incomesSchema = new Schema<IIncome>(
         amount: {
             type: Number,
             required: true,
-            min: [0.01, "Số tiền phải lớn hơn 0"],
+            min: [1, "Số tiền phải lớn hơn 0"],
+            validate: INTEGER_MONEY_VALIDATOR,
         },
         note: {
             type: String,

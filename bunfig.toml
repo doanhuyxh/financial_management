@@ -1,0 +1,5 @@
+# bun test: chỉ quét src/, nạp setup (Mongo in-memory + giả lập đăng nhập) trước mọi test
+[test]
+root = "./src"
+preload = ["./src/server/__tests__/setup.ts"]
+timeout = 30000

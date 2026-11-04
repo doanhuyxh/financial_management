@@ -34,10 +34,12 @@ export const getIncomeSuggestions = async () => {
     });
 };
 
-export const createIncome = async (body: IFromIncomesData) => {
+/** `idempotencyKey`: gửi lại cùng khóa thì server trả kết quả cũ, không tạo trùng */
+export const createIncome = async (body: IFromIncomesData, idempotencyKey?: string) => {
     return fetcherBackEnd<ApiResponse<IIncomesData>>("/incomes", {
         method: "POST",
         body,
+        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
     });
 };
 

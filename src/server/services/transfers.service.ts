@@ -22,6 +22,10 @@ import { normalizePagination } from "../utils/pagination";
 import { NOT_ARCHIVED } from "../utils/archived";
 import { calcPercentFee } from "@/libs/utils/cardFee";
 import { buildListSummary } from "../utils/listSummary";
+import { buildListDateRange } from "../utils/dayRange";
+import { parseMoney } from "../utils/money";
+import { parseTransactionDate } from "../utils/transactionDate";
+import { safeRollback } from "../utils/safeRollback";
 
 type SourceDoc = {
     _id: mongoose.Types.ObjectId;
@@ -37,28 +41,20 @@ type SourceDoc = {
 function normalizePayload(data: IFromTransfersData) {
     const fromSourceId = data.fromSourceId?.trim();
     const toSourceId = data.toSourceId?.trim();
-    const amount = Number(data.amount);
     const feePercent = data.feePercent == null ? 0 : Number(data.feePercent);
     const feeCategoryId = data.feeCategoryId?.trim() || "";
     const note = data.note?.trim() || "";
-    const transferredAt = data.transferredAt
-        ? new Date(data.transferredAt)
-        : new Date();
 
     if (!fromSourceId) throw new Error("Nguồn chuyển là bắt buộc");
     if (!toSourceId) throw new Error("Nguồn nhận là bắt buộc");
     if (fromSourceId === toSourceId) {
         throw new Error("Nguồn chuyển và nguồn nhận phải khác nhau");
     }
-    if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error("Số tiền phải lớn hơn 0");
+    const amount = parseMoney(data.amount, "Số tiền");
+    if (!Number.isFinite(feePercent) || feePercent < 0 || feePercent > 100) {
+        throw new Error("Phí chuyển đổi phải từ 0 đến 100%");
     }
-    if (!Number.isFinite(feePercent) || feePercent < 0) {
-        throw new Error("Phí chuyển đổi không hợp lệ");
-    }
-    if (Number.isNaN(transferredAt.getTime())) {
-        throw new Error("Ngày chuyển không hợp lệ");
-    }
+    const transferredAt = parseTransactionDate(data.transferredAt, "Ngày chuyển");
 
     const feeAmount = calcPercentFee(amount, feePercent);
 
@@ -372,10 +368,20 @@ export async function createTransferRecord(userId: string, data: IFromTransfersD
 
         await debitSource(userId, fromSource, payload.amount);
 
+        const context = { userId, operation: "transfer.create" };
         try {
             await creditSource(userId, toSource, receiveAmount);
         } catch (creditError) {
-            await creditBackDebit(userId, fromSource, payload.amount);
+            await safeRollback(
+                {
+                    ...context,
+                    sourceOfMoneyId: fromSource._id,
+                    step: "credit-back-from",
+                    amount: payload.amount,
+                    originalError: creditError,
+                },
+                () => creditBackDebit(userId, fromSource, payload.amount),
+            );
             throw creditError;
         }
 
@@ -419,13 +425,31 @@ export async function createTransferRecord(userId: string, data: IFromTransfersD
             return getPopulatedTransfer(created._id.toString(), userId);
         } catch (createError) {
             if (feeExpenseId) {
-                await ExpensesModel.findOneAndDelete({
-                    _id: feeExpenseId,
-                    userId: userId,
-                });
+                await safeRollback(
+                    { ...context, step: "delete-fee-expense", originalError: createError },
+                    () => ExpensesModel.findOneAndDelete({ _id: feeExpenseId, userId: userId }),
+                );
             }
-            await debitBackCredit(userId, toSource, receiveAmount);
-            await creditBackDebit(userId, fromSource, payload.amount);
+            await safeRollback(
+                {
+                    ...context,
+                    sourceOfMoneyId: toSource._id,
+                    step: "debit-back-to",
+                    amount: receiveAmount,
+                    originalError: createError,
+                },
+                () => debitBackCredit(userId, toSource, receiveAmount),
+            );
+            await safeRollback(
+                {
+                    ...context,
+                    sourceOfMoneyId: fromSource._id,
+                    step: "credit-back-from",
+                    amount: payload.amount,
+                    originalError: createError,
+                },
+                () => creditBackDebit(userId, fromSource, payload.amount),
+            );
             throw createError;
         }
 }
@@ -461,13 +485,23 @@ export async function deleteTransferRecord(userId: string, id: string) {
             await debitBackCredit(userId, toSource, receiveAmount);
         }
 
+        const context = { userId, operation: "transfer.delete" };
         try {
             if (fromSource) {
                 await creditBackDebit(userId, fromSource, existing.amount);
             }
         } catch (restoreError) {
             if (toSource) {
-                await creditSource(userId, toSource, receiveAmount);
+                await safeRollback(
+                    {
+                        ...context,
+                        sourceOfMoneyId: toSource._id,
+                        step: "recredit-to",
+                        amount: receiveAmount,
+                        originalError: restoreError,
+                    },
+                    () => creditSource(userId, toSource, receiveAmount),
+                );
             }
             throw restoreError;
         }
@@ -487,10 +521,28 @@ export async function deleteTransferRecord(userId: string, id: string) {
             });
         } catch (deleteError) {
             if (fromSource) {
-                await debitSource(userId, fromSource, existing.amount);
+                await safeRollback(
+                    {
+                        ...context,
+                        sourceOfMoneyId: fromSource._id,
+                        step: "redebit-from",
+                        amount: existing.amount,
+                        originalError: deleteError,
+                    },
+                    () => debitSource(userId, fromSource, existing.amount),
+                );
             }
             if (toSource) {
-                await creditSource(userId, toSource, receiveAmount);
+                await safeRollback(
+                    {
+                        ...context,
+                        sourceOfMoneyId: toSource._id,
+                        step: "recredit-to",
+                        amount: receiveAmount,
+                        originalError: deleteError,
+                    },
+                    () => creditSource(userId, toSource, receiveAmount),
+                );
             }
             throw deleteError;
         }
@@ -522,16 +574,8 @@ export class TransfersService {
         if (fromSourceId) filter.fromSourceId = fromSourceId;
         if (toSourceId) filter.toSourceId = toSourceId;
 
-        if (from || to) {
-            const transferredAt: Record<string, Date> = {};
-            if (from) transferredAt.$gte = new Date(from);
-            if (to) {
-                const end = new Date(to);
-                end.setHours(23, 59, 59, 999);
-                transferredAt.$lte = end;
-            }
-            filter.transferredAt = transferredAt;
-        }
+        const transferredAt = buildListDateRange(from, to);
+        if (transferredAt) filter.transferredAt = transferredAt;
 
         const [items, total] = await Promise.all([
             TransfersModel.find(filter)
