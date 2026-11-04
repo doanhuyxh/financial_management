@@ -1,0 +1,2 @@
+- code-review-graph install
+- code-review-graph build
