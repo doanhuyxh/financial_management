@@ -3,7 +3,10 @@ import DepositRateSnapshotsModel from "@/server/models/deposit-rate-snapshots.mo
 import { DepositRatesService, refreshAllDepositRates } from "@/server/services/deposit-rates.service";
 import { parseHtmlTable } from "@/server/utils/depositRates/html";
 import { parseAcb } from "@/server/utils/depositRates/providers/acb";
+import { agribankFragmentUrl, parseAgribank } from "@/server/utils/depositRates/providers/agribank";
 import { parseVietcombank } from "@/server/utils/depositRates/providers/vietcombank";
+import { parseVietinbank } from "@/server/utils/depositRates/providers/vietinbank";
+import { parseVpbank } from "@/server/utils/depositRates/providers/vpbank";
 import {
     buildDepositRows,
     calcDepositInterest,
@@ -45,12 +48,93 @@ function acbHtml(tables: string[]) {
     return `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(nextData)}</script>`;
 }
 
+/** VietinBank: HTML tĩnh, tiêu đề có `rowSpan="2"` thừa, hàng là khoảng kỳ hạn. */
+const VTB_HTML = `<main><h2>LÃI SUẤT HUY ĐỘNG ĐỐI VỚI CÁC KỲ HẠN</h2>
+<table class="w-full"><thead><tr><th scope="col" rowSpan="2">Kỳ hạn</th><th scope="col">VND (%/<!-- -->năm<!-- -->)</th><th>USD (%/<!-- -->năm<!-- -->)</th><th>EUR (%/<!-- -->năm<!-- -->)</th></tr></thead><tbody>
+<tr><td>Không kỳ hạn</td><td>0,1 %</td><td>0 %</td><td>0,1 %</td></tr>
+<tr><td>Dưới 1 tháng</td><td>0,2 %</td><td>0 %</td><td>0,3 %</td></tr>
+<tr><td>Từ 1 tháng đến dưới 2 tháng</td><td>2,1 %</td><td>0 %</td><td>0,4 %</td></tr>
+<tr><td>Từ 6 tháng đến dưới 7 tháng</td><td>3 %</td><td>0 %</td><td>0,5 %</td></tr>
+<tr><td>12 tháng</td><td>5,4 %</td><td>0 %</td><td>0,3 %</td></tr>
+<tr><td>Trên 12 tháng đến 13 tháng</td><td>5,4 %</td><td>0 %</td><td>0,3 %</td></tr>
+<tr><td>Trên 13 tháng đến dưới 18 tháng</td><td>5,4 %</td><td>0 %</td><td>0,3 %</td></tr>
+<tr><td>Từ 24 tháng đến dưới 36 tháng</td><td>5,5 %</td><td>0 %</td><td>0,3 %</td></tr>
+<tr><td>36 tháng</td><td>5,5 %</td><td>0 %</td><td>0,3 %</td></tr>
+<tr><td>Trên 36 tháng</td><td>5,5 %</td><td>0 %</td><td>0,3 %</td></tr>
+</tbody></table>
+<table><thead><tr><th>Ngày</th><th>Nội dung</th></tr></thead><tbody><tr><td>07/04/2026</td><td>Thông báo lãi suất tham chiếu cho vay VND</td></tr></tbody></table></main>`;
+
+/** Agribank: trang nạp bảng cá nhân bằng jQuery từ một mảnh HTML (WCM), ô bọc nhiều `<p><span>`. */
+const AGRI_FRAGMENT_PATH =
+    "/wcm/connect/ttkhac/lai-suat/lai-suat-cn?source=library&srv=cmpnt&cmpntid=c1687c7c-142f-4616-a8b0-02f09a14f844";
+const AGRI_PAGE = `<html><body><div class="tab1"></div><script>
+$('.tab1').load('${AGRI_FRAGMENT_PATH}');
+$('.tab2').load('/wcm/connect/ttkhac/lai-suat/lai-suat-dn?source=library&srv=cmpnt&cmpntid=c1687c7c-142f-4616-a8b0-02f09a14f844');
+</script></body></html>`;
+const agriCell = (text: string) => `<td style="border:solid"><p align="center"><span><b><span>${text}</span></b></span></p></td>`;
+const agriRow = (cells: string[]) => `<tr>${cells.map(agriCell).join("")}</tr>`;
+const AGRI_FRAGMENT = `<div><table class="Table" dir="ltr"><thead>${agriRow(["Kì hạn", "VND", "USD", "EUR", "JPY", "Ngoại tệ khác"])}</thead><tbody>
+${agriRow(["Không kỳ hạn", "0.2%", "0%", "0%", "-", "-"])}
+${agriRow(["1 Tháng", "2.6%", "0%", "0%", "-", "-"])}
+${agriRow(["3 Tháng", "2.9%", "0%", "0%", "-", "-"])}
+${agriRow(["12 Tháng", "5.4%", "0%", "0%", "-", "-"])}
+${agriRow(["15 Tháng", "5.4%", "0%", "0%", "-", "-"])}
+${agriRow(["24 Tháng", "5.5%", "0%", "0%", "-", "-"])}
+${agriRow(["Tiền gửi thanh toán", "0.2%", "0%", "0%", "0%", "0%"])}
+</tbody></table>
+<table><tbody>${agriRow(["STT", "Kỳ hạn", "Mức lãi suất tối đa (%/năm)"])}${agriRow(["1", "Từ 12 tháng đến dưới 24 tháng", "6,8"])}</tbody></table></div>`;
+
+/** VPBank: JSON công khai mà trang /ty-gia gọi (cột = kỳ hạn, hàng = bậc số tiền). */
+const VPBANK_JSON = JSON.stringify({
+    columns: ["1 tháng", "6 tháng", "12 tháng", "24 tháng"],
+    rows: ["<1 tỷ", "1 tỷ -3 tỷ", "3 tỷ - < 10 tỷ", "10 Tỷ - < 50 tỷ", ">= 50 tỷ"],
+    data: [[4.65, 6.6, 6.7, 7.1], [4.65, 6.6, 6.7, 7.1], [4.65, 6.6, 6.7, 7.1], [4.65, 7, 7.1, 7.1], [4.65, 7, 7.1, null]],
+    title: "Tỷ giá",
+});
+
 describe("Lãi suất — đọc trang ngân hàng", () => {
-    test("bảng HTML: trải rowspan/colspan", () => {
+    test("VPBank: JSON cột kỳ hạn × hàng bậc tiền (tỷ VND), bỏ ô null; không phải JSON → lỗi", () => {
+        const [table] = parseVpbank(VPBANK_JSON);
+        expect(table.productKey).toBe("listed");
+        expect(table.tiers.map((tier) => tier.minAmount)).toEqual([0, 1e9, 3e9, 10e9, 50e9]);
+        expect(table.tiers[0].rates).toEqual({ "1": 4.65, "6": 6.6, "12": 6.7, "24": 7.1 });
+        expect(table.tiers[4].rates).toEqual({ "1": 4.65, "6": 7, "12": 7.1 });
+        expect(() => parseVpbank("<html>404</html>")).toThrow();
+        expect(() => parseVpbank('{"title":"x"}')).toThrow();
+    });
+
+    test("bảng HTML: trải rowspan/colspan; rowspan không vượt qua thead", () => {
         const grid = parseHtmlTable(ACB_TABLE);
         expect(grid[0]).toEqual(["Mức gửi/ TK", ...Array(7).fill("Tiền gửi Online (LCK)")]);
         expect(grid[3][1]).toBe("0,50"); // ô gộp dọc lặp lại ở hàng dưới
         expect(grid[3][2]).toBe("4,50");
+
+        const vtb = parseHtmlTable(/<table[\s\S]*?<\/table>/.exec(VTB_HTML)![0]);
+        expect(vtb[0]).toEqual(["Kỳ hạn", "VND (%/ năm )", "USD (%/ năm )", "EUR (%/ năm )"]);
+        expect(vtb[1][0]).toBe("Không kỳ hạn"); // rowSpan="2" ở thead không đẩy hàng đầu tbody
+    });
+
+    test("VietinBank: bảng tĩnh, khoảng kỳ hạn → tháng bắt đầu, bỏ không kỳ hạn/dưới 1 tháng/trên 36", () => {
+        expect(parseVietinbank(VTB_HTML)).toEqual([
+            {
+                productKey: "counter",
+                product: "Tiết kiệm tại quầy",
+                tiers: [{ minAmount: 0, rates: { "1": 2.1, "6": 3, "12": 5.4, "13": 5.4, "24": 5.5, "36": 5.5 } }],
+            },
+        ]);
+        expect(() => parseVietinbank("<table><tr><td>Ngày</td><td>Nội dung</td></tr></table>")).toThrow();
+    });
+
+    test("Agribank: đọc đường dẫn mảnh từ trang, bảng cá nhân cột VND, bỏ bảng trần lãi suất", () => {
+        expect(agribankFragmentUrl(AGRI_PAGE)).toBe(`https://www.agribank.com.vn${AGRI_FRAGMENT_PATH}`);
+        expect(() => agribankFragmentUrl("<html>đổi giao diện</html>")).toThrow();
+        expect(parseAgribank(AGRI_FRAGMENT)).toEqual([
+            {
+                productKey: "counter",
+                product: "Tiền gửi cá nhân",
+                tiers: [{ minAmount: 0, rates: { "1": 2.6, "3": 2.9, "12": 5.4, "15": 5.4, "24": 5.5 } }],
+            },
+        ]);
     });
 
     test("Vietcombank: JSON nhúng → online + tại quầy, chỉ VND theo tháng, bỏ rates null", () => {
@@ -129,20 +213,27 @@ function stubFetch(handler: (url: string) => { status?: number; body?: string })
     return () => calls;
 }
 
-const bankPages = (url: string) =>
-    url.includes("vietcombank") ? { body: VCB_HTML } : { body: acbHtml([ACB_TABLE]) };
+/** Trang mẫu theo URL: VCB, VietinBank, Agribank (trang + mảnh), ACB. */
+const bankPages = (url: string) => {
+    if (url.includes("vietcombank")) return { body: VCB_HTML };
+    if (url.includes("vietinbank")) return { body: VTB_HTML };
+    if (url.includes("vpbank")) return { body: VPBANK_JSON };
+    if (url.includes("agribank")) return { body: url.includes("/wcm/connect/") ? AGRI_FRAGMENT : AGRI_PAGE };
+    return { body: acbHtml([ACB_TABLE]) };
+};
+const AUTO_KEYS = ["acb:online", "agribank:counter", "vcb:counter", "vcb:online", "vietinbank:counter", "vpbank:listed"];
 
 describe("Lãi suất — lấy tự động", () => {
-    test("lần đầu mở trang: tự lấy, trả 3 bảng tự động; mở lại trong 12 giờ không gọi trang ngân hàng", async () => {
+    test("lần đầu mở trang: tự lấy, trả 6 bảng tự động; mở lại trong 12 giờ không gọi trang ngân hàng", async () => {
         const calls = stubFetch(bankPages);
         const first = await call(DepositRatesService.getComparison());
         expect(first.status).toBe(200);
         const auto = first.data.tables.filter((table: IDepositRateTableData) => table.origin === DepositRateOrigin.AUTO);
-        expect(auto.map((table: IDepositRateTableData) => table._id).sort()).toEqual(["acb:online", "vcb:counter", "vcb:online"]);
-        expect(calls()).toBe(2);
+        expect(auto.map((table: IDepositRateTableData) => table._id).sort()).toEqual(AUTO_KEYS);
+        expect(calls()).toBe(6); // Agribank 2 lượt (trang + mảnh)
 
         await call(DepositRatesService.getComparison());
-        expect(calls()).toBe(2);
+        expect(calls()).toBe(6);
     });
 
     test("trang lỗi: giữ số cũ, ghi lastError; lỗi ngay lần đầu thì có dòng rỗng", async () => {
@@ -166,7 +257,7 @@ describe("Lãi suất — lấy tự động", () => {
         stubFetch((url) =>
             url.includes("vietcombank")
                 ? { body: vcbHtml([1, 6, 12].map((m) => ({ tenorType: "Online", tenor: `${m}-months`, currencyCode: "VND", rates: 0.54 }))) }
-                : { body: acbHtml([ACB_TABLE]) },
+                : bankPages(url),
         );
         await refreshAllDepositRates();
         const vcb = await DepositRateSnapshotsModel.findOne({ key: "vcb:online" }).lean<{ tiers: unknown[]; lastError: string }>();
@@ -178,7 +269,7 @@ describe("Lãi suất — lấy tự động", () => {
         stubFetch(bankPages);
         const first = await call(DepositRatesService.refresh());
         expect(first.status).toBe(200);
-        expect(first.data).toEqual({ succeeded: 3, total: 3 });
+        expect(first.data).toEqual({ succeeded: 6, total: 6 });
         expect((await call(DepositRatesService.refresh())).status).toBe(429);
     });
 });

@@ -68,7 +68,9 @@ function errorMessage(error: unknown) {
 async function refreshProvider(provider: IDepositRateProvider, now: Date) {
     const base = { bankCode: provider.bankCode, bankName: provider.bankName, sourceUrl: provider.sourceUrl };
     try {
-        const tables = provider.parse(await fetchText(provider.sourceUrl));
+        let html = await fetchText(provider.fetchUrl ?? provider.sourceUrl);
+        if (provider.fragmentUrl) html = await fetchText(provider.fragmentUrl(html));
+        const tables = provider.parse(html);
         tables.forEach(assertSaneTable);
         if (tables.length === 0) throw new Error("Không đọc được bảng lãi suất");
         await Promise.all(

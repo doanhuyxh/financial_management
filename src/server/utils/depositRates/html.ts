@@ -63,12 +63,16 @@ function spanOf(attrs: string, name: "rowspan" | "colspan") {
 
 /**
  * Bảng HTML → lưới chữ, trải `rowspan`/`colspan` ra mọi ô mà chúng phủ
- * (ô gộp dọc lặp lại giá trị ở các hàng dưới). Không hỗ trợ bảng lồng nhau.
+ * (ô gộp dọc lặp lại giá trị ở các hàng dưới). Như trình duyệt, `rowspan` không vượt qua
+ * ranh giới `thead`/`tbody`/`tfoot` (VietinBank để `rowSpan="2"` thừa ở tiêu đề). Không hỗ trợ bảng lồng nhau.
  */
 export function parseHtmlTable(tableHtml: string): string[][] {
     const grid: string[][] = [];
-    const rows = tableHtml.match(/<tr[\s>][\s\S]*?<\/tr>/gi) ?? [];
-    rows.forEach((rowHtml, rowIndex) => {
+    const rows = Array.from(tableHtml.matchAll(/<tr[\s>][\s\S]*?<\/tr>/gi), (match) => ({
+        html: match[0],
+        group: (tableHtml.slice(0, match.index).match(/<\/t(?:head|body|foot)>/gi) ?? []).length,
+    }));
+    rows.forEach(({ html: rowHtml, group }, rowIndex) => {
         grid[rowIndex] ??= [];
         let column = 0;
         const cells = rowHtml.matchAll(/<t([dh])([^>]*)>([\s\S]*?)<\/t\1>/gi);
@@ -77,7 +81,7 @@ export function parseHtmlTable(tableHtml: string): string[][] {
             const text = htmlToText(inner);
             const rowSpan = spanOf(attrs, "rowspan");
             const colSpan = spanOf(attrs, "colspan");
-            for (let r = 0; r < rowSpan; r += 1) {
+            for (let r = 0; r < rowSpan && rows[rowIndex + r]?.group === group; r += 1) {
                 const target = (grid[rowIndex + r] ??= []);
                 for (let c = 0; c < colSpan; c += 1) target[column + c] = text;
             }
