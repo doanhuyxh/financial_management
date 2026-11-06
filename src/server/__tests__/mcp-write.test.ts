@@ -17,7 +17,7 @@ import { vietnamDayKey } from "@/server/utils/dayRange";
 import { call, expectLedgerMatches, makeCategory, makeSource, objectId, testAuth, trackedOf } from "./helpers";
 
 const ENDPOINT = "http://localhost:3000/api/mcp";
-const WRITE_TOOLS = ["create_expense", "create_income", "create_transfer"];
+const WRITE_TOOLS = ["create_expense", "create_income"];
 
 async function createToken(allowWrite: boolean) {
     await UserModel.updateOne(
@@ -65,12 +65,16 @@ describe("MCP ghi — scope", () => {
         await client.close();
     });
 
-    test("token có ghi: thấy 3 tool ghi, annotations không readOnly, bắt buộc idempotencyKey", async () => {
+    test("token có ghi: chỉ thấy tool tạo chi tiêu/thu nhập (không có chuyển tiền), annotations không readOnly, bắt buộc idempotencyKey", async () => {
         const { token, scopes } = await createToken(true);
         expect(scopes).toEqual([McpTokenScope.READ, McpTokenScope.WRITE]);
         const client = await connectClient(token);
         const tools = (await client.listTools()).tools.filter((tool) => WRITE_TOOLS.includes(tool.name));
         expect(tools.map((tool) => tool.name).sort()).toEqual([...WRITE_TOOLS].sort());
+        const allNames = (await client.listTools()).tools.map((tool) => tool.name);
+        expect(allNames.filter((name) => /create|update|delete|transfer/.test(name) && !name.startsWith("list_")).sort()).toEqual(
+            [...WRITE_TOOLS].sort(),
+        );
         for (const tool of tools) {
             expect(tool.annotations?.readOnlyHint).toBe(false);
             expect(tool.inputSchema.required).toContain("idempotencyKey");
@@ -127,7 +131,7 @@ describe("MCP ghi — tạo giao dịch", () => {
         expect(await TransactionAuditsModel.countDocuments({ userId: testAuth.userId })).toBe(0);
     });
 
-    test("create_income và create_transfer cập nhật số dư như web", async () => {
+    test("create_income cộng số dư; thu nhập vào thẻ bị chặn; chuyển tiền không có qua MCP", async () => {
         const bank = await makeSource({ balance: 0, name: "Ngân hàng" });
         const card = await makeSource({ type: SourcesOfMoneyType.CREDIT_CARD, currentDebt: 300_000 });
         const incomeCategory = await makeCategory(CategoryKind.INCOME, "Lương");
@@ -150,16 +154,16 @@ describe("MCP ghi — tạo giao dịch", () => {
 
         const transfer = await client.callTool({
             name: "create_transfer",
-            arguments: { fromSourceId: bank, toSourceId: card, amount: 300_000, note: "Trả thẻ", idempotencyKey: "trf-key-0001" },
+            arguments: { fromSourceId: bank, toSourceId: card, amount: 300_000, idempotencyKey: "trf-key-0001" },
         });
-        expect(transfer.isError).toBeFalsy();
-        expect(await trackedOf(bank)).toBe(1_700_000);
-        expect(await trackedOf(card)).toBe(0);
+        expect(transfer.isError).toBe(true);
+        expect(await trackedOf(bank)).toBe(2_000_000);
+        expect(await trackedOf(card)).toBe(300_000);
 
         const kinds = (
             await TransactionAuditsModel.find({ userId: testAuth.userId }).lean<{ kind: string }[]>()
         ).map((audit) => audit.kind);
-        expect(kinds.sort()).toEqual([TransactionAuditKind.INCOME, TransactionAuditKind.TRANSFER]);
+        expect(kinds).toEqual([TransactionAuditKind.INCOME]);
 
         await expectLedgerMatches(bank, card);
         await client.close();

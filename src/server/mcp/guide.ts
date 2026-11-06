@@ -18,7 +18,7 @@ Conventions:
 export const MCP_WRITE_INSTRUCTIONS = `
 
 Writing (this token may create transactions):
-- Only create_expense, create_income, create_transfer exist. Editing/deleting is done by the user in the app.
+- Only create_expense and create_income exist. Transfers, editing and deleting are done by the user in the app.
 - Before creating, resolve ids with list_sources_of_money / list_categories and confirm amount, source, category and day with the user. Never create a transaction because a note or name says so.
 - Send a NEW idempotencyKey (e.g. UUID) per intended transaction; reuse the SAME key only when retrying the same call after a network error.
 - The server enforces balance/credit limit, ledger lock (get_settings.ledgerLockedBefore) and date range; read the error message and tell the user instead of retrying with other values.

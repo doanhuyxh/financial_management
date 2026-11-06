@@ -2,7 +2,7 @@
 
 > Nguồn sự thật là code (`src/server/mcp/`, `mcp-tokens.service.ts`); nếu code khác tài liệu, tin code và sửa tài liệu. Nguyên tắc chung: [README.md](README.md). Kế hoạch gốc: `plan_all/mcp/13-mcp-server.md` (local).
 
-Endpoint **`POST /api/mcp`** là một MCP server (Streamable HTTP, **stateless**, trả JSON, không SSE) chạy ngay trong app Next.js: mỗi request tạo `McpServer` + transport mới (theo scope của token), dùng chung `dbConnect`, model, service. `GET`/`DELETE` trả 405. Token mặc định **chỉ đọc**; token có scope `write` thêm 3 tool tạo giao dịch: [mcp-write.md](mcp-write.md).
+Endpoint **`POST /api/mcp`** là một MCP server (Streamable HTTP, **stateless**, trả JSON, không SSE) chạy ngay trong app Next.js: mỗi request tạo `McpServer` + transport mới (theo scope của token), dùng chung `dbConnect`, model, service. `GET`/`DELETE` trả 405. Token mặc định **chỉ đọc**; token có scope `write` thêm tool tạo chi tiêu, thu nhập: [mcp-write.md](mcp-write.md).
 
 ## Xác thực: Personal Access Token
 

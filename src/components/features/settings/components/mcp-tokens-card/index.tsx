@@ -168,7 +168,7 @@ export default function McpTokensCard() {
                 </CardTitle>
                 <CardDescription>
                     Cho agent AI (Claude Code, Codex…) đọc dữ liệu tài chính của bạn qua MCP, và nếu
-                    bạn bật, được <strong>tạo</strong> chi tiêu, thu nhập, chuyển tiền. Ai có token đều
+                    bạn bật, được <strong>tạo</strong> chi tiêu và thu nhập. Ai có token đều
                     đọc được toàn bộ nguồn tiền và giao dịch: giữ token như mật khẩu.
                 </CardDescription>
             </CardHeader>
@@ -230,14 +230,14 @@ export default function McpTokensCard() {
                     <label className="flex items-center gap-2 text-sm">
                         <Switch checked={allowWrite} onCheckedChange={setAllowWrite} />
                         <PenLine className="size-4 text-muted-foreground" />
-                        Cho phép tạo chi tiêu, thu nhập, chuyển tiền
+                        Cho phép tạo chi tiêu và thu nhập
                     </label>
                     {allowWrite ? (
                         <Alert variant="destructive">
                             <TriangleAlert />
                             <AlertTitle>Agent sẽ thay đổi được số dư của bạn</AlertTitle>
                             <AlertDescription>
-                                Agent chỉ tạo được giao dịch mới (không sửa, không xóa) và vẫn bị chặn bởi
+                                Agent chỉ tạo được chi tiêu, thu nhập mới (không chuyển tiền, không sửa, không xóa) và vẫn bị chặn bởi
                                 số dư, hạn mức, khóa sổ. Mỗi giao dịch agent tạo hiện trong tab Lịch sử
                                 với nhãn &quot;qua agent&quot;. Chỉ bật cho agent bạn tin.
                             </AlertDescription>

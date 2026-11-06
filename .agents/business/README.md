@@ -21,13 +21,13 @@
 | Đăng nhập, JWT, proxy, phiên | [auth.md](auth.md) |
 | Gợi ý "thường dùng" trong form | [suggestions.md](suggestions.md) |
 | MCP server cho agent khác đọc dữ liệu, token cá nhân | [mcp.md](mcp.md) |
-| MCP ghi dữ liệu (scope `write`, `create_*`, idempotencyKey) | [mcp-write.md](mcp-write.md) |
+| MCP ghi dữ liệu (scope `write`, chỉ tạo chi tiêu/thu nhập, idempotencyKey) | [mcp-write.md](mcp-write.md) |
 
 Giữ mỗi file ≤ ~8 KB. Vượt thì tách tiếp theo domain con và thêm dòng vào bảng trên và bảng trong `AGENTS.md`.
 
 ## Nguyên tắc chung
 
-- Mỗi user chỉ thấy dữ liệu của chính mình (mọi query lọc theo `userId` từ JWT). Ngoại lệ: link chia sẻ public lấy `userId` từ ShareLink, chỉ đọc đúng một nguồn ([source-history.md](source-history.md)); request MCP lấy `userId` từ token cá nhân đã verify; chỉ đọc, trừ token có scope `write` được tạo chi/thu/chuyển ([mcp.md](mcp.md), [mcp-write.md](mcp-write.md)).
+- Mỗi user chỉ thấy dữ liệu của chính mình (mọi query lọc theo `userId` từ JWT). Ngoại lệ: link chia sẻ public lấy `userId` từ ShareLink, chỉ đọc đúng một nguồn ([source-history.md](source-history.md)); request MCP lấy `userId` từ token cá nhân đã verify; chỉ đọc, trừ token có scope `write` được tạo chi tiêu/thu nhập ([mcp.md](mcp.md), [mcp-write.md](mcp-write.md)).
 - **Cập nhật số dư thẻ tín dụng** luôn đặt điều kiện hạn mức/dư nợ ngay trong filter của `findOneAndUpdate`, để request đồng thời không vượt hạn mức hoặc làm dư nợ âm.
 - **Múi giờ:** Asia/Ho_Chi_Minh (+07:00). Dashboard tính theo múi này; PM2 cũng đặt `TZ`.
 - **Category** có `kind`: `EXPENSE` (chi tiêu và phí chuyển tiền) hoặc `INCOME` (thu nhập). Xem [categories.md](categories.md).

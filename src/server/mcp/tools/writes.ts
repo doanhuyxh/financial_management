@@ -4,7 +4,6 @@ import { CardFeeType } from "@/libs/interfaces/expensesData";
 import { ForeignFeeType } from "@/libs/interfaces/sourcesOfMoneyData";
 import { ExpensesService } from "@/server/services/expenses.service";
 import { IncomesService } from "@/server/services/incomes.service";
-import { TransfersService } from "@/server/services/transfers.service";
 import { vietnamDayKey } from "@/server/utils/dayRange";
 import { daySchema, objectIdSchema } from "../registerReadTool";
 import { registerWriteTool } from "../registerWriteTool";
@@ -45,7 +44,7 @@ export function toTransactionDate(date?: string, time?: string, now = new Date()
     return `${date}T${time ?? "12:00"}:00+07:00`;
 }
 
-/** Tạo chi tiêu / thu nhập / chuyển tiền — chỉ đăng ký khi token có scope `write`. */
+/** Tạo chi tiêu / thu nhập — chỉ đăng ký khi token có scope `write`. Không có chuyển tiền, sửa, xóa. */
 export function registerWriteTools(server: McpServer) {
     registerWriteTool(
         server,
@@ -84,7 +83,7 @@ export function registerWriteTools(server: McpServer) {
             title: "Create income",
             idempotencyRoute: "income.create",
             description:
-                "Record money received into a non-credit-card source (salary, bonus, refund…). Increases balance. Resolve categoryId (kind INCOME) and sourceOfMoneyId first. Paying a credit card is a transfer, not an income.",
+                "Record money received into a non-credit-card source (salary, bonus, refund…). Increases balance. Resolve categoryId (kind INCOME) and sourceOfMoneyId first. Paying a credit card is a transfer (not available via MCP; the user does it in the app), not an income.",
             inputSchema: {
                 categoryId: objectIdSchema.describe("Income category id (kind INCOME)"),
                 sourceOfMoneyId: objectIdSchema.describe("Source of money id, not a credit card"),
@@ -95,32 +94,5 @@ export function registerWriteTools(server: McpServer) {
         },
         ({ date, time, ...input }) =>
             IncomesService.createIncome({ ...input, receivedAt: toTransactionDate(date, time) }),
-    );
-
-    registerWriteTool(
-        server,
-        "create_transfer",
-        {
-            title: "Create transfer",
-            idempotencyRoute: "transfer.create",
-            description:
-                "Move money between two of the user's own sources. Not income/expense. Allowed: normal → normal, normal → credit card (pays debt, amount <= current debt), credit card → normal (cash advance; debt += amount). Card → card is rejected. feePercent is only allowed when sending from a credit card: the receiver gets amount − fee and the fee is recorded as an expense in feeCategoryId (required then); the card's minimum cash-advance fee may apply. Transfers cannot be edited later, only deleted in the app.",
-            inputSchema: {
-                fromSourceId: objectIdSchema.describe("Sender source id"),
-                toSourceId: objectIdSchema.describe("Receiver source id, different from sender"),
-                amount: amountSchema.describe("Amount taken from the sender, integer VND"),
-                feePercent: z
-                    .number()
-                    .min(0)
-                    .max(100)
-                    .optional()
-                    .describe("Credit card sender only: fee in percent of amount, default 0"),
-                feeCategoryId: objectIdSchema.optional().describe("Expense category for the fee"),
-                note: noteSchema,
-                ...dateInput,
-            },
-        },
-        ({ date, time, ...input }) =>
-            TransfersService.createTransfer({ ...input, transferredAt: toTransactionDate(date, time) }),
     );
 }

@@ -7,7 +7,7 @@ export enum TransactionAuditKind {
 }
 
 export enum TransactionAuditAction {
-    /** Chỉ ghi khi giao dịch được tạo qua agent (MCP); tạo trên web không ghi */
+    /** Chỉ ghi khi chi tiêu / thu nhập được tạo qua agent (MCP); tạo trên web không ghi */
     CREATE = "CREATE",
     UPDATE = "UPDATE",
     DELETE = "DELETE",

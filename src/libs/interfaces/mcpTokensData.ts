@@ -2,7 +2,7 @@
 
 export enum McpTokenScope {
     READ = "read",
-    /** Tạo chi tiêu / thu nhập / chuyển tiền qua MCP. Chỉ có khi user bật lúc tạo token. */
+    /** Tạo chi tiêu / thu nhập qua MCP. Chỉ có khi user bật lúc tạo token. */
     WRITE = "write",
 }
 
