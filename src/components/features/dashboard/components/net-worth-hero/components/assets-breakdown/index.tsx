@@ -1,8 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { Collapse, Empty, Spin, Table } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import { ChevronDown } from "lucide-react";
+import DataTable, { type IDataTableColumn } from "@/components/common/data-table";
+import EmptyState from "@/components/common/empty-state";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/shadcn/ui/collapsible";
+import { Spinner } from "@/components/shadcn/ui/spinner";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import type { AssetGroup, IAssetSourceItem } from "@/libs/utils/assetsSummary";
 import { SOURCES_OF_MONEY_TYPE_LABELS } from "@/libs/interfaces/sourcesOfMoneyData";
@@ -46,8 +53,8 @@ export default function AssetsBreakdown() {
         ];
     }, [assets]);
 
-    const columns = useMemo<ColumnsType<BreakdownRow>>(() => {
-        // Group rows span the whole table width.
+    const columns = useMemo<IDataTableColumn<BreakdownRow>[]>(() => {
+        // Group rows span the whole table width (cột `responsive` bị ẩn trên mobile nên chỉ còn 2 cột).
         const groupSpan = (row: BreakdownRow, span: number) => ({
             colSpan: row.kind === "group" ? span : 1,
         });
@@ -117,43 +124,33 @@ export default function AssetsBreakdown() {
 
     const content = isSourcesLoading ? (
         <div className="flex h-32 items-center justify-center">
-            <Spin />
+            <Spinner className="size-6 text-primary" />
         </div>
     ) : rows.length === 0 ? (
-        <Empty description="Chưa có nguồn tiền nào còn số dư" />
+        <EmptyState description="Chưa có nguồn tiền nào còn số dư" />
     ) : (
-        <Table<BreakdownRow>
-            rowKey="key"
-            size="small"
-            columns={columns}
-            dataSource={rows}
-            pagination={false}
-            scroll={{ x: "max-content" }}
-        />
+        <DataTable<BreakdownRow> rowKey="key" size="small" columns={columns} dataSource={rows} />
     );
 
     return (
-        <div className="rounded-xl border border-border bg-card">
-            <Collapse
-                ghost
-                // defaultActiveKey={["breakdown"]}
-                items={[
-                    {
-                        key: "breakdown",
-                        label: (
-                            <div>
-                                <h2 className="text-base font-semibold">
-                                    Chi tiết tài sản theo nguồn
-                                </h2>
-                                <p className="text-xs text-muted-foreground">
-                                    Số liệu hiện tại, không phụ thuộc tháng đang chọn
-                                </p>
-                            </div>
-                        ),
-                        children: content,
-                    },
-                ]}
-            />
-        </div>
+        <Collapsible className="group/breakdown rounded-xl border border-border bg-card">
+            <CollapsibleTrigger asChild>
+                <button
+                    type="button"
+                    className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl p-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                    <div>
+                        <h2 className="text-base font-semibold">Chi tiết tài sản theo nguồn</h2>
+                        <p className="text-xs text-muted-foreground">
+                            Số liệu hiện tại, không phụ thuộc tháng đang chọn
+                        </p>
+                    </div>
+                    <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/breakdown:rotate-180" />
+                </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <div className="px-4 pb-4">{content}</div>
+            </CollapsibleContent>
+        </Collapsible>
     );
 }

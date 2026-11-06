@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback } from "react";
-import { Button, Empty } from "antd";
 import { ArrowLeftRight, Plus } from "lucide-react";
+import { Button } from "@/components/shadcn/ui/button";
+import EmptyState from "@/components/common/empty-state";
 import Money from "@/components/common/money";
 import GroupedTransactionList from "@/components/common/grouped-transaction-list";
 import TransactionRow from "@/components/common/grouped-transaction-list/components/transaction-row";
@@ -44,11 +45,12 @@ export default function TransfersTable() {
             dayTotals={dayTotals}
             totalKind="neutral"
             empty={
-                <Empty description="Chưa có giao dịch chuyển tiền">
-                    <Button type="primary" icon={<Plus className="size-4" />} onClick={openCreateModal}>
+                <EmptyState description="Chưa có giao dịch chuyển tiền">
+                    <Button type="button" onClick={openCreateModal}>
+                        <Plus data-icon="inline-start" />
                         Chuyển tiền
                     </Button>
-                </Empty>
+                </EmptyState>
             }
             pagination={{
                 current: pagination?.page ?? page,

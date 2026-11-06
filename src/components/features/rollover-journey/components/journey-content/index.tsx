@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Skeleton } from "antd";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/shadcn/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/shadcn/ui/empty";
+import ParagraphSkeleton from "@/components/common/paragraph-skeleton";
 import { useRolloverJourneyContext } from "@/components/features/rollover-journey/context";
 import JourneyHeader from "@/components/features/rollover-journey/components/journey-header";
 import JourneyOverview from "@/components/features/rollover-journey/components/journey-overview";
@@ -18,7 +18,7 @@ export default function JourneyContent() {
     const { cards, selectedCard, selectedJourney, computed, isLoading, isDetailLoading, openRollover } =
         useRolloverJourneyContext();
 
-    if (isLoading) return <Skeleton active paragraph={{ rows: 6 }} />;
+    if (isLoading) return <ParagraphSkeleton rows={6} />;
 
     if (cards.length === 0) {
         return (
@@ -47,7 +47,7 @@ export default function JourneyContent() {
                     </Button>
                 </Empty>
             ) : isDetailLoading || !computed ? (
-                <Skeleton active paragraph={{ rows: 6 }} />
+                <ParagraphSkeleton rows={6} />
             ) : (
                 <>
                     <JourneyOverview />

@@ -1,4 +1,4 @@
-import { Tag } from "antd";
+import Tag from "@/components/common/tag";
 import type { IPaymentFeeStatus } from "@/components/features/dashboard/utils";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
@@ -15,15 +15,11 @@ export default function PaymentFeeInfo({ status }: { status: IPaymentFeeStatus |
                 <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                     Kỳ này đã trả {status.payments} lần
                     {status.estimatedTotal > 0 ? (
-                        <Tag color="red" variant="solid" className="m-0">
+                        <Tag color="red" variant="solid">
                             Phí ≈{formatMoney(status.estimatedTotal)}
                         </Tag>
                     ) : (
-                        <Tag
-                            color={status.nextPaymentCharged ? "orange" : "green"}
-                            variant="solid"
-                            className="m-0"
-                        >
+                        <Tag color={status.nextPaymentCharged ? "orange" : "green"} variant="solid">
                             {status.nextPaymentCharged ? "Lần tới mất phí" : "Lần tới miễn phí"}
                         </Tag>
                     )}

@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "antd";
 import Link from "next/link";
 import { ArrowLeftRight, CalendarClock, ChartLine, CircleAlert, CreditCard, RefreshCw } from "lucide-react";
+import { Button } from "@/components/shadcn/ui/button";
 import { MENU_KEY } from "@/libs/constants/menuKey";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import type { IAttentionItem } from "@/components/features/dashboard/utils";
@@ -51,30 +51,35 @@ export default function AttentionStrip() {
                             <div className="mt-2 flex flex-wrap gap-2">
                                 {item.payCard ? (
                                     <Button
-                                        size="small"
-                                        icon={<ArrowLeftRight className="size-3.5" />}
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
                                         onClick={() =>
                                             handlePayCard(item.payCard!._id, item.payCard!.amount)
                                         }
                                     >
+                                        <ArrowLeftRight data-icon="inline-start" />
                                         Thanh toán
                                     </Button>
                                 ) : null}
                                 {item.rolloverCard ? (
                                     <Button
-                                        size="small"
-                                        icon={<RefreshCw className="size-3.5" />}
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
                                         onClick={() => openRollover(item.rolloverCard!._id)}
                                     >
+                                        <RefreshCw data-icon="inline-start" />
                                         Đáo hạn
                                     </Button>
                                 ) : null}
                                 {item.journeyCard ? (
-                                    <Link href={`${MENU_KEY.ROLLOVER_JOURNEY}?cardId=${item.journeyCard._id}`}>
-                                        <Button size="small" icon={<ChartLine className="size-3.5" />}>
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href={`${MENU_KEY.ROLLOVER_JOURNEY}?cardId=${item.journeyCard._id}`}>
+                                            <ChartLine data-icon="inline-start" />
                                             Phân tích
-                                        </Button>
-                                    </Link>
+                                        </Link>
+                                    </Button>
                                 ) : null}
                             </div>
                         ) : null}

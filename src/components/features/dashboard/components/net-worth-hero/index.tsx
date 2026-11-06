@@ -1,7 +1,8 @@
 "use client";
 
-import { Progress, Skeleton } from "antd";
 import Money from "@/components/common/money";
+import { Progress } from "@/components/shadcn/ui/progress";
+import { Skeleton } from "@/components/shadcn/ui/skeleton";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import AssetsBreakdown from "@/components/features/dashboard/components/net-worth-hero/components/assets-breakdown";
 import { formatMoney } from "@/libs/utils/formatMoney";
@@ -14,7 +15,7 @@ export default function NetWorthHero() {
     const { assets, totalCreditDebt, creditCards, isSourcesLoading } = useDashboardContext();
 
     const value = (node: React.ReactNode) =>
-        isSourcesLoading ? <Skeleton.Input active size="small" /> : node;
+        isSourcesLoading ? <Skeleton className="skeleton-shimmer my-1 h-6 w-32 animate-none" /> : node;
 
     const creditRemainingPercent = assets.creditLimitTotal
         ? Math.round((assets.availableCreditTotal / assets.creditLimitTotal) * 100)
@@ -78,12 +79,9 @@ export default function NetWorthHero() {
                         />,
                     )}
                     <Progress
-                        percent={creditRemainingPercent}
-                        showInfo={false}
-                        size="small"
-                        strokeColor="var(--credit)"
-                        railColor="var(--muted)"
-                        className="m-0"
+                        value={creditRemainingPercent}
+                        aria-label="Tín dụng còn dùng được"
+                        className="my-1.5 h-1.5 *:data-[slot=progress-indicator]:bg-credit"
                     />
                     <p className="money-value text-xs text-muted-foreground">
                         {creditRemainingPercent}% của {formatMoney(assets.creditLimitTotal)} · không

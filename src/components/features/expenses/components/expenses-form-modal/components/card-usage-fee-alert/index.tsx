@@ -1,7 +1,8 @@
 "use client";
 
-import { Alert } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
+import { TriangleAlert } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/shadcn/ui/alert";
 import { useGetCreditCardFeeProgress } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { SourcesOfMoneyType, type ISourcesOfMoneyData } from "@/libs/interfaces/sourcesOfMoneyData";
 import { formatMoney } from "@/libs/utils/formatMoney";
@@ -31,12 +32,14 @@ export default function CardUsageFeeAlert({
     if (!inCycle) return null;
 
     return (
-        <Alert
-            type="warning"
-            showIcon
-            className="mb-4"
-            message={`Khoản chi đầu tiên trong kỳ sao kê: thẻ sẽ thu phí sử dụng ~${formatMoney(usageFee)}`}
-            description="Các khoản chi tiếp theo trong kỳ này không mất thêm phí sử dụng."
-        />
+        <Alert className="border-warn/40 bg-warn-soft text-warn">
+            <TriangleAlert />
+            <AlertTitle>
+                {`Khoản chi đầu tiên trong kỳ sao kê: thẻ sẽ thu phí sử dụng ~${formatMoney(usageFee)}`}
+            </AlertTitle>
+            <AlertDescription>
+                Các khoản chi tiếp theo trong kỳ này không mất thêm phí sử dụng.
+            </AlertDescription>
+        </Alert>
     );
 }

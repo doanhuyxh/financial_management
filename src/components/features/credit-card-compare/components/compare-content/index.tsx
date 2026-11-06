@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Alert, Empty, Spin } from "antd";
+import { Info } from "lucide-react";
+import EmptyState from "@/components/common/empty-state";
+import { Alert, AlertTitle } from "@/components/shadcn/ui/alert";
+import { Spinner } from "@/components/shadcn/ui/spinner";
 import { useCreditCardCompareContext } from "@/components/features/credit-card-compare/context";
 import ScenarioForm from "@/components/features/credit-card-compare/components/scenario-form";
 import BestPicks from "@/components/features/credit-card-compare/components/best-picks";
@@ -16,30 +19,31 @@ export default function CompareContent() {
     if (isLoading) {
         return (
             <div className="flex justify-center py-16">
-                <Spin />
+                <Spinner className="size-6 text-primary" />
             </div>
         );
     }
     if (cards.length === 0) {
         return (
-            <Empty description="Chưa có thẻ tín dụng nào">
-                <Link href={MENU_KEY.SOURCES_OF_MONEY}>Thêm thẻ ở trang Nguồn tiền</Link>
-            </Empty>
+            <EmptyState description="Chưa có thẻ tín dụng nào">
+                <Link href={MENU_KEY.SOURCES_OF_MONEY} className="text-accent-text underline">
+                    Thêm thẻ ở trang Nguồn tiền
+                </Link>
+            </EmptyState>
         );
     }
 
     return (
         <div className="flex flex-col gap-4">
             {cards.length === 1 ? (
-                <Alert
-                    type="info"
-                    showIcon
-                    message={
-                        allCards.length > 1
+                <Alert>
+                    <Info />
+                    <AlertTitle className="font-normal">
+                        {allCards.length > 1
                             ? 'Đang chọn 1 thẻ. Bấm nút "Thẻ" ở bảng so sánh để chọn thêm thẻ'
-                            : "Cần ít nhất 2 thẻ tín dụng để so sánh điểm mạnh/yếu"
-                    }
-                />
+                            : "Cần ít nhất 2 thẻ tín dụng để so sánh điểm mạnh/yếu"}
+                    </AlertTitle>
+                </Alert>
             ) : null}
             <ScenarioForm />
             <BestPicks />

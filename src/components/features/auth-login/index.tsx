@@ -1,9 +1,18 @@
 "use client";
 
+import { useId, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Form, Input } from "antd";
-import { ArrowRight, Check, Lock, Mail, Wallet } from "lucide-react";
+import { ArrowRight, Check, Eye, EyeOff, Lock, Mail, Wallet } from "lucide-react";
+import FormField from "@/components/common/form-field";
+import { Button } from "@/components/shadcn/ui/button";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from "@/components/shadcn/ui/input-group";
+import { Spinner } from "@/components/shadcn/ui/spinner";
 import { useLogin } from "./hooks/useLogin";
 import { AuthLoginSchema, type AuthLoginSchemaType } from "./schemas/login-schema";
 import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
@@ -25,15 +34,14 @@ function Logo() {
     );
 }
 
-/** Đăng nhập: cùng token màu, logo và component antd với phần còn lại của app (theo theme sáng/tối). */
+/** Đăng nhập: cùng token màu, logo và component shadcn với phần còn lại của app (theo theme sáng/tối). */
 export default function AuthLoginComponent() {
     const { submit, isPending } = useLogin();
     const { notification } = useAppFeedback();
-    const {
-        control,
-        handleSubmit,
-        formState: { errors },
-    } = useForm<AuthLoginSchemaType>({
+    const [showPassword, setShowPassword] = useState(false);
+    const emailId = useId();
+    const passwordId = useId();
+    const { control, handleSubmit } = useForm<AuthLoginSchemaType>({
         mode: "onTouched",
         defaultValues: { email: "", password: "" },
         resolver: zodResolver(AuthLoginSchema),
@@ -84,62 +92,69 @@ export default function AuthLoginComponent() {
                         </p>
                     </div>
 
-                    <Form layout="vertical" requiredMark={false} onFinish={handleSubmit(onSubmit)}>
-                        <Form.Item
-                            label="Email"
-                            validateStatus={errors.email ? "error" : undefined}
-                            help={errors.email?.message}
-                        >
-                            <Controller
-                                name="email"
-                                control={control}
-                                render={({ field }) => (
-                                    <Input
-                                        {...field}
-                                        type="email"
-                                        size="large"
-                                        autoComplete="email"
-                                        inputMode="email"
-                                        placeholder="name@example.com"
-                                        prefix={<Mail className="size-4 text-muted-foreground" />}
-                                        disabled={isPending}
-                                    />
-                                )}
-                            />
-                        </Form.Item>
-                        <Form.Item
-                            label="Mật khẩu"
-                            validateStatus={errors.password ? "error" : undefined}
-                            help={errors.password?.message}
-                        >
-                            <Controller
-                                name="password"
-                                control={control}
-                                render={({ field }) => (
-                                    <Input.Password
-                                        {...field}
-                                        size="large"
-                                        autoComplete="current-password"
-                                        placeholder="••••••••"
-                                        prefix={<Lock className="size-4 text-muted-foreground" />}
-                                        disabled={isPending}
-                                    />
-                                )}
-                            />
-                        </Form.Item>
-                        <Button
-                            type="primary"
-                            htmlType="submit"
-                            size="large"
-                            block
-                            loading={isPending}
-                            icon={isPending ? undefined : <ArrowRight className="size-4" />}
-                            iconPlacement="end"
-                            className="mt-2"
-                        >
+                    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+                        <Controller
+                            name="email"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <FormField label="Email" htmlFor={emailId} error={fieldState.error?.message}>
+                                    <InputGroup className="h-9">
+                                        <InputGroupAddon>
+                                            <Mail />
+                                        </InputGroupAddon>
+                                        <InputGroupInput
+                                            {...field}
+                                            id={emailId}
+                                            type="email"
+                                            autoComplete="email"
+                                            inputMode="email"
+                                            placeholder="name@example.com"
+                                            disabled={isPending}
+                                            aria-invalid={fieldState.invalid || undefined}
+                                        />
+                                    </InputGroup>
+                                </FormField>
+                            )}
+                        />
+                        <Controller
+                            name="password"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <FormField label="Mật khẩu" htmlFor={passwordId} error={fieldState.error?.message}>
+                                    <InputGroup className="h-9">
+                                        <InputGroupAddon>
+                                            <Lock />
+                                        </InputGroupAddon>
+                                        <InputGroupInput
+                                            {...field}
+                                            id={passwordId}
+                                            type={showPassword ? "text" : "password"}
+                                            autoComplete="current-password"
+                                            placeholder="••••••••"
+                                            disabled={isPending}
+                                            aria-invalid={fieldState.invalid || undefined}
+                                        />
+                                        <InputGroupAddon align="inline-end">
+                                            <InputGroupButton
+                                                size="icon-xs"
+                                                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                                                aria-pressed={showPassword}
+                                                disabled={isPending}
+                                                onClick={() => setShowPassword((prev) => !prev)}
+                                            >
+                                                {showPassword ? <EyeOff /> : <Eye />}
+                                            </InputGroupButton>
+                                        </InputGroupAddon>
+                                    </InputGroup>
+                                </FormField>
+                            )}
+                        />
+                        <Button type="submit" size="lg" disabled={isPending} className="mt-2 w-full">
+                            {isPending ? <Spinner data-icon="inline-start" /> : null}
                             {isPending ? "Đang xác thực..." : "Đăng nhập"}
+                            {isPending ? null : <ArrowRight data-icon="inline-end" />}
                         </Button>
-                    </Form>
+                    </form>
                 </div>
             </main>
         </div>

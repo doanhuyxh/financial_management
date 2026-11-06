@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, Input, Select, Skeleton } from "antd";
 import dayjs from "dayjs";
 import { Trash2, TriangleAlert } from "lucide-react";
 import ResponsiveModal, { MODAL_AUTOFOCUS_CLASS } from "@/components/common/responsive-modal";
 import AmountInput from "@/components/common/amount-input";
 import ChoiceChips from "@/components/common/choice-chips";
+import Combobox from "@/components/common/combobox";
+import FormField from "@/components/common/form-field";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import QuickDateField from "@/components/common/quick-date-field";
 import Money from "@/components/common/money";
@@ -16,8 +17,11 @@ import RolloverAnalysis from "@/components/common/rollover-analysis";
 import { Alert, AlertDescription, AlertTitle } from "@/components/shadcn/ui/alert";
 import { Button } from "@/components/shadcn/ui/button";
 import { Checkbox } from "@/components/shadcn/ui/checkbox";
+import { Input } from "@/components/shadcn/ui/input";
 import { Label } from "@/components/shadcn/ui/label";
+import { Skeleton } from "@/components/shadcn/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shadcn/ui/tabs";
+import { Textarea } from "@/components/shadcn/ui/textarea";
 import {
     CardRolloverSchema,
     type CardRolloverFormInput,
@@ -44,6 +48,10 @@ const toNumber = (value: unknown) => {
 /** Cách nhập số tiền: A = số dịch vụ ứng, N = số quẹt lại đã gồm phí (A = n ÷ (1 + r)). */
 type InputMode = "A" | "N";
 
+const NOTE_MAX_LENGTH = 500;
+const PROVIDER_INPUT_ID = "card-rollover-provider";
+const NOTE_INPUT_ID = "card-rollover-note";
+
 function RecentRollovers({
     items,
     loading,
@@ -53,7 +61,14 @@ function RecentRollovers({
     loading: boolean;
     onDelete: (item: ICardRolloverData) => void;
 }) {
-    if (loading) return <Skeleton active paragraph={{ rows: 2 }} title={false} />;
+    if (loading) {
+        return (
+            <div className="flex flex-col gap-3">
+                <Skeleton className="skeleton-shimmer h-4 w-full animate-none" />
+                <Skeleton className="skeleton-shimmer h-4 w-3/5 animate-none" />
+            </div>
+        );
+    }
     if (items.length === 0) {
         return <p className="text-xs text-muted-foreground">Thẻ này chưa ghi lần đáo hạn nào.</p>;
     }
@@ -170,13 +185,11 @@ export default function CardRolloverModal({
     const defaultPercent = card?.feePercent ?? 0;
     const interestRate = card?.interestRate ?? null;
 
-    const {
-        control,
-        handleSubmit,
-        reset,
-        setValue,
-        formState: { errors },
-    } = useForm<CardRolloverFormInput, unknown, CardRolloverFormValues>({
+    const { control, handleSubmit, reset, setValue } = useForm<
+        CardRolloverFormInput,
+        unknown,
+        CardRolloverFormValues
+    >({
         mode: "onTouched",
         resolver: zodResolver(CardRolloverSchema),
         defaultValues: {
@@ -325,9 +338,9 @@ export default function CardRolloverModal({
                         </AlertDescription>
                     </Alert>
 
-                    <Form layout="vertical" requiredMark={false} onFinish={submit}>
-                        <div className="mb-4 rounded-lg bg-muted/60 p-3">
-                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+                        <div className="rounded-lg bg-muted/60 p-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-sm font-semibold">Tự trả một phần</span>
                                 <Label className="flex items-center gap-2 text-xs font-normal">
                                     <Checkbox checked={selfPay} onCheckedChange={(checked) => setSelfPay(checked === true)} />
@@ -335,102 +348,137 @@ export default function CardRolloverModal({
                                 </Label>
                             </div>
                             {selfPay ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
-                                    <Form.Item
-                                        label="Số tiền bạn trả (x)"
-                                        className="mb-2"
-                                        validateStatus={errors.paymentAmount ? "error" : undefined}
-                                        help={errors.paymentAmount?.message}
-                                        extra="Ghi thành Chuyển tiền vào thẻ, giống nút Trả nợ"
-                                    >
-                                        <Controller
-                                            name="paymentAmount"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <DebouncedNumberInput className="w-full!" min={0} step={100000} delay={300} placeholder="0" value={field.value} onChange={field.onChange} />
-                                            )}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item
-                                        label="Từ nguồn"
-                                        className="mb-2"
-                                        validateStatus={errors.paymentSourceId ? "error" : undefined}
-                                        help={errors.paymentSourceId?.message}
-                                        extra={paymentAmount > 0 ? `Phần còn lại ${formatMoney(Math.max(0, debt - paymentAmount))} do dịch vụ ứng` : undefined}
-                                    >
-                                        <Controller
-                                            name="paymentSourceId"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <Select showSearch allowClear optionFilterProp="label" placeholder="Chọn nguồn trả" loading={sourcesLoading} options={paySourceOptions} value={field.value} onChange={(value) => field.onChange(value ?? undefined)} />
-                                            )}
-                                        />
-                                    </Form.Item>
+                                <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-x-4">
+                                    <Controller
+                                        name="paymentAmount"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <FormField
+                                                label="Số tiền bạn trả (x)"
+                                                error={fieldState.error?.message}
+                                                extra="Ghi thành Chuyển tiền vào thẻ, giống nút Trả nợ"
+                                            >
+                                                <DebouncedNumberInput
+                                                    min={0}
+                                                    precision={0}
+                                                    delay={300}
+                                                    placeholder="0"
+                                                    value={field.value}
+                                                    onChange={field.onChange}
+                                                    onBlur={field.onBlur}
+                                                />
+                                            </FormField>
+                                        )}
+                                    />
+                                    <Controller
+                                        name="paymentSourceId"
+                                        control={control}
+                                        render={({ field, fieldState }) => (
+                                            <FormField
+                                                label="Từ nguồn"
+                                                error={fieldState.error?.message}
+                                                extra={
+                                                    paymentAmount > 0
+                                                        ? `Phần còn lại ${formatMoney(Math.max(0, debt - paymentAmount))} do dịch vụ ứng`
+                                                        : undefined
+                                                }
+                                            >
+                                                <Combobox
+                                                    allowClear
+                                                    placeholder="Chọn nguồn trả"
+                                                    loading={sourcesLoading}
+                                                    options={paySourceOptions}
+                                                    value={field.value}
+                                                    onChange={(value) => field.onChange(value ?? undefined)}
+                                                />
+                                            </FormField>
+                                        )}
+                                    />
                                 </div>
                             ) : null}
                         </div>
 
-                        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                            <span className="text-sm">Số tiền đáo hạn</span>
-                            <ChoiceChips
-                                options={[
-                                    { value: "A", label: "Số dịch vụ ứng (A)" },
-                                    { value: "N", label: "Số quẹt lại gồm phí (n)" },
-                                ]}
-                                value={inputMode}
-                                onChange={handleModeChange}
-                            />
-                        </div>
-                        <Form.Item
-                            className={MODAL_AUTOFOCUS_CLASS}
-                            validateStatus={errors.amount ? "error" : undefined}
-                            help={errors.amount?.message}
-                            extra={
-                                inputMode === "A"
-                                    ? `A = dư nợ − phần bạn trả. Tối đa bằng dư nợ đang nợ: ${formatMoney(debt)}`
-                                    : `n đã gồm phí · A = n ÷ (1 + ${feePercent}%) = ${formatMoney(advanced)}`
-                            }
-                        >
+                        <div className="flex flex-col gap-1">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-sm">Số tiền đáo hạn</span>
+                                <ChoiceChips
+                                    options={[
+                                        { value: "A", label: "Số dịch vụ ứng (A)" },
+                                        { value: "N", label: "Số quẹt lại gồm phí (n)" },
+                                    ]}
+                                    value={inputMode}
+                                    onChange={handleModeChange}
+                                />
+                            </div>
                             <Controller
                                 name="amount"
                                 control={control}
-                                render={({ field }) => <AmountInput value={field.value} onChange={field.onChange} />}
+                                render={({ field, fieldState }) => (
+                                    <FormField
+                                        className={MODAL_AUTOFOCUS_CLASS}
+                                        error={fieldState.error?.message}
+                                        extra={
+                                            inputMode === "A"
+                                                ? `A = dư nợ − phần bạn trả. Tối đa bằng dư nợ đang nợ: ${formatMoney(debt)}`
+                                                : `n đã gồm phí · A = n ÷ (1 + ${feePercent}%) = ${formatMoney(advanced)}`
+                                        }
+                                    >
+                                        <AmountInput value={field.value} onChange={field.onChange} />
+                                    </FormField>
+                                )}
                             />
-                        </Form.Item>
+                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
-                            <Form.Item
-                                label="% phí dịch vụ"
-                                validateStatus={errors.feePercent ? "error" : undefined}
-                                help={errors.feePercent?.message}
-                                extra={defaultPercent ? `Theo cấu hình thẻ: ${defaultPercent}%` : "Nhập % để app tự tính phí; có thể sửa phí bên cạnh"}
-                            >
-                                <Controller
-                                    name="feePercent"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <DebouncedNumberInput className="w-full!" min={0} max={100} step={0.1} delay={300} placeholder="0" value={field.value} onChange={field.onChange} />
-                                    )}
-                                />
-                            </Form.Item>
-                            <Form.Item
-                                label="Phí thực tế"
-                                validateStatus={errors.feeAmount ? "error" : undefined}
-                                help={errors.feeAmount?.message}
-                                extra="Dư nợ thẻ sẽ tăng đúng số này"
-                            >
-                                <Controller
-                                    name="feeAmount"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <DebouncedNumberInput className="w-full!" min={0} step={10000} delay={300} placeholder="0" value={field.value} onChange={field.onChange} />
-                                    )}
-                                />
-                            </Form.Item>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-4">
+                            <Controller
+                                name="feePercent"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <FormField
+                                        label="% phí dịch vụ"
+                                        error={fieldState.error?.message}
+                                        extra={
+                                            defaultPercent
+                                                ? `Theo cấu hình thẻ: ${defaultPercent}%`
+                                                : "Nhập % để app tự tính phí; có thể sửa phí bên cạnh"
+                                        }
+                                    >
+                                        <DebouncedNumberInput
+                                            min={0}
+                                            delay={300}
+                                            placeholder="0"
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            onBlur={field.onBlur}
+                                        />
+                                    </FormField>
+                                )}
+                            />
+                            <Controller
+                                name="feeAmount"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <FormField
+                                        label="Phí thực tế"
+                                        error={fieldState.error?.message}
+                                        extra="Dư nợ thẻ sẽ tăng đúng số này"
+                                    >
+                                        <DebouncedNumberInput
+                                            min={0}
+                                            precision={0}
+                                            delay={300}
+                                            placeholder="0"
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                            onBlur={field.onBlur}
+                                        />
+                                    </FormField>
+                                )}
+                            />
                         </div>
 
                         {advanced > 0 ? (
-                            <div className="mb-4 rounded-lg bg-muted/60 p-3 text-center text-xs">
+                            <div className="rounded-lg bg-muted/60 p-3 text-center text-xs">
                                 <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-1.5">
                                     <div><p className="text-muted-foreground">Bạn trả (x)</p><Money value={paymentAmount} kind="in" className="font-semibold" /></div>
                                     <span className="text-base text-muted-foreground">+</span>
@@ -458,34 +506,82 @@ export default function CardRolloverModal({
                             </div>
                         ) : null}
 
-                        <Form.Item
-                            label="Danh mục chi tiêu phí"
-                            validateStatus={errors.feeCategoryId ? "error" : undefined}
-                            help={errors.feeCategoryId?.message}
-                            extra={feeAmount > 0 ? "Phí được ghi thành một khoản chi tiêu trên thẻ" : "Chỉ bắt buộc khi phí > 0"}
-                        >
+                        <Controller
+                            name="feeCategoryId"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <FormField
+                                    label="Danh mục chi tiêu phí"
+                                    error={fieldState.error?.message}
+                                    extra={feeAmount > 0 ? "Phí được ghi thành một khoản chi tiêu trên thẻ" : "Chỉ bắt buộc khi phí > 0"}
+                                >
+                                    <Combobox
+                                        allowClear
+                                        placeholder="Chọn danh mục"
+                                        loading={categoriesLoading}
+                                        options={categoryOptions}
+                                        value={field.value}
+                                        onChange={(value) => field.onChange(value ?? undefined)}
+                                    />
+                                </FormField>
+                            )}
+                        />
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-4">
                             <Controller
-                                name="feeCategoryId"
+                                name="rolledAt"
                                 control={control}
-                                render={({ field }) => (
-                                    <Select showSearch allowClear optionFilterProp="label" placeholder="Chọn danh mục" loading={categoriesLoading} options={categoryOptions} value={field.value} onChange={(value) => field.onChange(value ?? undefined)} />
+                                render={({ field, fieldState }) => (
+                                    <FormField label="Ngày đáo hạn" error={fieldState.error?.message}>
+                                        <QuickDateField value={field.value} onChange={field.onChange} />
+                                    </FormField>
                                 )}
                             />
-                        </Form.Item>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
-                            <Form.Item label="Ngày đáo hạn" validateStatus={errors.rolledAt ? "error" : undefined} help={errors.rolledAt?.message as string | undefined}>
-                                <Controller name="rolledAt" control={control} render={({ field }) => <QuickDateField value={field.value} onChange={field.onChange} />} />
-                            </Form.Item>
-                            <Form.Item label="Bên dịch vụ" validateStatus={errors.provider ? "error" : undefined} help={errors.provider?.message}>
-                                <Controller name="provider" control={control} render={({ field }) => <Input {...field} maxLength={100} placeholder="Tên dịch vụ (không bắt buộc)" />} />
-                            </Form.Item>
+                            <Controller
+                                name="provider"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <FormField label="Bên dịch vụ" error={fieldState.error?.message} htmlFor={PROVIDER_INPUT_ID}>
+                                        <Input
+                                            {...field}
+                                            id={PROVIDER_INPUT_ID}
+                                            value={field.value ?? ""}
+                                            aria-invalid={fieldState.invalid || undefined}
+                                            maxLength={100}
+                                            placeholder="Tên dịch vụ (không bắt buộc)"
+                                        />
+                                    </FormField>
+                                )}
+                            />
                         </div>
 
-                        <Form.Item label="Ghi chú" className="mb-0" validateStatus={errors.note ? "error" : undefined} help={errors.note?.message}>
-                            <Controller name="note" control={control} render={({ field }) => <Input.TextArea {...field} rows={2} maxLength={500} placeholder="Ghi chú (không bắt buộc)" showCount />} />
-                        </Form.Item>
-                    </Form>
+                        <Controller
+                            name="note"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <FormField
+                                    label="Ghi chú"
+                                    error={fieldState.error?.message}
+                                    htmlFor={NOTE_INPUT_ID}
+                                    extra={
+                                        <span className="block text-right tabular-nums">
+                                            {(field.value ?? "").length}/{NOTE_MAX_LENGTH}
+                                        </span>
+                                    }
+                                >
+                                    <Textarea
+                                        {...field}
+                                        id={NOTE_INPUT_ID}
+                                        value={field.value ?? ""}
+                                        aria-invalid={fieldState.invalid || undefined}
+                                        rows={2}
+                                        maxLength={NOTE_MAX_LENGTH}
+                                        placeholder="Ghi chú (không bắt buộc)"
+                                    />
+                                </FormField>
+                            )}
+                        />
+                    </form>
 
                     <div>
                         <p className="mb-2 text-xs font-medium text-muted-foreground">Lần đáo hạn gần đây của thẻ</p>

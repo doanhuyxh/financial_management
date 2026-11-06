@@ -28,11 +28,10 @@ export default function MobileBottomNav() {
     const isActive = (url: string) => pathname === url || pathname.startsWith(`${url}/`);
     const isOtherActive = !ITEMS.some((item) => isActive(item.url));
 
-    // antd tô mọi <a> bằng colorLink (CSS ngoài layer, thắng class Tailwind) nên cần `!`
     const linkClass = (active: boolean) =>
         cn(
             "flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px]",
-            active ? "font-semibold text-accent-text!" : "text-muted-foreground!",
+            active ? "font-semibold text-accent-text" : "text-muted-foreground",
         );
 
     const [first, second, third] = ITEMS;

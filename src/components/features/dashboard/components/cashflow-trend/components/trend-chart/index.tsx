@@ -2,7 +2,9 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Empty, Skeleton, Spin } from "antd";
+import EmptyState from "@/components/common/empty-state";
+import { Skeleton } from "@/components/shadcn/ui/skeleton";
+import { Spinner } from "@/components/shadcn/ui/spinner";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
@@ -12,7 +14,7 @@ import { THEME_COLORS } from "@/libs/constants/themeColors";
 // G2 is ~380KB gzipped: load it in a separate chunk, client-only.
 const Column = dynamic(() => import("@ant-design/plots").then((mod) => mod.Column), {
     ssr: false,
-    loading: () => <Skeleton.Node active className="h-60! w-full!" />,
+    loading: () => <Skeleton className="skeleton-shimmer h-60 w-full animate-none" />,
 });
 
 const INCOME_LABEL = "Thu nhập";
@@ -93,7 +95,7 @@ export default function TrendChart() {
     if (isCashflowLoading) {
         return (
             <div className="flex h-60 items-center justify-center">
-                <Spin />
+                <Spinner className="size-6 text-primary" />
             </div>
         );
     }
@@ -101,7 +103,7 @@ export default function TrendChart() {
     if (!hasData) {
         return (
             <div className="flex h-60 items-center justify-center">
-                <Empty description="Chưa có thu chi trong 6 tháng gần nhất" />
+                <EmptyState description="Chưa có thu chi trong 6 tháng gần nhất" />
             </div>
         );
     }

@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { DatePicker, Skeleton, Spin, Tag } from "antd";
 import { ArrowDownLeft, ArrowUpRight, PiggyBank, Scale } from "lucide-react";
+import DatePicker from "@/components/common/date-picker";
+import Tag from "@/components/common/tag";
+import { Skeleton } from "@/components/shadcn/ui/skeleton";
+import { Spinner } from "@/components/shadcn/ui/spinner";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import StatTile from "@/components/features/dashboard/components/stat-tile";
 import ChangeText from "@/components/features/dashboard/components/month-summary/components/change-text";
@@ -50,7 +53,7 @@ export default function MonthSummary() {
 
     const money = (value: number | undefined) =>
         isCashflowLoading || value === undefined ? (
-            <Skeleton.Input active size="small" />
+            <Skeleton className="skeleton-shimmer h-6 w-28 animate-none" />
         ) : (
             formatMoney(value)
         );
@@ -74,14 +77,14 @@ export default function MonthSummary() {
                     <p className="text-xs text-muted-foreground">{subtitle || " "}</p>
                 </div>
                 <div className="flex w-full items-center gap-2 sm:w-auto">
-                    {isLoading || isCashflowLoading ? <Spin size="small" /> : null}
+                    {isLoading || isCashflowLoading ? <Spinner className="shrink-0 text-primary" /> : null}
                     <DatePicker
-                        inputReadOnly
                         picker="month"
                         value={monthValue}
                         onChange={handleChangeMonth}
                         format="MM/YYYY"
                         allowClear={false}
+                        aria-label="Chọn tháng"
                         className="flex-1 sm:w-32 sm:flex-none"
                     />
                 </div>
@@ -142,7 +145,7 @@ export default function MonthSummary() {
                     icon={<PiggyBank className="size-4 text-muted-foreground" />}
                     value={
                         isCashflowLoading || !cashflow ? (
-                            <Skeleton.Input active size="small" />
+                            <Skeleton className="skeleton-shimmer h-6 w-28 animate-none" />
                         ) : savingsRate === null ? (
                             "—"
                         ) : (
@@ -156,9 +159,7 @@ export default function MonthSummary() {
                         ) : savingsRate < 0 ? (
                             <span className="flex flex-wrap items-center gap-1">
                                 Chi nhiều hơn thu
-                                <Tag color="warning" className="m-0">
-                                    Cảnh báo
-                                </Tag>
+                                <Tag color="warning">Cảnh báo</Tag>
                             </span>
                         ) : (
                             "Dòng tiền ròng / thu nhập"

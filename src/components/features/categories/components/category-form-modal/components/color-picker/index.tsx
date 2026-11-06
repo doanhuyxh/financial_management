@@ -5,7 +5,7 @@ import { CATEGORY_PALETTE } from "@/libs/utils/categoryColor";
 import { cn } from "@/libs/shadcn/utils";
 
 interface IColorPickerProps {
-    /** antd Form.Item tự truyền value/onChange; null = màu tự động theo id */
+    /** Nhận value/onChange từ Controller của react-hook-form; null = màu tự động theo id */
     value?: string | null;
     onChange?: (value: string | null) => void;
 }

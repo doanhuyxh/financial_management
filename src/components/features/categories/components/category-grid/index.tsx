@@ -1,7 +1,6 @@
 "use client";
 
 import { useId } from "react";
-import { Button, Dropdown, Empty, Skeleton } from "antd";
 import { GripVertical, MoreHorizontal, Plus } from "lucide-react";
 import {
     DndContext,
@@ -21,11 +20,22 @@ import {
     useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import ActionMenu, { type IActionMenuItem } from "@/components/common/action-menu";
+import EmptyState from "@/components/common/empty-state";
 import Money from "@/components/common/money";
+import { Button } from "@/components/shadcn/ui/button";
+import { Skeleton } from "@/components/shadcn/ui/skeleton";
 import { useCategoryContext } from "@/components/features/categories/context";
 import { CategoryKind, type ICategoriesData } from "@/libs/interfaces/categoriesData";
 import { getCategoryColor } from "@/libs/utils/categoryColor";
 import { cn } from "@/libs/shadcn/utils";
+
+const CARD_ACTIONS: IActionMenuItem[] = [
+    { key: "edit", label: "Sửa" },
+    { key: "delete", label: "Xóa", danger: true },
+];
+
+const SKELETON_CARDS = 6;
 
 function CategoryCard({ item, sortable }: { item: ICategoriesData; sortable: boolean }) {
     const { monthTotals, kindFilter, openEditModal, handleDelete } = useCategoryContext();
@@ -86,25 +96,43 @@ function CategoryCard({ item, sortable }: { item: ICategoriesData; sortable: boo
                     </span>
                 </span>
             </button>
-            <Dropdown
-                trigger={["click"]}
-                placement="bottomRight"
-                menu={{
-                    items: [
-                        { key: "edit", label: "Sửa" },
-                        { key: "delete", label: "Xóa", danger: true },
-                    ],
-                    onClick: ({ key }) => (key === "edit" ? openEditModal(item) : handleDelete(item)),
-                }}
+            <ActionMenu
+                items={CARD_ACTIONS}
+                onClick={(key) => (key === "edit" ? openEditModal(item) : handleDelete(item))}
             >
                 <Button
-                    type="text"
-                    size="small"
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
                     aria-label="Thao tác"
                     className="shrink-0 text-muted-foreground"
-                    icon={<MoreHorizontal className="size-4" />}
-                />
-            </Dropdown>
+                >
+                    <MoreHorizontal />
+                </Button>
+            </ActionMenu>
+        </div>
+    );
+}
+
+/** Skeleton theo bố cục lưới thẻ (icon + tên + dòng phụ) khi tải lần đầu. */
+function CategoryGridSkeleton() {
+    return (
+        <div className="flex flex-col gap-2" aria-busy>
+            <Skeleton className="skeleton-shimmer h-3.5 w-2/3 max-w-sm animate-none" />
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {Array.from({ length: SKELETON_CARDS }, (_, index) => (
+                    <div
+                        key={index}
+                        className="flex items-center gap-3 rounded-xl border border-border bg-card p-2.5"
+                    >
+                        <Skeleton className="skeleton-shimmer size-9 shrink-0 animate-none rounded-lg" />
+                        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                            <Skeleton className="skeleton-shimmer h-4 w-1/2 animate-none" />
+                            <Skeleton className="skeleton-shimmer h-3 w-1/3 animate-none" />
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
@@ -129,17 +157,18 @@ export default function CategoryGrid() {
     };
 
     if (isLoading && items.length === 0) {
-        return <Skeleton active paragraph={{ rows: 6 }} />;
+        return <CategoryGridSkeleton />;
     }
 
     if (items.length === 0) {
         return (
             <div className="rounded-xl border border-border bg-card py-10">
-                <Empty description="Chưa có danh mục nào">
-                    <Button type="primary" icon={<Plus className="size-4" />} onClick={openCreateModal}>
+                <EmptyState description="Chưa có danh mục nào">
+                    <Button type="button" onClick={openCreateModal}>
+                        <Plus data-icon="inline-start" />
                         Thêm danh mục
                     </Button>
-                </Empty>
+                </EmptyState>
             </div>
         );
     }

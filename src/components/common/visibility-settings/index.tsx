@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Checkbox } from "antd";
+import { useId, useState } from "react";
 import { Settings2 } from "lucide-react";
 import ResponsiveModal from "@/components/common/responsive-modal";
+import { Button } from "@/components/shadcn/ui/button";
+import { Checkbox } from "@/components/shadcn/ui/checkbox";
+import { Label } from "@/components/shadcn/ui/label";
 
 export interface IVisibilityOption {
     key: string;
@@ -34,6 +36,7 @@ export default function VisibilitySettings({
 }) {
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState<string[]>([]);
+    const idPrefix = useId();
 
     const allKeys = options.map((o) => o.key);
     const visibleDraft = allKeys.filter((key) => !draft.includes(key));
@@ -50,9 +53,16 @@ export default function VisibilitySettings({
         setOpen(false);
     };
 
+    /** Bật/tắt một mục; danh sách ẩn chỉ giữ key có trong `options` (như Checkbox.Group cũ) */
+    const toggle = (key: string, visible: boolean) => {
+        const nextVisible = visible ? [...visibleDraft, key] : visibleDraft.filter((item) => item !== key);
+        setDraft(allKeys.filter((item) => !nextVisible.includes(item)));
+    };
+
     return (
         <>
-            <Button size="small" icon={<Settings2 className="size-4" />} onClick={handleOpen}>
+            <Button type="button" variant="outline" size="sm" onClick={handleOpen}>
+                <Settings2 data-icon="inline-start" className="size-4" />
                 {buttonLabel}
             </Button>
             <ResponsiveModal
@@ -63,12 +73,14 @@ export default function VisibilitySettings({
                 width={380}
                 footer={() => (
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <Button type="link" className="px-0" onClick={() => setDraft([])}>
+                        <Button type="button" variant="link" className="px-0" onClick={() => setDraft([])}>
                             Hiện tất cả
                         </Button>
                         <div className="flex gap-2">
-                            <Button onClick={() => setOpen(false)}>Hủy</Button>
-                            <Button type="primary" disabled={!canSave} onClick={handleOk}>
+                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                                Hủy
+                            </Button>
+                            <Button type="button" disabled={!canSave} onClick={handleOk}>
                                 Lưu
                             </Button>
                         </div>
@@ -76,14 +88,23 @@ export default function VisibilitySettings({
                 )}
             >
                 {note ? <p className="mb-3 text-xs text-muted-foreground">{note}</p> : null}
-                <Checkbox.Group
-                    className="flex flex-col gap-2"
-                    value={visibleDraft}
-                    options={options.map((o) => ({ label: o.label, value: o.key }))}
-                    onChange={(checked) =>
-                        setDraft(allKeys.filter((key) => !checked.includes(key)))
-                    }
-                />
+                <div className="flex flex-col gap-2">
+                    {options.map((option) => {
+                        const id = `${idPrefix}-${option.key}`;
+                        return (
+                            <div key={option.key} className="flex items-center gap-2">
+                                <Checkbox
+                                    id={id}
+                                    checked={!draft.includes(option.key)}
+                                    onCheckedChange={(checked) => toggle(option.key, checked === true)}
+                                />
+                                <Label htmlFor={id} className="cursor-pointer font-normal">
+                                    {option.label}
+                                </Label>
+                            </div>
+                        );
+                    })}
+                </div>
                 {!canSave ? (
                     <p className="mt-3 text-xs text-destructive">Chọn ít nhất {minVisible} mục.</p>
                 ) : null}

@@ -1,8 +1,22 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Badge, Button, Drawer, Input } from "antd";
-import { Plus, Search, SlidersHorizontal } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { Button } from "@/components/shadcn/ui/button";
+import {
+    Drawer,
+    DrawerContent,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+} from "@/components/shadcn/ui/drawer";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from "@/components/shadcn/ui/input-group";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 
 type MobileFilterShellProps = {
@@ -50,38 +64,64 @@ export default function MobileFilterShell({
         <>
             <div className="flex w-full min-w-0 flex-1 flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
                 <div className="flex min-w-0 items-center gap-2">
-                    <Input
-                        allowClear
-                        prefix={<Search className="size-4 text-muted-foreground" />}
-                        placeholder={searchPlaceholder}
-                        value={searchValue}
-                        onChange={(event) => onSearchChange(event.target.value)}
-                        className="min-w-0 flex-1 md:max-w-xs"
-                    />
+                    <InputGroup className="min-w-0 flex-1 md:max-w-xs">
+                        <InputGroupAddon>
+                            <Search className="size-4 text-muted-foreground" />
+                        </InputGroupAddon>
+                        <InputGroupInput
+                            placeholder={searchPlaceholder}
+                            value={searchValue}
+                            onChange={(event) => onSearchChange(event.target.value)}
+                        />
+                        {searchValue ? (
+                            <InputGroupAddon align="inline-end">
+                                <InputGroupButton
+                                    size="icon-xs"
+                                    aria-label="Xóa tìm kiếm"
+                                    className="text-muted-foreground hover:text-foreground"
+                                    onClick={() => onSearchChange("")}
+                                >
+                                    <X className="size-3.5" />
+                                </InputGroupButton>
+                            </InputGroupAddon>
+                        ) : null}
+                    </InputGroup>
                     {isMobile && hasFilters ? (
-                        <Badge count={activeFilterCount} size="small">
+                        <div className="relative shrink-0">
                             <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
                                 aria-label="Bộ lọc"
-                                icon={<SlidersHorizontal className="size-4" />}
                                 onClick={() => setOpen(true)}
-                            />
-                        </Badge>
+                            >
+                                <SlidersHorizontal className="size-4" />
+                            </Button>
+                            {activeFilterCount > 0 ? (
+                                <span className="pointer-events-none absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                                    {activeFilterCount}
+                                </span>
+                            ) : null}
+                        </div>
                     ) : null}
                     {isMobile ? extraActions : null}
                     {isMobile && mobileCreate ? (
                         <Button
-                            type="primary"
+                            type="button"
+                            size="icon"
                             aria-label={createLabel}
                             title={createLabel}
-                            icon={<Plus className="size-4" />}
                             onClick={onCreate}
-                        />
+                        >
+                            <Plus className="size-4" />
+                        </Button>
                     ) : null}
                 </div>
                 {!isMobile ? desktopFilters : null}
                 <div className="hidden flex-1 items-center justify-end gap-2 md:flex">
                     {extraActions}
-                    <Button type="primary" icon={<Plus className="size-4" />} onClick={onCreate}>
+                    <Button type="button" onClick={onCreate}>
+                        <Plus data-icon="inline-start" className="size-4" />
                         {createLabel}
                     </Button>
                 </div>
@@ -89,17 +129,24 @@ export default function MobileFilterShell({
             {isMobile ? activeFilters : null}
             {summary}
             {hasFilters ? (
-                <Drawer
-                    title="Bộ lọc"
-                    placement="bottom"
-                    size="auto"
-                    open={open}
-                    onClose={() => setOpen(false)}
-                    styles={{ body: { paddingBottom: 8 } }}
-                    footer={
-                        <div className="flex gap-2 pb-safe">
+                <Drawer open={open} onOpenChange={setOpen} direction="bottom">
+                    <DrawerContent
+                        className="bg-card"
+                        // Không tự focus ô đầu tiên để bàn phím hệ thống không bật lên che bộ lọc
+                        onOpenAutoFocus={(event) => event.preventDefault()}
+                    >
+                        <DrawerHeader className="border-b border-border py-3 text-left">
+                            <DrawerTitle>Bộ lọc</DrawerTitle>
+                            <DrawerDescription className="sr-only">Bộ lọc danh sách</DrawerDescription>
+                        </DrawerHeader>
+                        <div className="scrollbar-theme flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-3 pb-2">
+                            {drawerFilters}
+                        </div>
+                        <DrawerFooter className="pb-safe flex-row gap-2 border-t border-border px-4 pt-3">
                             <Button
-                                block
+                                type="button"
+                                variant="outline"
+                                className="w-full"
                                 onClick={() => {
                                     onClearFilters?.();
                                     setOpen(false);
@@ -107,13 +154,11 @@ export default function MobileFilterShell({
                             >
                                 Xoá lọc
                             </Button>
-                            <Button block type="primary" onClick={() => setOpen(false)}>
+                            <Button type="button" className="w-full" onClick={() => setOpen(false)}>
                                 Áp dụng
                             </Button>
-                        </div>
-                    }
-                >
-                    <div className="flex flex-col gap-3">{drawerFilters}</div>
+                        </DrawerFooter>
+                    </DrawerContent>
                 </Drawer>
             ) : null}
         </>

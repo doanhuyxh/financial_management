@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Empty, Segmented, Skeleton, Tooltip } from "antd";
+import EmptyState from "@/components/common/empty-state";
+import Segmented from "@/components/common/segmented";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/shadcn/ui/tooltip";
 import { useDashboardContext } from "@/components/features/dashboard/context";
+import ParagraphSkeleton from "@/components/common/paragraph-skeleton";
 import { getCategoryColor, OTHER_COLOR } from "@/libs/utils/categoryColor";
 import BarList, { type IBarRow } from "@/components/common/bar-list";
 import { formatMoney } from "@/libs/utils/formatMoney";
@@ -42,29 +45,31 @@ function DayColumns() {
     const days = (summary?.byDay ?? []).slice(0, cashflow?.period.daysElapsed ?? 0);
     const max = Math.max(1, ...days.map((day) => day.total));
 
-    if (days.length === 0) return <Empty description="Tháng này chưa bắt đầu" />;
+    if (days.length === 0) return <EmptyState description="Tháng này chưa bắt đầu" />;
 
     return (
         <div className="flex h-44 items-end gap-0.5 border-b border-border sm:gap-1">
             {days.map((day) => (
-                <Tooltip
-                    key={day.day}
-                    title={`${day.label}/${monthValue.format("MM")}: ${formatMoney(day.total)}`}
-                >
-                    <button
-                        type="button"
-                        aria-label={`Ngày ${day.label}: ${formatMoney(day.total)}`}
-                        onClick={() => handleViewDay(day.day)}
-                        className="group flex h-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-end gap-1"
-                    >
-                        <span
-                            className="w-full max-w-7 rounded-t bg-money-out/80 transition-colors group-hover:bg-money-out"
-                            style={{ height: `${day.total ? Math.max(3, (day.total / max) * 100) : 0}%` }}
-                        />
-                        <span className="text-[10px] leading-none text-muted-foreground tabular-nums">
-                            {days.length <= 10 || day.day % 5 === 1 ? day.label : " "}
-                        </span>
-                    </button>
+                <Tooltip key={day.day}>
+                    <TooltipTrigger asChild>
+                        <button
+                            type="button"
+                            aria-label={`Ngày ${day.label}: ${formatMoney(day.total)}`}
+                            onClick={() => handleViewDay(day.day)}
+                            className="group flex h-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-end gap-1"
+                        >
+                            <span
+                                className="w-full max-w-7 rounded-t bg-money-out/80 transition-colors group-hover:bg-money-out"
+                                style={{ height: `${day.total ? Math.max(3, (day.total / max) * 100) : 0}%` }}
+                            />
+                            <span className="text-[10px] leading-none text-muted-foreground tabular-nums">
+                                {days.length <= 10 || day.day % 5 === 1 ? day.label : " "}
+                            </span>
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        {day.label}/{monthValue.format("MM")}: {formatMoney(day.total)}
+                    </TooltipContent>
                 </Tooltip>
             ))}
         </div>
@@ -104,9 +109,9 @@ export default function SpendingBreakdown() {
 
     let content: React.ReactNode;
     if (isLoading && !summary) {
-        content = <Skeleton active paragraph={{ rows: 4 }} />;
+        content = <ParagraphSkeleton rows={4} />;
     } else if (!total) {
-        content = <Empty description="Chưa có chi tiêu trong tháng này" />;
+        content = <EmptyState description="Chưa có chi tiêu trong tháng này" />;
     } else if (tab === "category") {
         content = <BarList rows={categoryRows} total={total} />;
     } else if (tab === "source") {

@@ -1,7 +1,7 @@
 "use client";
 
-import { Segmented } from "antd";
 import { useRouter } from "next/navigation";
+import Segmented from "@/components/common/segmented";
 import { buildTransactionsUrl, type TransactionType } from "@/libs/utils/transactionsUrl";
 
 const OPTIONS: { label: string; value: TransactionType }[] = [
@@ -21,6 +21,7 @@ export default function TransactionTypeSwitch({ value }: { value: TransactionTyp
             size="small"
             value={value}
             options={OPTIONS}
+            aria-label="Loại giao dịch"
             onChange={(next) =>
                 router.replace(buildTransactionsUrl(next, { action: "create", t: Date.now() }))
             }

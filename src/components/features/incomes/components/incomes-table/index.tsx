@@ -1,17 +1,19 @@
 "use client";
 
 import { useCallback } from "react";
-import { Button, Empty } from "antd";
 import { Plus } from "lucide-react";
+import type { IActionMenuItem } from "@/components/common/action-menu";
+import EmptyState from "@/components/common/empty-state";
 import Money from "@/components/common/money";
 import GroupedTransactionList from "@/components/common/grouped-transaction-list";
 import TransactionRow from "@/components/common/grouped-transaction-list/components/transaction-row";
+import { Button } from "@/components/shadcn/ui/button";
 import { useIncomesContext } from "@/components/features/incomes/context";
 import { getIncomeCategory, getIncomeSource } from "@/components/features/incomes/utils";
 import type { IIncomesData } from "@/libs/interfaces/incomesData";
 import { getCategoryColor } from "@/libs/utils/categoryColor";
 
-const ROW_ACTIONS = [
+const ROW_ACTIONS: IActionMenuItem[] = [
     { key: "edit", label: "Sửa" },
     { key: "delete", label: "Xóa", danger: true },
 ];
@@ -44,11 +46,12 @@ export default function IncomesTable() {
             dayTotals={dayTotals}
             totalKind="in"
             empty={
-                <Empty description="Chưa có khoản thu nào">
-                    <Button type="primary" icon={<Plus className="size-4" />} onClick={openCreateModal}>
+                <EmptyState description="Chưa có khoản thu nào">
+                    <Button type="button" onClick={openCreateModal}>
+                        <Plus data-icon="inline-start" />
                         Thêm thu nhập
                     </Button>
-                </Empty>
+                </EmptyState>
             }
             pagination={{
                 current: pagination?.page ?? page,

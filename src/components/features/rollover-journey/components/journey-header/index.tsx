@@ -1,9 +1,9 @@
 "use client";
 
 import dayjs from "dayjs";
-import { Select } from "antd";
 import { ChartLine, Flag, RefreshCw } from "lucide-react";
 import ChoiceChips from "@/components/common/choice-chips";
+import Combobox from "@/components/common/combobox";
 import { Button } from "@/components/shadcn/ui/button";
 import { useRolloverJourneyContext } from "@/components/features/rollover-journey/context";
 import { ROLLOVER_JOURNEY_END_REASON_LABELS } from "@/libs/interfaces/rolloverJourneysData";
@@ -43,22 +43,28 @@ export default function JourneyHeader() {
         <section className="rounded-xl border border-border bg-card p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                    <Select
-                        className="min-w-48"
+                    <Combobox
+                        className="w-auto max-w-full min-w-48"
                         value={selectedCard?._id}
-                        onChange={handleSelectCard}
+                        onChange={(value) => {
+                            if (value) handleSelectCard(value);
+                        }}
                         options={cards.map((card) => ({ value: card._id, label: card.name }))}
                         placeholder="Chọn thẻ"
+                        aria-label="Chọn thẻ"
                     />
                     {cardJourneys.length > 1 ? (
-                        <Select
-                            className="min-w-44"
+                        <Combobox
+                            className="w-auto max-w-full min-w-44"
                             value={selectedJourney?._id}
-                            onChange={handleSelectJourney}
+                            onChange={(value) => {
+                                if (value) handleSelectJourney(value);
+                            }}
                             options={cardJourneys.map((journey) => ({
                                 value: journey._id,
                                 label: `${dayjs(journey.startedAt).format("MM/YYYY")}${journey.endedAt ? ` → ${dayjs(journey.endedAt).format("MM/YYYY")}` : " → nay"}`,
                             }))}
+                            aria-label="Chọn hành trình"
                         />
                     ) : null}
                     <span className={cn("rounded-full px-2 py-px text-xs font-medium", statusClass)}>{statusLabel}</span>

@@ -1,6 +1,13 @@
 "use client";
 
-import { Input } from "antd";
+import { X } from "lucide-react";
+import { useFieldStatus } from "@/components/common/form-field";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from "@/components/shadcn/ui/input-group";
 import { cn } from "@/libs/shadcn/utils";
 
 /** Emoji gợi ý cho danh mục chi tiêu / thu nhập hay gặp */
@@ -12,13 +19,14 @@ const PRESET_ICONS = [
 ];
 
 interface IIconPickerProps {
-    /** antd Form.Item tự truyền value/onChange */
+    /** Nhận value/onChange từ Controller của react-hook-form */
     value?: string | null;
     onChange?: (value: string | null) => void;
 }
 
 /** Chọn 1 emoji từ danh sách gợi ý hoặc tự nhập; bấm lại emoji đang chọn để bỏ. */
 export default function IconPicker({ value, onChange }: IIconPickerProps) {
+    const status = useFieldStatus();
     return (
         <div className="flex flex-col gap-2">
             <div className="grid grid-cols-10 gap-1">
@@ -39,14 +47,26 @@ export default function IconPicker({ value, onChange }: IIconPickerProps) {
                     </button>
                 ))}
             </div>
-            <Input
-                allowClear
-                maxLength={16}
-                value={value ?? ""}
-                onChange={(event) => onChange?.(event.target.value.trim() || null)}
-                placeholder="Hoặc dán emoji khác"
-                className="max-w-56"
-            />
+            <InputGroup className="max-w-56">
+                <InputGroupInput
+                    id={status.id || undefined}
+                    maxLength={16}
+                    value={value ?? ""}
+                    onChange={(event) => onChange?.(event.target.value.trim() || null)}
+                    placeholder="Hoặc dán emoji khác"
+                />
+                {value ? (
+                    <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                            size="icon-xs"
+                            aria-label="Xóa icon"
+                            onClick={() => onChange?.(null)}
+                        >
+                            <X />
+                        </InputGroupButton>
+                    </InputGroupAddon>
+                ) : null}
+            </InputGroup>
         </div>
     );
 }

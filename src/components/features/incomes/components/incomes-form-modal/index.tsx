@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Form, Input, Select, Switch } from "antd";
+import { useEffect, useId, useMemo, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import ResponsiveModal, {
     MODAL_AUTOFOCUS_CLASS,
     focusModalField,
 } from "@/components/common/responsive-modal";
 import ChoiceChips from "@/components/common/choice-chips";
+import Combobox from "@/components/common/combobox";
+import FormField from "@/components/common/form-field";
 import QuickDateField from "@/components/common/quick-date-field";
 import TransactionTypeSwitch from "@/components/common/transaction-type-switch";
+import { Switch } from "@/components/shadcn/ui/switch";
+import { Textarea } from "@/components/shadcn/ui/textarea";
 import { useSubmitShortcut } from "@/libs/hooks/useHotkey";
 import dayjs from "dayjs";
 import AmountSuggestionChips from "@/components/common/amount-suggestion-chips";
@@ -37,31 +41,44 @@ type FormValues = {
     categoryId: string;
     sourceOfMoneyId: string;
     amount: string | number | null;
-    note?: string;
+    note: string;
     receivedAt: dayjs.Dayjs;
 };
+
+const NOTE_MAX_LENGTH = 500;
 
 const CREDIT_CARD_SOURCE_MESSAGE =
     "Không ghi thu nhập vào thẻ tín dụng. Hãy dùng Chuyển tiền để trả nợ thẻ";
 
-function resetCreateForm(form: ReturnType<typeof Form.useForm<FormValues>>[0]) {
-    form.resetFields();
-    form.setFieldsValue({
-        receivedAt: dayjs(),
+/** Giá trị form tạo mới: trống, ngày thu = hôm nay. */
+function createEmptyValues(): FormValues {
+    return {
+        categoryId: "",
+        sourceOfMoneyId: "",
         amount: "",
         note: "",
-    });
+        receivedAt: dayjs(),
+    };
 }
 
 export default function IncomesFormModal() {
-    const { modalOpen, editingItem, isSubmitting, closeModal, handleSubmit } =
+    const { modalOpen, editingItem, isSubmitting, closeModal, handleSubmit: submitIncome } =
         useIncomesContext();
 
-    const [form] = Form.useForm<FormValues>();
+    const {
+        control,
+        handleSubmit,
+        reset,
+        setValue,
+        getValues,
+        setError,
+        clearErrors,
+        formState: { errors },
+    } = useForm<FormValues>({ mode: "onChange", defaultValues: createEmptyValues() });
     const [keepCreating, setKeepCreating] = useState(false);
-    const selectedSourceId = Form.useWatch("sourceOfMoneyId", form);
-    const selectedCategoryId = Form.useWatch("categoryId", form);
-    const amountWatch = Form.useWatch("amount", form);
+    const noteId = useId();
+    const selectedSourceId = useWatch({ control, name: "sourceOfMoneyId" });
+    const selectedCategoryId = useWatch({ control, name: "categoryId" });
     const isEdit = Boolean(editingItem?._id);
 
     const { data: categoriesData, isLoading: categoriesLoading } = useGetCategories({
@@ -134,15 +151,17 @@ export default function IncomesFormModal() {
         : suggestions?.topAmounts;
 
     const handleCategoryChange = (categoryId?: string) => {
-        if (isEdit || !categoryId || form.getFieldValue("sourceOfMoneyId")) return;
+        if (isEdit || !categoryId || getValues("sourceOfMoneyId")) return;
         const suggestedSourceId = suggestions?.byCategory[categoryId]?.sourceId;
         if (suggestedSourceId && sources.some((item) => item._id === suggestedSourceId)) {
-            form.setFieldValue("sourceOfMoneyId", suggestedSourceId);
+            setValue("sourceOfMoneyId", suggestedSourceId);
+            clearErrors("sourceOfMoneyId");
         }
     };
 
     const handleAmountSuggestion = (amount: number) => {
-        form.setFields([{ name: "amount", value: String(amount), errors: [] }]);
+        setValue("amount", String(amount));
+        clearErrors("amount");
     };
 
     // Chip "thường dùng": tối đa 5 danh mục, 3 nguồn theo gợi ý (chỉ những mục còn chọn được)
@@ -171,12 +190,14 @@ export default function IncomesFormModal() {
     );
 
     const selectCategory = (categoryId: string) => {
-        form.setFields([{ name: "categoryId", value: categoryId, errors: [] }]);
+        setValue("categoryId", categoryId);
+        clearErrors("categoryId");
         handleCategoryChange(categoryId);
     };
 
     const selectSource = (sourceId: string) => {
-        form.setFields([{ name: "sourceOfMoneyId", value: sourceId, errors: [] }]);
+        setValue("sourceOfMoneyId", sourceId);
+        clearErrors("sourceOfMoneyId");
     };
 
     useEffect(() => {
@@ -186,7 +207,7 @@ export default function IncomesFormModal() {
         }
 
         if (editingItem) {
-            form.setFieldsValue({
+            reset({
                 categoryId: getRefId(editingItem.categoryId),
                 sourceOfMoneyId: getRefId(editingItem.sourceOfMoneyId),
                 amount: editingItem.amount,
@@ -196,15 +217,14 @@ export default function IncomesFormModal() {
                     : dayjs(),
             });
         } else {
-            resetCreateForm(form);
+            reset(createEmptyValues());
         }
-    }, [modalOpen, editingItem, form]);
+    }, [modalOpen, editingItem, reset]);
 
-    const handleOk = async () => {
-        const values = await form.validateFields();
+    const onValid = async (values: FormValues) => {
         const amount = Number(values.amount);
         if (!Number.isFinite(amount) || amount <= 0) {
-            form.setFields([{ name: "amount", errors: ["Số tiền phải lớn hơn 0"] }]);
+            setError("amount", { message: "Số tiền phải lớn hơn 0" });
             return;
         }
 
@@ -212,18 +232,21 @@ export default function IncomesFormModal() {
             categoryId: values.categoryId,
             sourceOfMoneyId: values.sourceOfMoneyId,
             amount,
-            note: values.note?.trim() || "",
+            note: values.note.trim() || "",
             receivedAt: values.receivedAt.toISOString(),
         };
 
         const shouldKeepOpen = !isEdit && keepCreating;
-        const success = await handleSubmit(payload, { keepOpen: shouldKeepOpen });
+        const success = await submitIncome(payload, { keepOpen: shouldKeepOpen });
         if (success && shouldKeepOpen) {
             // Giữ lại ngày đã chọn để nhập nhanh nhiều khoản trong cùng ngày
-            form.resetFields(["categoryId", "sourceOfMoneyId", "amount", "note"]);
-            form.setFieldsValue({ amount: "", note: "" });
+            reset({ ...createEmptyValues(), receivedAt: values.receivedAt });
             focusModalField();
         }
+    };
+
+    const handleOk = () => {
+        void handleSubmit(onValid)();
     };
 
     useSubmitShortcut(handleOk, modalOpen);
@@ -242,11 +265,11 @@ export default function IncomesFormModal() {
             footer={(_, { OkBtn, CancelBtn }) => (
                 <div className="flex items-center justify-end gap-3">
                     {!isEdit ? (
-                        <label className="mr-auto flex shrink-0 items-center gap-2 text-sm text-neutral-600">
+                        <label className="mr-auto flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
                             <Switch
-                                size="small"
+                                size="sm"
                                 checked={keepCreating}
-                                onChange={setKeepCreating}
+                                onCheckedChange={setKeepCreating}
                             />
                             Tạo tiếp
                         </label>
@@ -263,24 +286,33 @@ export default function IncomesFormModal() {
                 </div>
             )}
         >
-            <Form form={form} layout="vertical" className="mt-4" requiredMark={false}>
-                <Form.Item
+            <div className="mt-4 flex flex-col gap-4">
+                <Controller
                     name="amount"
-                    className={MODAL_AUTOFOCUS_CLASS}
-                    label="Số tiền"
-                    rules={[{ required: true, message: "Số tiền là bắt buộc" }]}
-                    extra={
-                        <AmountSuggestionChips
-                            amounts={amountSuggestions}
-                            value={amountWatch}
-                            onSelect={handleAmountSuggestion}
-                        />
-                    }
-                >
-                    <AmountInput defaultKeypadOpen={!isEdit} />
-                </Form.Item>
+                    control={control}
+                    rules={{ required: "Số tiền là bắt buộc" }}
+                    render={({ field, fieldState }) => (
+                        <FormField
+                            label="Số tiền"
+                            className={MODAL_AUTOFOCUS_CLASS}
+                            error={fieldState.error?.message}
+                        >
+                            <AmountInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                defaultKeypadOpen={!isEdit}
+                            />
+                            {/* Chip gợi ý là khối (div) nên đặt trong thân field thay vì `extra` */}
+                            <AmountSuggestionChips
+                                amounts={amountSuggestions}
+                                value={field.value}
+                                onSelect={handleAmountSuggestion}
+                            />
+                        </FormField>
+                    )}
+                />
 
-                <Form.Item label="Danh mục" required>
+                <FormField label="Danh mục" error={errors.categoryId?.message}>
                     <div className="flex flex-col gap-2">
                         <ChoiceChips
                             label="Thường dùng:"
@@ -288,26 +320,29 @@ export default function IncomesFormModal() {
                             value={selectedCategoryId}
                             onChange={selectCategory}
                         />
-                        <Form.Item
+                        <Controller
                             name="categoryId"
-                            noStyle
-                            rules={[{ required: true, message: "Danh mục là bắt buộc" }]}
-                        >
-                            <Select
-                                showSearch
-                                optionFilterProp="label"
-                                placeholder={categoryChips.length ? "Hoặc chọn danh mục khác" : "Chọn danh mục"}
-                                loading={categoriesLoading}
-                                options={categoryOptions}
-                                onChange={handleCategoryChange}
-                            />
-                        </Form.Item>
+                            control={control}
+                            rules={{ required: "Danh mục là bắt buộc" }}
+                            render={({ field }) => (
+                                <Combobox
+                                    value={field.value}
+                                    onChange={(value) => {
+                                        field.onChange(value ?? "");
+                                        handleCategoryChange(value);
+                                    }}
+                                    options={categoryOptions}
+                                    placeholder={categoryChips.length ? "Hoặc chọn danh mục khác" : "Chọn danh mục"}
+                                    loading={categoriesLoading}
+                                />
+                            )}
+                        />
                     </div>
-                </Form.Item>
+                </FormField>
 
-                <Form.Item
+                <FormField
                     label="Nguồn tiền"
-                    required
+                    error={errors.sourceOfMoneyId?.message}
                     extra={
                         selectedSource ? (
                             <span className="money-value">
@@ -323,50 +358,69 @@ export default function IncomesFormModal() {
                             value={selectedSourceId}
                             onChange={selectSource}
                         />
-                        <Form.Item
+                        <Controller
                             name="sourceOfMoneyId"
-                            noStyle
-                            rules={[
-                                { required: true, message: "Nguồn tiền là bắt buộc" },
-                                {
-                                    // Thu nhập cũ đang gắn với thẻ: phải chọn nguồn khác mới lưu được
-                                    validator(_, value) {
-                                        const source = allSources.find((item) => item._id === value);
-                                        return source?.type === SourcesOfMoneyType.CREDIT_CARD
-                                            ? Promise.reject(new Error(CREDIT_CARD_SOURCE_MESSAGE))
-                                            : Promise.resolve();
-                                    },
+                            control={control}
+                            rules={{
+                                required: "Nguồn tiền là bắt buộc",
+                                // Thu nhập cũ đang gắn với thẻ: phải chọn nguồn khác mới lưu được
+                                validate: (value) => {
+                                    const source = allSources.find((item) => item._id === value);
+                                    return source?.type === SourcesOfMoneyType.CREDIT_CARD
+                                        ? CREDIT_CARD_SOURCE_MESSAGE
+                                        : true;
                                 },
-                            ]}
-                        >
-                            <Select
-                                showSearch
-                                optionFilterProp="label"
-                                placeholder={sourceChips.length ? "Hoặc chọn nguồn khác" : "Chọn nguồn tiền"}
-                                loading={sourcesLoading}
-                                options={sourceOptions}
-                            />
-                        </Form.Item>
+                            }}
+                            render={({ field }) => (
+                                <Combobox
+                                    value={field.value}
+                                    onChange={(value) => field.onChange(value ?? "")}
+                                    options={sourceOptions}
+                                    placeholder={sourceChips.length ? "Hoặc chọn nguồn khác" : "Chọn nguồn tiền"}
+                                    loading={sourcesLoading}
+                                />
+                            )}
+                        />
                     </div>
-                </Form.Item>
+                </FormField>
 
-                <Form.Item
+                <Controller
                     name="receivedAt"
-                    label="Ngày thu"
-                    rules={[{ required: true, message: "Ngày thu là bắt buộc" }]}
-                >
-                    <QuickDateField />
-                </Form.Item>
+                    control={control}
+                    rules={{ required: "Ngày thu là bắt buộc" }}
+                    render={({ field, fieldState }) => (
+                        <FormField label="Ngày thu" error={fieldState.error?.message}>
+                            <QuickDateField value={field.value} onChange={field.onChange} />
+                        </FormField>
+                    )}
+                />
 
-                <Form.Item name="note" label="Ghi chú" className="mb-0">
-                    <Input.TextArea
-                        rows={2}
-                        maxLength={500}
-                        placeholder="Ghi chú (không bắt buộc)"
-                        showCount
-                    />
-                </Form.Item>
-            </Form>
+                <Controller
+                    name="note"
+                    control={control}
+                    render={({ field, fieldState }) => {
+                        const note = field.value ?? "";
+                        return (
+                            <FormField label="Ghi chú" htmlFor={noteId} error={fieldState.error?.message}>
+                                <div className="flex flex-col gap-1">
+                                    <Textarea
+                                        {...field}
+                                        value={note}
+                                        id={noteId}
+                                        rows={2}
+                                        maxLength={NOTE_MAX_LENGTH}
+                                        placeholder="Ghi chú (không bắt buộc)"
+                                        aria-invalid={fieldState.invalid || undefined}
+                                    />
+                                    <span className="text-right text-xs text-muted-foreground">
+                                        {note.length}/{NOTE_MAX_LENGTH}
+                                    </span>
+                                </div>
+                            </FormField>
+                        );
+                    }}
+                />
+            </div>
         </ResponsiveModal>
     );
 }

@@ -20,6 +20,8 @@ import {
 } from "@/libs/interfaces/selectOption";
 import { cn } from "@/libs/shadcn/utils";
 
+const EMPTY_OPTION_VALUE = "__empty__";
+
 export interface IComboboxProps<V extends string = string> {
     value?: V | null;
     /** `undefined` khi bấm xóa (allowClear) */
@@ -74,7 +76,8 @@ export default function Combobox<V extends string = string>({
     const renderItem = (option: (typeof flat)[number]) => (
         <CommandItem
             key={option.value}
-            value={option.value}
+            // cmdk coi value rỗng ("Tất cả") là không có giá trị → không highlight/Enter được; dùng sentinel
+            value={option.value === "" ? EMPTY_OPTION_VALUE : option.value}
             keywords={[option.label]}
             disabled={option.disabled}
             onSelect={() => select(option.value)}

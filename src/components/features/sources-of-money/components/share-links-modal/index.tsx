@@ -1,11 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { Alert, Button, Empty, Form, Input, Select, Spin, Tag, Typography } from "antd";
-import { Link2Off } from "lucide-react";
+import { useId, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { CircleCheck, Copy, Link2Off, X } from "lucide-react";
+import Combobox from "@/components/common/combobox";
 import DayRangeFilter, { type DayRange } from "@/components/common/day-range-filter";
+import EmptyState from "@/components/common/empty-state";
+import FormField from "@/components/common/form-field";
+import LoadingOverlay from "@/components/common/loading-overlay";
 import ResponsiveModal from "@/components/common/responsive-modal";
+import Tag from "@/components/common/tag";
+import { Alert, AlertDescription, AlertTitle } from "@/components/shadcn/ui/alert";
+import { Button } from "@/components/shadcn/ui/button";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from "@/components/shadcn/ui/input-group";
+import { Spinner } from "@/components/shadcn/ui/spinner";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
+import { useCommon } from "@/libs/hooks/useCommon";
+import type { SelectOption } from "@/libs/interfaces/selectOption";
 import {
     DEFAULT_SHARE_LINK_EXPIRY_DAYS,
     SHARE_LINK_EXPIRY_OPTIONS,
@@ -15,13 +31,13 @@ import {
 
 const NEVER = "never";
 
-// Select không nhận value null nên "không hạn" dùng chuỗi riêng
-const EXPIRY_SELECT_OPTIONS = SHARE_LINK_EXPIRY_OPTIONS.map((option) => ({
+// Ô chọn không nhận value null nên "không hạn" dùng chuỗi riêng
+const EXPIRY_SELECT_OPTIONS: SelectOption[] = SHARE_LINK_EXPIRY_OPTIONS.map((option) => ({
     value: option.value === null ? NEVER : String(option.value),
     label: option.label,
 }));
 
-type FormValues = { label?: string; expiry: string };
+type FormValues = { label: string; expiry: string };
 
 function formatDay(value?: string | null) {
     if (!value) return "…";
@@ -47,11 +63,7 @@ function ShareLinkItem({
             <div className="flex min-w-0 flex-col gap-0.5 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1 text-sm font-medium text-foreground">
                     <span className="truncate">{link.label || "Link không tên"}</span>
-                    {link.isExpired ? (
-                        <Tag className="m-0" color="default">
-                            Hết hạn
-                        </Tag>
-                    ) : null}
+                    {link.isExpired ? <Tag color="default">Hết hạn</Tag> : null}
                 </span>
                 <span>Tạo lúc {formatDateTime(link.createdAt)}</span>
                 <span>
@@ -65,14 +77,16 @@ function ShareLinkItem({
                 <span>{link.viewCount} lượt xem</span>
             </div>
             <Button
-                type="text"
-                size="small"
-                danger
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                 aria-label="Thu hồi link"
                 title="Thu hồi link"
-                icon={<Link2Off className="size-4" />}
                 onClick={() => onRevoke(link)}
-            />
+            >
+                <Link2Off className="size-4" />
+            </Button>
         </div>
     );
 }
@@ -89,18 +103,22 @@ export default function ShareLinksModal() {
         handleCreateShareLink,
         handleRevokeShareLink,
     } = useSourcesOfMoneyContext();
-    const [form] = Form.useForm<FormValues>();
+    const { copiedToClipboard } = useCommon();
+    const labelId = useId();
+    const { control, handleSubmit, reset } = useForm<FormValues>({
+        defaultValues: { label: "", expiry: String(DEFAULT_SHARE_LINK_EXPIRY_DAYS) },
+    });
     const [range, setRange] = useState<DayRange>({});
 
     const handleClose = () => {
-        form.resetFields();
+        reset();
         setRange({});
         closeShareModal();
     };
 
-    const handleFinish = async (values: FormValues) => {
+    const onValid = async (values: FormValues) => {
         await handleCreateShareLink({
-            label: values.label?.trim() || undefined,
+            label: values.label.trim() || undefined,
             expiresInDays: values.expiry === NEVER ? null : (Number(values.expiry) as 7 | 30),
             from: range.from ?? null,
             to: range.to ?? null,
@@ -127,50 +145,90 @@ export default function ShareLinksModal() {
             </p>
 
             {createdUrl ? (
-                <Alert
-                    className="mb-4"
-                    type="success"
-                    showIcon
-                    title="Đã tạo link. Hãy sao chép ngay: link chỉ hiện một lần."
-                    description={
-                        <Typography.Paragraph
-                            className="mb-0! break-all"
-                            copyable={{ text: createdUrl }}
-                        >
-                            {createdUrl}
-                        </Typography.Paragraph>
-                    }
-                />
+                <Alert className="mb-4 border-money-in/30 bg-money-in-soft text-money-in">
+                    <CircleCheck />
+                    <AlertTitle className="text-foreground">
+                        Đã tạo link. Hãy sao chép ngay: link chỉ hiện một lần.
+                    </AlertTitle>
+                    <AlertDescription>
+                        <div className="flex w-full items-start gap-2">
+                            <p className="min-w-0 flex-1 text-foreground break-all">{createdUrl}</p>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Sao chép link"
+                                title="Sao chép link"
+                                onClick={() => copiedToClipboard(createdUrl)}
+                            >
+                                <Copy className="size-4" />
+                            </Button>
+                        </div>
+                    </AlertDescription>
+                </Alert>
             ) : null}
 
-            <Form
-                form={form}
-                layout="vertical"
-                initialValues={{ expiry: String(DEFAULT_SHARE_LINK_EXPIRY_DAYS) }}
-                onFinish={handleFinish}
-            >
-                <Form.Item
+            <form className="flex flex-col gap-4" noValidate onSubmit={handleSubmit(onValid)}>
+                <Controller
                     name="label"
-                    label="Tên link (để bạn tự nhận biết)"
-                    rules={[{ max: 100, message: "Tên link tối đa 100 ký tự" }]}
-                >
-                    <Input placeholder="Ví dụ: Gửi kế toán" allowClear />
-                </Form.Item>
-                <Form.Item name="expiry" label="Hạn dùng">
-                    <Select options={EXPIRY_SELECT_OPTIONS} />
-                </Form.Item>
-                <Form.Item label="Giới hạn khoảng ngày (tùy chọn)">
+                    control={control}
+                    rules={{ maxLength: { value: 100, message: "Tên link tối đa 100 ký tự" } }}
+                    render={({ field, fieldState }) => (
+                        <FormField
+                            label="Tên link (để bạn tự nhận biết)"
+                            error={fieldState.error?.message}
+                            htmlFor={labelId}
+                        >
+                            <InputGroup>
+                                <InputGroupInput
+                                    {...field}
+                                    id={labelId}
+                                    aria-invalid={fieldState.invalid || undefined}
+                                    placeholder="Ví dụ: Gửi kế toán"
+                                />
+                                {field.value ? (
+                                    <InputGroupAddon align="inline-end">
+                                        <InputGroupButton
+                                            size="icon-xs"
+                                            aria-label="Xóa tên link"
+                                            onClick={() => field.onChange("")}
+                                        >
+                                            <X />
+                                        </InputGroupButton>
+                                    </InputGroupAddon>
+                                ) : null}
+                            </InputGroup>
+                        </FormField>
+                    )}
+                />
+                <Controller
+                    name="expiry"
+                    control={control}
+                    render={({ field }) => (
+                        <FormField label="Hạn dùng">
+                            <Combobox
+                                options={EXPIRY_SELECT_OPTIONS}
+                                value={field.value}
+                                onChange={(value) => {
+                                    if (value) field.onChange(value);
+                                }}
+                            />
+                        </FormField>
+                    )}
+                />
+                <FormField label="Giới hạn khoảng ngày (tùy chọn)">
                     <DayRangeFilter value={range} onChange={setRange} />
-                </Form.Item>
-                <Button type="primary" htmlType="submit" block loading={isCreatingShareLink}>
+                </FormField>
+                <Button type="submit" className="w-full" disabled={isCreatingShareLink}>
+                    {isCreatingShareLink ? <Spinner data-icon="inline-start" /> : null}
                     Tạo link
                 </Button>
-            </Form>
+            </form>
 
             <h4 className="mt-5 mb-2 text-sm font-semibold">Link đang hoạt động</h4>
-            <Spin spinning={isShareLinksLoading}>
+            <LoadingOverlay loading={isShareLinksLoading}>
                 {shareLinks.length === 0 ? (
-                    <Empty description="Chưa có link nào" />
+                    <EmptyState description="Chưa có link nào" />
                 ) : (
                     <div className="flex flex-col gap-2">
                         {shareLinks.map((link) => (
@@ -182,7 +240,7 @@ export default function ShareLinksModal() {
                         ))}
                     </div>
                 )}
-            </Spin>
+            </LoadingOverlay>
         </ResponsiveModal>
     );
 }

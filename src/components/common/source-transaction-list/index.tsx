@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { PaginationProps } from "antd";
+import type { IPaginationProps } from "@/components/common/pagination";
 import MobileRecordList from "@/components/common/mobile-record-list";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
@@ -13,7 +13,7 @@ type SourceTransactionListProps<T extends SourceTransactionRow> = {
     /** Thẻ tín dụng: delta là biến động dư nợ, tăng là xấu (đỏ), giảm là tốt (xanh). */
     isCreditCard: boolean;
     rowKey: (item: T, index: number) => string;
-    pagination?: PaginationProps;
+    pagination?: IPaginationProps;
     /** Thông tin thêm dưới nội dung (tag loại, danh mục...). Link public không truyền. */
     renderMeta?: (item: T) => ReactNode;
 };

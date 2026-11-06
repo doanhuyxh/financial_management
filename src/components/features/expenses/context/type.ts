@@ -5,7 +5,7 @@ import type {
     IExpensesData,
     IFromExpensesData,
 } from "@/libs/interfaces/expensesData";
-import type { TablePaginationConfig } from "antd/es/table";
+import type { IPageChange } from "@/components/common/pagination";
 
 export interface IExpensesContextProps {
     // values
@@ -35,7 +35,7 @@ export interface IExpensesContextProps {
     handleSourceFilter: (value: string) => void;
     handleDateRange: (range: [Dayjs | null, Dayjs | null] | null) => void;
     handleChangePage: (page: number) => void;
-    handleTableChange: (pager: TablePaginationConfig) => void;
+    handleTableChange: (pager: IPageChange) => void;
     openCreateModal: () => void;
     openEditModal: (record: IExpensesData) => void;
     closeModal: () => void;

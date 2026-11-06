@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "antd";
 import { ArrowLeftRight } from "lucide-react";
 import MobileFilterShell from "@/components/common/mobile-filter-shell";
+import { Button } from "@/components/shadcn/ui/button";
 import SourcesFilterDrawer from "@/components/features/sources-of-money/components/header/filter-drawer";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import { useDebounce } from "@/libs/hooks/useDebounce";
@@ -43,10 +43,12 @@ export default function SourcesOfMoneyHeader() {
             onCreate={openCreateModal}
             extraActions={
                 <Button
+                    type="button"
+                    variant="outline"
                     aria-label="Chuyển tiền"
-                    icon={<ArrowLeftRight className="size-4" />}
                     onClick={openTransferModal}
                 >
+                    <ArrowLeftRight className="size-4" />
                     <span className="hidden sm:inline">Chuyển tiền</span>
                 </Button>
             }

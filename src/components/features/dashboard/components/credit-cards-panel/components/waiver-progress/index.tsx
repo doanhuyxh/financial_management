@@ -1,9 +1,13 @@
-import { Progress } from "antd";
+import { Progress } from "@/components/shadcn/ui/progress";
 import type { IFeeWaiverProgress } from "@/components/features/dashboard/utils";
 import { cn } from "@/libs/shadcn/utils";
 
 // Đỏ: còn xa mức miễn phí, vàng: đã quá nửa, xanh: đạt
-const STROKE_COLORS = { low: "var(--debt)", mid: "var(--warn)", done: "var(--money-in)" };
+const BAR_CLASS = {
+    low: "*:data-[slot=progress-indicator]:bg-debt",
+    mid: "*:data-[slot=progress-indicator]:bg-warn",
+    done: "*:data-[slot=progress-indicator]:bg-money-in",
+};
 const TEXT_CLASS = { low: "text-debt", mid: "text-warn", done: "text-money-in" };
 
 /** Thanh tiến độ của một điều kiện miễn phí (chi tiêu hoặc số giao dịch). */
@@ -28,11 +32,9 @@ export default function WaiverProgress({
                 </span>
             </div>
             <Progress
-                percent={percent}
-                size="small"
-                showInfo={false}
-                strokeColor={STROKE_COLORS[level]}
-                railColor="var(--muted)"
+                value={percent}
+                aria-label={label}
+                className={cn("my-1 h-1.5", BAR_CLASS[level])}
             />
             <span className="text-xs text-muted-foreground">
                 {format(waiver.current)} / {format(waiver.target)}

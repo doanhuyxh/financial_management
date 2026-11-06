@@ -1,7 +1,8 @@
 "use client";
 
-import { Button, Dropdown } from "antd";
 import { ChevronDown, Receipt } from "lucide-react";
+import ActionMenu from "@/components/common/action-menu";
+import { Button } from "@/components/shadcn/ui/button";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import type { ICreditCardFeeItem } from "@/components/features/dashboard/utils";
 import { CardFeeType } from "@/libs/interfaces/expensesData";
@@ -52,17 +53,16 @@ export default function RecordFeeButton({ item }: { item: ICreditCardFeeItem }) 
     if (actions.length === 0) return null;
 
     return (
-        <Dropdown
-            trigger={["click"]}
-            placement="bottomRight"
-            menu={{
-                items: actions.map((action) => ({ key: action.type, label: action.label })),
-                onClick: ({ key }) => handleRecordCardFee(item, key as CardFeeType),
-            }}
+        <ActionMenu
+            align="end"
+            items={actions.map((action) => ({ key: action.type, label: action.label }))}
+            onClick={(key) => handleRecordCardFee(item, key as CardFeeType)}
         >
-            <Button size="small" icon={<Receipt className="size-4" />}>
-                Ghi phí <ChevronDown className="size-3.5" />
+            <Button type="button" variant="outline" size="sm">
+                <Receipt data-icon="inline-start" />
+                Ghi phí
+                <ChevronDown data-icon="inline-end" />
             </Button>
-        </Dropdown>
+        </ActionMenu>
     );
 }

@@ -1,18 +1,19 @@
 "use client";
 
-import { Button } from "antd";
 import { RotateCcw } from "lucide-react";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import { Button } from "@/components/shadcn/ui/button";
 import { useCreditCardCompareContext } from "@/components/features/credit-card-compare/context";
 import type { ICompareScenario } from "@/components/features/credit-card-compare/utils";
 
-const FIELDS: { key: keyof ICompareScenario; label: string; step: number }[] = [
-    { key: "monthlySpend", label: "Chi tiêu mỗi tháng", step: 500_000 },
-    { key: "monthlyTransactions", label: "Số giao dịch mỗi tháng", step: 1 },
-    { key: "paymentsPerCycle", label: "Số lần trả nợ mỗi kỳ", step: 1 },
-    { key: "carriedDebt", label: "Dư nợ chưa trả hết", step: 500_000 },
-    { key: "cashAdvanceAmount", label: "Một lần rút tiền mặt", step: 500_000 },
-    { key: "foreignAmount", label: "Một lần chi tiêu nước ngoài", step: 500_000 },
+/** `money`: ô số tiền (có "₫"); còn lại là số đếm. Mọi giá trị đều là số nguyên. */
+const FIELDS: { key: keyof ICompareScenario; label: string; money?: boolean }[] = [
+    { key: "monthlySpend", label: "Chi tiêu mỗi tháng", money: true },
+    { key: "monthlyTransactions", label: "Số giao dịch mỗi tháng" },
+    { key: "paymentsPerCycle", label: "Số lần trả nợ mỗi kỳ" },
+    { key: "carriedDebt", label: "Dư nợ chưa trả hết", money: true },
+    { key: "cashAdvanceAmount", label: "Một lần rút tiền mặt", money: true },
+    { key: "foreignAmount", label: "Một lần chi tiêu nước ngoài", money: true },
 ];
 
 /** Cách dùng thẻ giả định; mọi số liệu so sánh được tính theo đây. */
@@ -29,11 +30,8 @@ export default function ScenarioForm() {
                         Phí được quy ra số tiền theo các con số này; giữ lại cho lần sau.
                     </p>
                 </div>
-                <Button
-                    size="small"
-                    icon={<RotateCcw className="size-3.5" />}
-                    onClick={handleResetScenario}
-                >
+                <Button type="button" variant="outline" size="sm" onClick={handleResetScenario}>
+                    <RotateCcw data-icon="inline-start" />
                     Mặc định
                 </Button>
             </div>
@@ -42,9 +40,9 @@ export default function ScenarioForm() {
                     <label key={field.key} className="flex flex-col gap-1 text-sm">
                         <span className="text-muted-foreground">{field.label}</span>
                         <DebouncedNumberInput
-                            className="w-full!"
                             min={0}
-                            step={field.step}
+                            precision={0}
+                            suffix={field.money ? "₫" : undefined}
                             value={scenario[field.key]}
                             onChange={(value) =>
                                 handleScenarioChange({ [field.key]: Number(value) || 0 })

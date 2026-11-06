@@ -1,11 +1,9 @@
 "use client";
 
-import { DatePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import DateRangeFields from "@/components/common/date-range-fields";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 
-const { RangePicker } = DatePicker;
 const DAY_FORMAT = "YYYY-MM-DD";
 
 /** Khoảng ngày dạng chuỗi YYYY-MM-DD (dùng thẳng làm query API). */
@@ -27,23 +25,16 @@ function toRange(range: [Dayjs | null, Dayjs | null] | null): DayRange {
     };
 }
 
+/** Lọc khoảng ngày: desktop 2 ô trên một hàng, mobile xếp dọc. Cho phép bỏ trống một đầu. */
 export default function DayRangeFilter({ value, onChange }: DayRangeFilterProps) {
     const isMobile = useIsMobile();
     const current: [Dayjs | null, Dayjs | null] = [toDayjs(value.from), toDayjs(value.to)];
 
-    if (isMobile) {
-        return <DateRangeFields value={current} onChange={(range) => onChange(toRange(range))} />;
-    }
-
     return (
-        <RangePicker
-            inputReadOnly
-            allowEmpty={[true, true]}
+        <DateRangeFields
+            inline={!isMobile}
             value={current}
-            onChange={(dates) => onChange(toRange(dates ? [dates[0], dates[1]] : null))}
-            className="w-full"
-            format="DD/MM/YYYY"
-            allowClear
+            onChange={(range) => onChange(toRange(range))}
         />
     );
 }

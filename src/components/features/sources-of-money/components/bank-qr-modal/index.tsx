@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Input, QRCode, Typography } from "antd";
-import { Download } from "lucide-react";
-import ResponsiveModal from "@/components/common/responsive-modal";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
+import { Copy, Download } from "lucide-react";
+import FormField from "@/components/common/form-field";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import ResponsiveModal from "@/components/common/responsive-modal";
+import { Button } from "@/components/shadcn/ui/button";
+import { Input } from "@/components/shadcn/ui/input";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
+import { useCommon } from "@/libs/hooks/useCommon";
 import { buildVietQrPayload, normalizeTransferNote } from "@/libs/utils/vietQr";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
@@ -16,7 +20,9 @@ function toAmount(value: string | number | null) {
 
 export default function BankQrModal() {
     const { qrSource, closeQr } = useSourcesOfMoneyContext();
+    const { copiedToClipboard } = useCommon();
     const bankAccount = qrSource?.bankAccount;
+    const noteId = useId();
 
     const [amount, setAmount] = useState<string | number | null>(null);
     const [note, setNote] = useState("");
@@ -64,21 +70,30 @@ export default function BankQrModal() {
                 <div className="flex flex-col items-center gap-4">
                     {/* QR luôn nền trắng để camera quét được cả khi app đang ở dark mode */}
                     <div ref={qrRef} className="rounded-lg bg-white p-2">
-                        <QRCode
+                        <QRCodeCanvas
                             value={payload}
                             size={240}
-                            color="#000000"
+                            level="M"
                             bgColor="#ffffff"
-                            bordered={false}
-                            errorLevel="M"
+                            fgColor="#000000"
                         />
                     </div>
 
                     <div className="text-center leading-6">
                         <div className="font-semibold">{bankAccount.bankName}</div>
-                        <Typography.Text copyable={{ text: bankAccount.accountNumber }} strong>
-                            {bankAccount.accountNumber}
-                        </Typography.Text>
+                        <div className="flex items-center justify-center gap-1 font-semibold">
+                            <span>{bankAccount.accountNumber}</span>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label="Sao chép số tài khoản"
+                                title="Sao chép số tài khoản"
+                                onClick={() => copiedToClipboard(bankAccount.accountNumber)}
+                            >
+                                <Copy className="size-3.5" />
+                            </Button>
+                        </div>
                         {bankAccount.accountName ? (
                             <div className="text-sm text-muted-foreground">
                                 {bankAccount.accountName}
@@ -92,33 +107,35 @@ export default function BankQrModal() {
                     </div>
 
                     <div className="flex w-full flex-col gap-3">
-                        <div>
-                            <div className="mb-1 text-sm">Số tiền (tùy chọn)</div>
+                        <FormField label="Số tiền (tùy chọn)">
                             <DebouncedNumberInput
-                                className="w-full!"
                                 min={0}
-                                step={1000}
+                                precision={0}
                                 delay={300}
                                 placeholder="Để trống: người chuyển tự nhập"
                                 value={amount}
                                 onChange={setAmount}
                             />
-                        </div>
-                        <div>
-                            <div className="mb-1 text-sm">Nội dung (tùy chọn)</div>
+                        </FormField>
+                        <FormField
+                            label="Nội dung (tùy chọn)"
+                            htmlFor={noteId}
+                            extra={
+                                note && normalizeTransferNote(note) !== note
+                                    ? `Trong QR: ${normalizeTransferNote(note) || "(trống)"}`
+                                    : undefined
+                            }
+                        >
                             <Input
+                                id={noteId}
                                 value={note}
                                 onChange={(event) => setNote(event.target.value)}
                                 maxLength={50}
                                 placeholder="Ví dụ: Chuyen tien an trua"
                             />
-                            {note && normalizeTransferNote(note) !== note ? (
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                    Trong QR: {normalizeTransferNote(note) || "(trống)"}
-                                </div>
-                            ) : null}
-                        </div>
-                        <Button icon={<Download className="size-4" />} onClick={handleDownload}>
+                        </FormField>
+                        <Button type="button" variant="outline" onClick={handleDownload}>
+                            <Download data-icon="inline-start" className="size-4" />
                             Tải ảnh QR
                         </Button>
                     </div>

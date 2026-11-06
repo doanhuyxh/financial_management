@@ -2,7 +2,7 @@
 
 import { useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Form } from "antd";
+import { useFieldStatus } from "@/components/common/form-field";
 import DebouncedNumberInput, {
     LARGE_AMOUNT_INPUT_CLASS,
 } from "@/components/common/input/DebouncedNumberInput";
@@ -52,7 +52,8 @@ export default function AmountInput({ value, onChange, defaultKeypadOpen = false
     const isMobile = useIsMobile();
     const footerSlot = useContext(ModalFooterSlotContext);
     const useKeypad = isMobile && footerSlot !== null;
-    const { status } = Form.Item.useStatus();
+    // Trạng thái lỗi từ FormField bao quanh (ô desktop tự đọc qua DebouncedNumberInput)
+    const { invalid, id: fieldId } = useFieldStatus();
 
     const [keypadOpen, setKeypadOpen] = useState(defaultKeypadOpen);
     const displayRef = useRef<HTMLButtonElement>(null);
@@ -112,12 +113,14 @@ export default function AmountInput({ value, onChange, defaultKeypadOpen = false
             <button
                 ref={displayRef}
                 type="button"
+                id={fieldId || undefined}
                 onClick={openKeypad}
                 aria-label="Số tiền"
+                data-invalid={invalid || undefined}
                 className={cn(
                     "flex h-14 w-full cursor-pointer items-center justify-end gap-1 rounded-lg border bg-card px-3 tabular-nums transition-colors",
                     keypadOpen ? "border-primary ring-2 ring-primary/20" : "border-border",
-                    status === "error" && "border-destructive",
+                    invalid && "border-destructive",
                 )}
             >
                 <span className={cn("text-2xl font-bold", !digits && "text-muted-foreground")}>

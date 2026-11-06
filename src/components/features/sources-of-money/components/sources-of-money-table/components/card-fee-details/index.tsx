@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "antd";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/shadcn/ui/button";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import {
     AnnualFeeWaiverPeriod,
@@ -118,15 +118,15 @@ export default function CardFeeDetails({ record }: { record: ISourcesOfMoneyData
     return (
         <div className="mt-1">
             <Button
-                type="link"
-                size="small"
-                className="h-auto! p-0! text-xs!"
-                icon={open ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-                iconPlacement="end"
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto gap-0.5 p-0 text-xs text-accent-text"
                 aria-expanded={open}
                 onClick={() => setOpen((value) => !value)}
             >
                 {open ? "Ẩn chi tiết phí" : `Xem chi tiết phí (${groups.length})`}
+                {open ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
             </Button>
             {open
                 ? groups.map((group) => (

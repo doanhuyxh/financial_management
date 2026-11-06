@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import dayjs, { type Dayjs } from "dayjs";
-import type { TablePaginationConfig } from "antd/es/table";
+import type { IPageChange } from "@/components/common/pagination";
 import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
 import {
     useCreateExpense,
@@ -131,7 +131,7 @@ export default function ExpensesContextProvider({
         setPage(nextPage);
     }, []);
 
-    const handleTableChange = useCallback((pager: TablePaginationConfig) => {
+    const handleTableChange = useCallback((pager: IPageChange) => {
         setPage(pager.current ?? 1);
         setPageSize(pager.pageSize ?? DEFAULT_PAGE_SIZE);
     }, []);

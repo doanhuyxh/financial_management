@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import dayjs from "dayjs";
-import { Select } from "antd";
+import Combobox from "@/components/common/combobox";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
 import Money from "@/components/common/money";
 import RolloverProjectionChart from "@/components/common/rollover-projection-chart";
@@ -26,6 +26,17 @@ const toNumber = (value: unknown) => {
     const num = typeof value === "number" ? value : Number(String(value).replace(/,/g, ""));
     return Number.isFinite(num) ? num : 0;
 };
+
+/** Giới hạn % ở 100 (ô số không còn `max`); giữ nguyên chuỗi đang gõ khi hợp lệ để không mất dấu thập phân. */
+const clampPercent = (value: string | number | null): string | number =>
+    toNumber(value) > 100 ? 100 : (value ?? 0);
+
+type FeeMode = "add" | "cash";
+
+const FEE_MODE_OPTIONS: { value: FeeMode; label: string }[] = [
+    { value: "add", label: "Cộng vào nợ (quẹt lại gồm phí)" },
+    { value: "cash", label: "Trả riêng bằng tiền mặt" },
+];
 
 /** Lãi trả góp giả định (%/tháng) để so sánh, người dùng sửa được. */
 const DEFAULT_INSTALLMENT_RATE = 1.2;
@@ -57,7 +68,7 @@ export default function RolloverAnalysis({ source }: IRolloverAnalysisProps) {
     const [debt, setDebt] = useState<string | number>(Math.round(currentDebt));
     const [feePercent, setFeePercent] = useState<string | number>(details?.rolloverFeePercent ?? 0);
     const [extra, setExtra] = useState<string | number>(0);
-    const [feeMode, setFeeMode] = useState<"add" | "cash">("add");
+    const [feeMode, setFeeMode] = useState<FeeMode>("add");
     const [interestRate, setInterestRate] = useState<string | number>(details?.interestRate ?? 0);
     const [installmentRate, setInstallmentRate] = useState<string | number>(DEFAULT_INSTALLMENT_RATE);
 
@@ -118,12 +129,37 @@ export default function RolloverAnalysis({ source }: IRolloverAnalysisProps) {
             <section>
                 <p className="mb-2 text-sm font-semibold">Mô phỏng</p>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
-                    <label className="text-xs">Số tiền đáo (D)<DebouncedNumberInput className="w-full! mt-1" min={0} step={1000000} delay={300} value={debt} onChange={(v) => setDebt(v ?? 0)} /></label>
-                    <label className="text-xs">% phí mỗi lần<DebouncedNumberInput className="w-full! mt-1" min={0} max={100} step={0.1} delay={300} value={feePercent} onChange={(v) => setFeePercent(v ?? 0)} /></label>
-                    <label className="text-xs">Tự trả thêm mỗi kỳ (x)<DebouncedNumberInput className="w-full! mt-1" min={0} step={500000} delay={300} value={extra} onChange={(v) => setExtra(v ?? 0)} /></label>
-                    <label className="text-xs">Phí<Select className="mt-1 w-full" value={feeMode} onChange={setFeeMode} options={[{ value: "add", label: "Cộng vào nợ (quẹt lại gồm phí)" }, { value: "cash", label: "Trả riêng bằng tiền mặt" }]} /></label>
-                    <label className="text-xs">Lãi thẻ (%/năm, để so sánh)<DebouncedNumberInput className="w-full! mt-1" min={0} max={100} step={1} delay={300} value={interestRate} onChange={(v) => setInterestRate(v ?? 0)} /></label>
-                    <label className="text-xs">Lãi trả góp (%/tháng, giả định)<DebouncedNumberInput className="w-full! mt-1" min={0} max={100} step={0.1} delay={300} value={installmentRate} onChange={(v) => setInstallmentRate(v ?? 0)} /></label>
+                    <label className="text-xs">
+                        Số tiền đáo (D)
+                        <DebouncedNumberInput className="mt-1" min={0} precision={0} delay={300} value={debt} onChange={(v) => setDebt(v ?? 0)} />
+                    </label>
+                    <label className="text-xs">
+                        % phí mỗi lần
+                        <DebouncedNumberInput className="mt-1" min={0} delay={300} value={feePercent} onChange={(v) => setFeePercent(clampPercent(v))} />
+                    </label>
+                    <label className="text-xs">
+                        Tự trả thêm mỗi kỳ (x)
+                        <DebouncedNumberInput className="mt-1" min={0} precision={0} delay={300} value={extra} onChange={(v) => setExtra(v ?? 0)} />
+                    </label>
+                    <label className="text-xs">
+                        Phí
+                        <Combobox<FeeMode>
+                            className="mt-1"
+                            value={feeMode}
+                            onChange={(next) => {
+                                if (next) setFeeMode(next);
+                            }}
+                            options={FEE_MODE_OPTIONS}
+                        />
+                    </label>
+                    <label className="text-xs">
+                        Lãi thẻ (%/năm, để so sánh)
+                        <DebouncedNumberInput className="mt-1" min={0} delay={300} value={interestRate} onChange={(v) => setInterestRate(clampPercent(v))} />
+                    </label>
+                    <label className="text-xs">
+                        Lãi trả góp (%/tháng, giả định)
+                        <DebouncedNumberInput className="mt-1" min={0} delay={300} value={installmentRate} onChange={(v) => setInstallmentRate(clampPercent(v))} />
+                    </label>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">Chu kỳ = {cycleDays} ngày theo ngày sao kê của thẻ.</p>
 

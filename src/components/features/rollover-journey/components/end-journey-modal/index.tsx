@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Input, Select } from "antd";
+import Combobox from "@/components/common/combobox";
+import FormField from "@/components/common/form-field";
 import ResponsiveModal from "@/components/common/responsive-modal";
+import { Textarea } from "@/components/shadcn/ui/textarea";
 import { useRolloverJourneyContext } from "@/components/features/rollover-journey/context";
 import {
     ROLLOVER_JOURNEY_END_REASON_LABELS,
     RolloverJourneyEndReason,
 } from "@/libs/interfaces/rolloverJourneysData";
+import type { SelectOption } from "@/libs/interfaces/selectOption";
 
-const REASON_OPTIONS = Object.values(RolloverJourneyEndReason)
+const REASON_OPTIONS: SelectOption<RolloverJourneyEndReason>[] = Object.values(RolloverJourneyEndReason)
     .filter((reason) => reason !== RolloverJourneyEndReason.PAID_OFF)
     .map((reason) => ({ value: reason, label: ROLLOVER_JOURNEY_END_REASON_LABELS[reason] }));
+
+const NOTE_FIELD_ID = "end-journey-note";
 
 /** Kết thúc hành trình theo lý do người dùng chọn (sạch nợ thì hệ thống tự đóng). */
 export default function EndJourneyModal() {
@@ -44,14 +49,25 @@ export default function EndJourneyModal() {
                     {computed ? ` (${computed.count} lần đáo, phí ${computed.totalFee.toLocaleString("vi-VN")} ₫)` : ""}.
                     Lần đáo hạn sau này sẽ mở một hành trình mới.
                 </p>
-                <label className="flex flex-col gap-1">
-                    <span className="text-xs">Bạn thoát bằng cách nào?</span>
-                    <Select value={reason} onChange={setReason} options={REASON_OPTIONS} />
-                </label>
-                <label className="flex flex-col gap-1">
-                    <span className="text-xs">Ghi chú</span>
-                    <Input.TextArea rows={2} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} placeholder="VD: chuyển trả góp 12 tháng lãi 1,2%" />
-                </label>
+                <FormField label="Bạn thoát bằng cách nào?">
+                    <Combobox<RolloverJourneyEndReason>
+                        value={reason}
+                        onChange={(value) => {
+                            if (value) setReason(value);
+                        }}
+                        options={REASON_OPTIONS}
+                    />
+                </FormField>
+                <FormField label="Ghi chú" htmlFor={NOTE_FIELD_ID}>
+                    <Textarea
+                        id={NOTE_FIELD_ID}
+                        rows={2}
+                        maxLength={500}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                        placeholder="VD: chuyển trả góp 12 tháng lãi 1,2%"
+                    />
+                </FormField>
             </div>
         </ResponsiveModal>
     );
