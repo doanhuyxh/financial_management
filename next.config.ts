@@ -5,7 +5,7 @@ const isDevelopment = NEXT_PUBLIC_NODE_ENV === 'development';
 const nextConfig: NextConfig = {
   // deploy.sh build vào thư mục tạm (NEXT_DIST_DIR) trong khi bản cũ vẫn chạy, xong mới đổi sang .next.
   distDir: process.env.NEXT_DIST_DIR || ".next",
-  reactStrictMode: false,
+  reactStrictMode: true,
   reactCompiler: false,
   // Production chỉ log lỗi: log mọi request làm file log PM2 phình nhanh.
   logging: isDevelopment

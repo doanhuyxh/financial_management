@@ -7,7 +7,7 @@
 /*
  * Design tokens (mockup re-design UI 06). Một họ trung tính (stone) cho cả sáng và tối.
  * Cam chỉ dùng cho hành động; số tiền dùng màu theo nghĩa (--money-in/out, --debt...).
- * Giá trị hex phải khớp src/libs/constants/themeColors.ts (antd không đọc được CSS var).
+ * Giá trị hex phải khớp src/libs/constants/themeColors.ts (biểu đồ @ant-design/plots không đọc được CSS var).
  */
 :root {
     --background: #f6f5f3;
@@ -253,9 +253,7 @@ html:not(.dark) [data-sidebar="menu-sub-button"][data-active="true"] {
 @media (max-width: 767px) {
     input,
     select,
-    textarea,
-    .ant-select-selection-search-input,
-    .ant-picker-input > input {
+    textarea {
         font-size: 16px !important;
     }
 }

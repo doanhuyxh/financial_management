@@ -10,9 +10,11 @@
 - **Tên folder `kebab-case`** (ví dụ `category-form-modal`). Không dùng `PascalCase`.
 - **Import bỏ đuôi `.tsx`**: `import Header from "@/components/features/categories/components/header";`
 - **UI library**: trước khi tự dựng UI, tìm component có sẵn trong **shadcn UI** (`src/components/shadcn/ui`, style `radix-nova`; thêm component mới xem [commands.md](commands.md#shadcn--animate-ui)). Icon dùng **lucide-react**. Component dùng chung nhiều feature đặt ở `src/components/common/`.
-- **antd đang được gỡ dần**: code cũ còn dùng (Form, Table, Select, DatePicker...), nhưng **không import antd trong code mới**; khi sửa một component cũ, cân nhắc chuyển nó sang shadcn luôn. Hiệu ứng: component shadcn đã nối sang `@animate-ui/react` (`motion`), không thêm animation CSS tay cho chúng.
+- **Không còn antd** (gỡ xong 07/11/2026). Hiệu ứng: component shadcn đã nối sang `@animate-ui/react` (`motion`), không thêm animation CSS tay cho chúng.
+- **Bộ component dùng chung thay antd** (`src/components/common/`): `form-field` (`FormField` label/error/extra/tooltip + `useFieldStatus()` cho ô nhập tự tô lỗi), `combobox` (chọn có tìm kiếm, option nhóm `SelectOptionOrGroup` từ `libs/interfaces/selectOption.ts`), `date-picker` (giá trị `Dayjs`, `picker="date" | "month"`), `segmented`, `tag`, `pagination` (`AppPagination`, `IPaginationProps`, `IPageChange`), `data-table` (`IDataTableColumn`: render/width/align/fixed/responsive/onCell colSpan) và `sortable-table` trên nền nó, `action-menu` (menu "⋯" `{ key, label, danger }`), `empty-state`, `loading-overlay`, `input/DebouncedNumberInput` (số có nhóm nghìn, debounce). QR dùng `qrcode.react`.
+- **Form**: react-hook-form (`useForm` + `Controller`, `rules` hoặc zod `zodResolver`) + `FormField`; không tự viết validation thủ công khi rhf làm được. Modal có `onOk` thì gọi `handleSubmit(onValid)()`.
 - **Loading**: `common/loading` là splash toàn màn hình khi boot app (HTML tĩnh trước khi JS chạy → chỉ CSS + SVG inline, class `.boot-*` trong `globals.css`); chỉ dùng ở `client-app`, `app/loading.tsx` và trang ngoài layout (`share/[token]`). Trang trong `(protected)` dùng `common/route-loading` với `variant="dashboard" | "list" | "form"` cho cả `loading.tsx` lẫn `Suspense fallback`. Skeleton mới dùng `Skeleton` + `skeleton-shimmer animate-none`.
-- **Thông báo & xác nhận**: `useAppFeedback()` (`src/libs/hooks/useAppFeedback.tsx`) → `notification.success/error/warning({ title, description?, duration? })` (sonner) và `modal.confirm({ title, content, okText, okType: "danger", onOk })` (`common/confirm-dialog`). Không dùng `App.useApp`/`message` của antd.
+- **Thông báo & xác nhận**: `useAppFeedback()` (`src/libs/hooks/useAppFeedback.tsx`) → `notification.success/error/warning({ title, description?, duration? })` (sonner) và `modal.confirm({ title, content, okText, okType: "danger", onOk })` (`common/confirm-dialog`). Không dùng `window.alert`/`confirm`.
 
 > Một số file cũ trong `src/components/layout/` và `src/components/providers/` vẫn là `.tsx` đứng lẻ. Không bắt chước; code mới theo quy tắc trên.
 
@@ -68,7 +70,7 @@ features/<feature>/
 - Khối nội dung dạng thẻ dùng `bg-card`, không dùng `bg-background`.
 - Thêm/sửa màu: sửa token trong `src/app/globals.css` **và** hex tương ứng trong `src/libs/constants/themeColors.ts`.
 - Kéo-thả trên danh sách đã lọc phía client (tab, ẩn mục trống): ghép thứ tự bằng `mergeSubsetOrder` (`src/libs/utils/reorder.ts`) vì API reorder cần đủ toàn bộ ID.
-- Modal/Drawer qua `ResponsiveModal`: đặt `className={MODAL_AUTOFOCUS_CLASS}` lên `Form.Item` cần focus khi mở (mặc định antd focus nút đóng). Chỉ áp dụng desktop: trên mobile (Drawer) không tự focus để bàn phím không che form; Drawer tự đẩy lên trên bàn phím hệ thống (`useKeyboardInset`). Footer mobile luôn 1 hàng.
+- Modal/Drawer qua `ResponsiveModal` (Dialog trên desktop, Drawer vaul trên mobile): đặt `className={MODAL_AUTOFOCUS_CLASS}` lên `FormField` cần focus khi mở (mặc định Dialog focus nút đóng). Chỉ áp dụng desktop: trên mobile (Drawer) không tự focus để bàn phím không che form; Drawer tự đẩy lên trên bàn phím hệ thống (`useKeyboardInset`). Footer mobile luôn 1 hàng.
 - Ô số tiền của form giao dịch dùng `AmountInput` (`common/amount-input`): desktop là ô nhập số, mobile là ô hiển thị + bàn phím số riêng portal vào footer Drawer (`ModalFooterSlotContext`). Phần tử bấm vào mà không muốn ẩn bàn phím số thì gắn `KEEP_AMOUNT_KEYPAD_ATTR`.
 
 ## Git

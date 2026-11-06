@@ -35,7 +35,7 @@ Mỗi thẻ hiện một câu, chọn theo thứ tự ưu tiên:
 
 ## Ghi phí
 
-- Nằm trong phần mở rộng của thẻ: nút "Ghi phí ▾" (antd `Dropdown`). Menu chỉ gồm các mục áp dụng cho thẻ; không có mục nào thì ẩn nút:
+- Nằm trong phần mở rộng của thẻ: nút "Ghi phí ▾" (`common/action-menu`). Menu chỉ gồm các mục áp dụng cho thẻ; không có mục nào thì ẩn nút:
   - "Phí thường niên", "Phí quản lý"
   - "Phí thanh toán": chỉ khi phí ước tính > 0
   - "Phí sử dụng": chỉ khi kỳ này đã có chi tiêu

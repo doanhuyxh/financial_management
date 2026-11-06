@@ -1,7 +1,4 @@
-import type { SelectProps } from "antd";
-
-type SelectOption = { value: string; label: string };
-type SelectOptions = NonNullable<SelectProps["options"]>;
+import type { SelectOption, SelectOptionOrGroup } from "@/libs/interfaces/selectOption";
 
 /**
  * Tách option thành nhóm "Thường dùng" (theo thứ tự gợi ý) và "Khác" (giữ thứ tự gốc).
@@ -10,7 +7,7 @@ type SelectOptions = NonNullable<SelectProps["options"]>;
 export function groupSuggestedOptions<T extends SelectOption>(
     options: T[],
     suggestedIds: string[] | undefined,
-): SelectOptions {
+): SelectOptionOrGroup[] {
     if (!suggestedIds?.length) return options;
 
     const byValue = new Map(options.map((option) => [option.value, option]));
@@ -22,7 +19,7 @@ export function groupSuggestedOptions<T extends SelectOption>(
     const suggestedSet = new Set(suggested.map((option) => option.value));
     const rest = options.filter((option) => !suggestedSet.has(option.value));
 
-    const groups: SelectOptions = [
+    const groups: SelectOptionOrGroup[] = [
         { label: "Thường dùng", title: "suggested", options: suggested },
     ];
     if (rest.length) {
