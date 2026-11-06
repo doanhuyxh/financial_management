@@ -26,6 +26,7 @@ export const configQueryKey = {
 	PUBLIC_SHARE: "public-share",
 	SETTINGS: "settings",
 	TRANSACTION_AUDITS: "transaction-audits",
+	MCP_TOKENS: "mcp-tokens",
 }
 
 export const configSessionKey = {

@@ -5,6 +5,17 @@ import dayjs from "dayjs";
 import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
 import { useGetSettings, useUpdateSettings } from "@/libs/hooks/customHooks/useSettings";
 import { useGetTransactionAudits } from "@/libs/hooks/customHooks/useTransactionAudits";
+import {
+    useCreateMcpToken,
+    useGetMcpTokens,
+    useRevokeAllMcpTokens,
+    useRevokeMcpToken,
+} from "@/libs/hooks/customHooks/useMcpTokens";
+import type {
+    ICreatedMcpTokenData,
+    IFromMcpTokenData,
+    IMcpTokenData,
+} from "@/libs/interfaces/mcpTokensData";
 import type { TransactionAuditKind } from "@/libs/interfaces/transactionAuditsData";
 import { formatDate } from "@/libs/utils/formatDate";
 import type { ISettingsContextProps } from "./type";
@@ -90,6 +101,67 @@ export default function SettingsContextProvider({ children }: { children: React.
         setAuditPage(1);
     }, []);
 
+    // ----- Token MCP (agent đọc dữ liệu)
+    const { data: mcpTokensResponse, isLoading: isMcpTokensLoading } = useGetMcpTokens();
+    const { mutateAsync: createMcpToken, isPending: isCreatingMcpToken } = useCreateMcpToken();
+    const { mutateAsync: revokeMcpToken } = useRevokeMcpToken();
+    const { mutateAsync: revokeAllMcpTokens, isPending: isRevokingAllMcpTokens } =
+        useRevokeAllMcpTokens();
+    const [createdMcpToken, setCreatedMcpToken] = useState<ICreatedMcpTokenData | null>(null);
+
+    const handleCreateMcpToken = useCallback(
+        async (body: IFromMcpTokenData) => {
+            try {
+                const response = await createMcpToken(body);
+                setCreatedMcpToken(response.data ?? null);
+                return true;
+            } catch (error: unknown) {
+                notification.error({ title: getErrorMessage(error, "Tạo token thất bại") });
+                return false;
+            }
+        },
+        [createMcpToken, notification],
+    );
+
+    const handleRevokeMcpToken = useCallback(
+        (token: IMcpTokenData) => {
+            modal.confirm({
+                title: `Thu hồi token "${token.label || token.prefix}"?`,
+                content: "Agent đang dùng token này sẽ mất quyền đọc ngay. Không hoàn tác được.",
+                okText: "Thu hồi",
+                okType: "danger",
+                onOk: async () => {
+                    try {
+                        await revokeMcpToken(token._id);
+                        if (createdMcpToken?._id === token._id) setCreatedMcpToken(null);
+                        notification.success({ title: "Đã thu hồi token" });
+                    } catch (error: unknown) {
+                        notification.error({ title: getErrorMessage(error, "Thu hồi thất bại") });
+                    }
+                },
+            });
+        },
+        [createdMcpToken, modal, notification, revokeMcpToken],
+    );
+
+    const handleRevokeAllMcpTokens = useCallback(() => {
+        modal.confirm({
+            title: "Thu hồi tất cả token MCP?",
+            content: "Mọi agent đang kết nối sẽ mất quyền đọc ngay. Không hoàn tác được.",
+            okText: "Thu hồi tất cả",
+            okType: "danger",
+            onOk: async () => {
+                try {
+                    await revokeAllMcpTokens();
+                    setCreatedMcpToken(null);
+                    notification.success({ title: "Đã thu hồi tất cả token" });
+                } catch (error: unknown) {
+                    notification.error({ title: getErrorMessage(error, "Thu hồi thất bại") });
+                }
+            },
+        });
+    }, [modal, notification, revokeAllMcpTokens]);
+
     const value: ISettingsContextProps = {
         savedLockDay,
         lockInput,
@@ -108,6 +180,15 @@ export default function SettingsContextProvider({ children }: { children: React.
         isAuditsLoading,
         handleAuditKindChange,
         handleAuditPageChange: setAuditPage,
+        mcpTokens: mcpTokensResponse?.data ?? [],
+        isMcpTokensLoading,
+        isCreatingMcpToken,
+        isRevokingAllMcpTokens,
+        createdMcpToken,
+        handleCreateMcpToken,
+        handleRevokeMcpToken,
+        handleRevokeAllMcpTokens,
+        clearCreatedMcpToken: () => setCreatedMcpToken(null),
     };
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

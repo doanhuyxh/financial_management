@@ -5,6 +5,7 @@ Các kế hoạch đã triển khai xong được xóa khỏi thư mục này. `
 | # | Vấn đề | Mức độ | File kế hoạch |
 |---|--------|--------|---------------|
 | 12 | Thiết kế lại loading toàn trang (3 phương án: Ví tiền / Khung app / Dòng tiền) | Thấp | [redesign-loading-ui/12-redesign-loading-ui.md](redesign-loading-ui/12-redesign-loading-ui.md) · [mockup](redesign-loading-ui/12-redesign-loading-ui-mockup.html) |
+| 13 | MCP server cho agent khác đọc dữ liệu — **giai đoạn 1 (chỉ đọc) đã xong**, còn giai đoạn 2 (ghi) chờ duyệt | Trung bình | [mcp/13-mcp-server.md](mcp/13-mcp-server.md) |
 
 ## Việc còn lại từ các kế hoạch đã xóa
 

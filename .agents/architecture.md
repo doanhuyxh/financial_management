@@ -16,7 +16,8 @@ src/
     connectDb.ts              # Kết nối Mongo (cache global)
     models/*.model.ts         # Mongoose schema (xem database.md)
     services/*.service.ts     # Toàn bộ business logic — nguồn sự thật
-    utils/                    # responseServer, pagination, monthRange, jwtUtil, getCurrentUser, archived, money, ledgerBalance, safeRollback, idempotency, ledgerLock, transactionAudit...
+    mcp/                      # MCP server chỉ đọc cho agent ngoài: tool mỏng gọi service (business/mcp.md)
+    utils/                    # responseServer, pagination, monthRange, jwtUtil, getCurrentUser, authContext (userId cho request MCP), archived, money, ledgerBalance, safeRollback, idempotency, ledgerLock, transactionAudit...
     __tests__/                # bun test + Mongo in-memory (commands.md)
   libs/                       # Dùng phía client (một số utils dùng chung với server)
     networkApi/*.api.ts       # Hàm gọi API
@@ -44,7 +45,7 @@ App chỉ có một người dùng nên render như SPA React: server không SSR
 - Toàn bộ providers (React Query, antd, Redux) và page nằm trong `ClientApp` (`components/providers/client-app`, `next/dynamic` với `ssr: false`) → chỉ render trên trình duyệt.
 - Theme: inline script trong `<head>` đọc cookie `theme` và gắn class `dark` trước lần paint đầu; `AntdProvider` đọc class đó khi khởi tạo.
 - Màu: token CSS ở `src/app/globals.css` (họ stone + màu nghĩa `--money-in/out`, `--debt`, `--warn`, `--credit`). antd không đọc được CSS var nên lấy hex từ `libs/constants/themeColors.ts`; hai nơi phải khớp nhau. Biểu đồ (`@ant-design/plots`) cũng lấy màu từ `THEME_COLORS`.
-- Server chỉ làm 3 việc: trả file tĩnh, `proxy.ts` kiểm tra JWT, và `/api/*`.
+- Server chỉ làm 3 việc: trả file tĩnh, `proxy.ts` kiểm tra JWT, và `/api/*` (gồm `POST /api/mcp` cho agent ngoài, xác thực bằng token cá nhân thay cookie: [business/mcp.md](business/mcp.md)).
 - **Không** thêm `cookies()`/`headers()`/`await` dữ liệu vào layout/page: trang sẽ quay lại SSR động. Dữ liệu luôn lấy qua React Query.
 
 ## Ranh giới
@@ -63,6 +64,10 @@ UI component ──use<Feature>Context()──▶ feature context
   ──HTTP──▶ proxy.ts (kiểm tra JWT)
   ──▶ app/api/xxx/route.ts
   ──▶ server/services/xxx.service.ts (getCurrentUser → userId)
+  ──▶ server/models (Mongoose) ──▶ MongoDB
+
+Agent MCP ──POST /api/mcp (Bearer mm_pat_…)──▶ server/mcp/handleMcpRequest (verify token, rate-limit)
+  ──runWithAuth({ userId })──▶ server/mcp/tools/* ──▶ cùng XxxService (getCurrentUser đọc auth context trước cookie)
   ──▶ server/models (Mongoose) ──▶ MongoDB
 ```
 
@@ -86,6 +91,7 @@ Key ở `configQueryKey`. Mặc định (`tanstack-provider.tsx`): staleTime 30 
 | card rollover (đáo hạn) | `CARD_ROLLOVERS`, `ROLLOVER_JOURNEYS`, `TRANSFERS`, `SOURCES_OF_MONEY`, `EXPENSES`, `DASHBOARD_EXPENSES_SUMMARY`, `DASHBOARD_CASHFLOW` |
 | rollover journey (kết thúc, sửa gốc) | `ROLLOVER_JOURNEYS` |
 | expense / income / transfer / card rollover (thêm) | `TRANSACTION_AUDITS` · cài đặt khóa sổ: `setQueryData(SETTINGS)` |
+| token MCP (tạo / thu hồi) | `MCP_TOKENS` |
 
 Query key gợi ý nằm dưới `[EXPENSES|INCOMES|TRANSFERS, "suggestions"]`; lịch sử giao dịch và link chia sẻ của nguồn nằm dưới `SOURCES_OF_MONEY`, nên tự làm mới theo các invalidate trên. **Thêm mutation mới thì phải thêm invalidate tương ứng.**
 

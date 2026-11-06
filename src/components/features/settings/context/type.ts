@@ -1,4 +1,9 @@
 import type {
+    ICreatedMcpTokenData,
+    IFromMcpTokenData,
+    IMcpTokenData,
+} from "@/libs/interfaces/mcpTokensData";
+import type {
     ITransactionAuditData,
     TransactionAuditKind,
 } from "@/libs/interfaces/transactionAuditsData";
@@ -28,4 +33,17 @@ export interface ISettingsContextProps {
     isAuditsLoading: boolean;
     handleAuditKindChange: (kind: TransactionAuditKind | "") => void;
     handleAuditPageChange: (page: number) => void;
+
+    // Token MCP (agent đọc dữ liệu)
+    mcpTokens: IMcpTokenData[];
+    isMcpTokensLoading: boolean;
+    isCreatingMcpToken: boolean;
+    isRevokingAllMcpTokens: boolean;
+    /** Token vừa tạo: chỉ hiện một lần, đến khi đóng hoặc tạo token khác */
+    createdMcpToken: ICreatedMcpTokenData | null;
+    /** true khi tạo thành công */
+    handleCreateMcpToken: (body: IFromMcpTokenData) => Promise<boolean>;
+    handleRevokeMcpToken: (token: IMcpTokenData) => void;
+    handleRevokeAllMcpTokens: () => void;
+    clearCreatedMcpToken: () => void;
 }

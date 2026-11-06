@@ -3,6 +3,7 @@ import getValueCookieServer from "@/libs/utils/getValueCookieServer";
 import dbConnect from "@/server/connectDb";
 import UserModel from "@/server/models/users.model";
 import { getUserInfoFromToken, type JwtPayload } from "@/server/utils/jwtUtil";
+import { getAuthContext } from "@/server/utils/authContext";
 
 // Cache tokenVersion trong bộ nhớ process (pm2 chạy 1 instance) để proxy + service không query DB
 // mỗi request. Logout gọi invalidateTokenVersionCache nên thu hồi có hiệu lực ngay; TTL chỉ là
@@ -53,7 +54,17 @@ export async function validateAccessToken(accessToken: string): Promise<JwtPaylo
     return payload;
 }
 
+/** User của request đến qua MCP (token đã verify ở route); không có thì trả undefined. */
+export function getUserFromAuthContext(): JwtPayload | undefined {
+    const context = getAuthContext();
+    if (!context) return undefined;
+    return { userId: context.userId, email: null, phoneNumber: null };
+}
+
 export async function getCurrentUser(): Promise<JwtPayload | null> {
+    const contextUser = getUserFromAuthContext();
+    if (contextUser) return contextUser;
+
     const accessToken = await getValueCookieServer(configCookieKey.ACCESS_TOKEN_KEY);
     return validateAccessToken(accessToken);
 }
