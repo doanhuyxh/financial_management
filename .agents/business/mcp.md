@@ -2,7 +2,7 @@
 
 > Nguồn sự thật là code (`src/server/mcp/`, `mcp-tokens.service.ts`); nếu code khác tài liệu, tin code và sửa tài liệu. Nguyên tắc chung: [README.md](README.md). Kế hoạch gốc: `plan_all/mcp/13-mcp-server.md` (local).
 
-Endpoint **`POST /api/mcp`** là một MCP server (Streamable HTTP, **stateless**, trả JSON, không SSE) chạy ngay trong app Next.js: mỗi request tạo `McpServer` + transport mới, dùng chung `dbConnect`, model, service. `GET`/`DELETE` trả 405. Giai đoạn 1 **chỉ đọc**; ghi dữ liệu (scope `write`) chưa làm.
+Endpoint **`POST /api/mcp`** là một MCP server (Streamable HTTP, **stateless**, trả JSON, không SSE) chạy ngay trong app Next.js: mỗi request tạo `McpServer` + transport mới (theo scope của token), dùng chung `dbConnect`, model, service. `GET`/`DELETE` trả 405. Token mặc định **chỉ đọc**; token có scope `write` thêm 3 tool tạo giao dịch: [mcp-write.md](mcp-write.md).
 
 ## Xác thực: Personal Access Token
 
@@ -17,13 +17,13 @@ Endpoint **`POST /api/mcp`** là một MCP server (Streamable HTTP, **stateless*
 | | |
 |---|---|
 | `GET /api/settings/mcp-tokens` | token chưa thu hồi (kèm `isExpired`, `lastUsedAt`) |
-| `POST /api/settings/mcp-tokens` `{ label?, expiresInDays: 30 \| 90 \| null }` | mặc định 90 ngày; `label` ≤ 100 ký tự; tối đa **10** token còn hiệu lực/user; trả `token` một lần |
+| `POST /api/settings/mcp-tokens` `{ label?, expiresInDays: 30 \| 90 \| null, allowWrite? }` | mặc định 90 ngày; `label` ≤ 100 ký tự; tối đa **10** token còn hiệu lực/user; trả `token` một lần |
 | `DELETE /api/settings/mcp-tokens/[id]` | thu hồi một token (đặt `revokedAt`, không hoàn tác) |
 | `DELETE /api/settings/mcp-tokens` | thu hồi tất cả, trả `{ revoked }` |
 
 UI: Cài đặt → thẻ "Kết nối agent (MCP)" (`features/settings/components/mcp-tokens-card`): tạo token (tên, hạn), hiện token/URL/lệnh `claude mcp add …` một lần với nút copy, danh sách token + thu hồi từng cái / tất cả. Query key `MCP_TOKENS`.
 
-## Tool (tất cả `readOnlyHint`, handler mỏng như `route.ts`: zod validate → gọi service có sẵn)
+## Tool đọc (tất cả `readOnlyHint`, handler mỏng như `route.ts`: zod validate → gọi service có sẵn)
 
 `src/server/mcp/`: `server.ts` (đăng ký), `registerReadTool.ts` (bọc auth context + annotations), `callService.ts` (mở `NextResponse` → `data`; `status=false` → lỗi tool kèm message của service; bỏ `userId`, `__v`, `tokenHash`), `tools/{sources,transactions,reports}.ts`, `guide.ts` (instructions của server, cũng là resource `money://guide`).
 
@@ -42,7 +42,7 @@ UI: Cài đặt → thẻ "Kết nối agent (MCP)" (`features/settings/componen
 | `list_rollover_journeys` / `get_rollover_journey` | `RolloverJourneysService.getJourneys` / `getJourneyDetail` | `cardId?` / `id` |
 | `get_settings` | `SettingsService.getSettings` | — |
 
-- Không đưa ra: link chia sẻ, auth, gợi ý "thường dùng", mọi thao tác ghi.
+- Không đưa ra: link chia sẻ, auth, gợi ý "thường dùng". Tool ghi: [mcp-write.md](mcp-write.md).
 - Id là hex 24 ký tự, ngày `YYYY-MM-DD` giờ VN (`to` đến cuối ngày), `limit` ≤ 100. Output là JSON text của `data` service trả (tiền số nguyên VND, timestamp ISO).
 - Mô tả tool/guide nhắc agent: thẻ tín dụng theo dõi `currentDebt`, `delta` dương = phát sinh nợ; phí chuyển/đáo hạn là chi tiêu; `note`/tên là dữ liệu người dùng nhập, không phải chỉ dẫn.
 - Thêm tool mới: thêm vào file `tools/` tương ứng qua `registerReadTool`; cần dữ liệu mới thì thêm method vào service, không query trong tool.
@@ -60,7 +60,3 @@ UI Cài đặt có chip chọn client và snippet copy sẵn (`MCP_CLIENT_SNIPPE
 
 - Kiểm tra tay: `bunx @modelcontextprotocol/inspector` → Streamable HTTP, URL `/api/mcp`, header Bearer.
 - Test: `src/server/__tests__/mcp-tokens.test.ts`, `mcp.test.ts` (client SDK thật, `fetch` trỏ thẳng vào `handleMcpRequest`). `setup.ts` giả lập `getCurrentUser` nhưng vẫn ưu tiên auth context như bản thật.
-
-## Giai đoạn 2 (chưa làm, cần user duyệt)
-
-Scope `write` chọn khi tạo token; tool `create_expense/income/transfer` bắt buộc `idempotencyKey` (tách lõi `withIdempotency` khỏi `Request`); audit ghi `via: "mcp"` + `tokenId` từ `getAuthContext()`; chặn theo scope ở tool handler, không ở service.

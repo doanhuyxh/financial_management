@@ -16,7 +16,7 @@ src/
     connectDb.ts              # Kết nối Mongo (cache global)
     models/*.model.ts         # Mongoose schema (xem database.md)
     services/*.service.ts     # Toàn bộ business logic — nguồn sự thật
-    mcp/                      # MCP server chỉ đọc cho agent ngoài: tool mỏng gọi service (business/mcp.md)
+    mcp/                      # MCP server cho agent ngoài: tool đọc + tool tạo (scope write), mỏng, gọi service (business/mcp.md, mcp-write.md)
     utils/                    # responseServer, pagination, monthRange, jwtUtil, getCurrentUser, authContext (userId cho request MCP), archived, money, ledgerBalance, safeRollback, idempotency, ledgerLock, transactionAudit...
     __tests__/                # bun test + Mongo in-memory (commands.md)
   libs/                       # Dùng phía client (một số utils dùng chung với server)
@@ -80,7 +80,7 @@ Agent MCP ──POST /api/mcp (Bearer mm_pat_…)──▶ server/mcp/handleMcpR
 
 ### Cache React Query
 
-Key ở `configQueryKey`. Mặc định (`tanstack-provider.tsx`): staleTime 30 giây, gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần, không giữ dữ liệu query trước ở mức global (chỉ list phân trang dùng `keepPreviousData`). Danh mục và nguồn tiền stale 5 phút (`QUERY_STALE_TIME`). Dữ liệu chỉ đổi qua mutation của chính app, nên dựa vào invalidate:
+Key ở `configQueryKey`. Mặc định (`tanstack-provider.tsx`): staleTime 30 giây, gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần, không giữ dữ liệu query trước ở mức global (chỉ list phân trang dùng `keepPreviousData`). Danh mục và nguồn tiền stale 5 phút (`QUERY_STALE_TIME`). Dữ liệu đổi chủ yếu qua mutation của chính app, nên dựa vào invalidate (ngoại lệ: agent MCP có scope write tạo giao dịch từ ngoài → `useGetSourcesOfMoney` bật `refetchOnWindowFocus`):
 
 | Mutation | Invalidate |
 |---|---|

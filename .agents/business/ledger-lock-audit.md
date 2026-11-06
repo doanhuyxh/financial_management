@@ -24,6 +24,7 @@
 
 - Một dòng cho mỗi lần **sửa** (chi tiêu, thu nhập) hoặc **xóa** (chi tiêu, thu nhập, chuyển tiền, đáo hạn) **thành công**. Tạo mới không ghi. Chuyển tiền và đáo hạn không có sửa.
 - `before` / `after` (null khi xóa) là snapshot các trường nghiệp vụ (`toAuditSnapshot`): `amount`, `feeAmount`, `paymentAmount`, `date` (ngày giao dịch, ISO), `note`, `categoryId`, `sourceOfMoneyId`, `fromSourceId`, `toSourceId`, `cardFeeType`, `provider`.
+- `via` (`web`/`mcp`) và `tokenId` lấy từ auth context. Giao dịch **tạo qua agent MCP** ghi thêm `action: CREATE` (`before: {}`, `after` = snapshot, `recordAgentCreateAudit`); tạo trên web không ghi ([mcp-write.md](mcp-write.md)). UI hiện badge "Tạo" + "qua agent".
 - Ghi bằng `recordTransactionAudit` **sau** khi thao tác chính xong; lỗi ghi chỉ `console.warn`, không làm hỏng response.
 - Xóa đáo hạn kèm `deletePayment=1` ghi 2 dòng: `CARD_ROLLOVER` và `TRANSFER` (khoản tự trả). `deleteTransferRecord` tự nó **không** ghi lịch sử vì còn được dùng để rollback khi tạo đáo hạn lỗi; nơi gọi tự ghi.
 - Không ghi cho bản ghi phụ: fee expense của chuyển tiền / đáo hạn (xóa theo bản ghi gốc).

@@ -27,7 +27,7 @@ import { parseMoney } from "../utils/money";
 import { parseTransactionDate } from "../utils/transactionDate";
 import { safeRollback } from "../utils/safeRollback";
 import { assertLedgerUnlocked } from "../utils/ledgerLock";
-import { recordTransactionAudit } from "../utils/transactionAudit";
+import { recordAgentCreateAudit, recordTransactionAudit } from "../utils/transactionAudit";
 import {
     TransactionAuditAction,
     TransactionAuditKind,
@@ -619,6 +619,11 @@ export class TransfersService {
 
         try {
             const populated = await createTransferRecord(user.userId, data);
+            await recordAgentCreateAudit({
+                userId: user.userId,
+                kind: TransactionAuditKind.TRANSFER,
+                created: populated,
+            });
             return successResponse(populated, "Chuyển tiền thành công");
         } catch (error: unknown) {
             const message =

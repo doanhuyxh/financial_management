@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 import TransactionAuditsModel from "@/server/models/transaction-audits.model";
-import type {
-    ITransactionAuditSnapshot,
+import {
     TransactionAuditAction,
-    TransactionAuditKind,
+    type ITransactionAuditSnapshot,
+    type TransactionAuditKind,
 } from "@/libs/interfaces/transactionAuditsData";
+import { getAuthContext } from "./authContext";
 
 /** Trường ngày giao dịch của từng loại, ghi vào snapshot dưới tên `date`. */
 const DATE_FIELDS = ["spentAt", "receivedAt", "transferredAt", "rolledAt"] as const;
@@ -53,26 +54,54 @@ export function toAuditSnapshot(doc: unknown): ITransactionAuditSnapshot {
 
 /**
  * Ghi một dòng lịch sử sau khi sửa/xóa thành công. Không bao giờ throw: lỗi chỉ `console.warn`,
- * vì thao tác chính đã xong và số dư đã đúng.
+ * vì thao tác chính đã xong và số dư đã đúng. Request MCP thì ghi kèm `via: "mcp"` + `tokenId`.
  */
 export async function recordTransactionAudit(entry: {
     userId: string;
     kind: TransactionAuditKind;
     refId: string | mongoose.Types.ObjectId;
     action: TransactionAuditAction;
-    before: unknown;
+    /** Bỏ trống khi tạo */
+    before?: unknown;
     after?: unknown;
 }) {
+    const auth = getAuthContext();
     try {
         await TransactionAuditsModel.create({
             userId: new mongoose.Types.ObjectId(entry.userId),
             kind: entry.kind,
             refId: new mongoose.Types.ObjectId(String(entry.refId)),
             action: entry.action,
-            before: toAuditSnapshot(entry.before),
+            before: entry.before ? toAuditSnapshot(entry.before) : {},
             after: entry.after ? toAuditSnapshot(entry.after) : null,
+            via: auth?.via ?? "web",
+            tokenId:
+                auth?.tokenId && mongoose.isValidObjectId(auth.tokenId)
+                    ? new mongoose.Types.ObjectId(auth.tokenId)
+                    : null,
         });
     } catch (error) {
         console.warn("[transaction-audit] Không ghi được lịch sử", entry.kind, entry.action, error);
     }
+}
+
+/**
+ * Giao dịch tạo qua agent (MCP) thì ghi một dòng "Tạo" để user thấy agent đã ghi gì.
+ * Tạo trên web không ghi (đã thấy ngay trên giao diện).
+ */
+export async function recordAgentCreateAudit(entry: {
+    userId: string;
+    kind: TransactionAuditKind;
+    created: unknown;
+}) {
+    if (getAuthContext()?.via !== "mcp") return;
+    const refId = (entry.created as { _id?: unknown } | null)?._id;
+    if (!refId) return;
+    await recordTransactionAudit({
+        userId: entry.userId,
+        kind: entry.kind,
+        refId: String(refId),
+        action: TransactionAuditAction.CREATE,
+        after: entry.created,
+    });
 }

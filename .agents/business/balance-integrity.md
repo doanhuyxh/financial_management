@@ -29,6 +29,8 @@ Mọi bước bù trừ thủ công trong 5 service ghi số dư đi qua `safeRo
 
 POST `/api/expenses`, `/api/incomes`, `/api/transfers`, `/api/card-rollovers` bọc `withIdempotency` (`server/utils/idempotency.ts`). Không có header thì chạy như thường. Có header (8–100 ký tự `[A-Za-z0-9_-]`): lần đầu giữ chỗ PENDING rồi chạy; **chỉ lưu response thành công**, lỗi thì xóa khóa (sửa body gửi lại cùng khóa được). Gửi lại → trả đúng response cũ kèm `Idempotent-Replayed: true`; đang chạy → 409; cùng khóa khác body → 422; PENDING quá 2 phút coi như bỏ. Collection `idempotencyKeys`, TTL 24 giờ.
 
+MCP (`create_*`) dùng chung lõi `runIdempotent(key, route, body, handler)` với khóa lấy từ tham số `idempotencyKey` thay header ([mcp-write.md](mcp-write.md)).
+
 Client: `useIdempotencyKey` (`libs/hooks/`) trong các hook `useCreateExpense/Income/Transfer/CardRollover` — giữ một khóa tới khi tạo thành công rồi đổi khóa.
 
 ## Đầu vào

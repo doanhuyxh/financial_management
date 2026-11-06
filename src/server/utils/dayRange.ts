@@ -23,6 +23,11 @@ export function startOfVietnamDay(date: Date) {
     return new Date(shifted - (((shifted % DAY_MS) + DAY_MS) % DAY_MS) - VN_OFFSET_MS);
 }
 
+/** Ngày YYYY-MM-DD theo giờ VN chứa thời điểm `date` (không phụ thuộc TZ server). */
+export function vietnamDayKey(date: Date) {
+    return new Date(startOfVietnamDay(date).getTime() + VN_OFFSET_MS).toISOString().slice(0, 10);
+}
+
 /** Nhận YYYY-MM-DD hoặc chuỗi ISO, trả ngày YYYY-MM-DD theo giờ VN; sai thì undefined. */
 function toVietnamDay(value: unknown): string | undefined {
     const day = normalizeDay(value);
@@ -30,7 +35,7 @@ function toVietnamDay(value: unknown): string | undefined {
     if (typeof value !== "string" || !value) return undefined;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return undefined;
-    return new Date(startOfVietnamDay(date).getTime() + VN_OFFSET_MS).toISOString().slice(0, 10);
+    return vietnamDayKey(date);
 }
 
 /**
@@ -43,9 +48,6 @@ export function buildListDateRange(from?: unknown, to?: unknown) {
 
 /** Ngày DD/MM/YYYY theo giờ VN (dùng trong thông báo lỗi phía server, không phụ thuộc TZ server). */
 export function formatVietnamDay(date: Date) {
-    const [year, month, day] = new Date(startOfVietnamDay(date).getTime() + VN_OFFSET_MS)
-        .toISOString()
-        .slice(0, 10)
-        .split("-");
+    const [year, month, day] = vietnamDayKey(date).split("-");
     return `${day}/${month}/${year}`;
 }

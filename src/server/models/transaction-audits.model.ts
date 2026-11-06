@@ -4,11 +4,12 @@ import {
     TransactionAuditAction,
     TransactionAuditKind,
     type ITransactionAuditSnapshot,
+    type TransactionAuditVia,
 } from "@/libs/interfaces/transactionAuditsData";
 
 /**
- * Lịch sử sửa/xóa giao dịch (chi tiêu, thu nhập, chuyển tiền, đáo hạn). Chỉ ghi sau khi thao tác
- * thành công; ghi lỗi không làm hỏng thao tác chính (`recordTransactionAudit`).
+ * Lịch sử sửa/xóa giao dịch (chi tiêu, thu nhập, chuyển tiền, đáo hạn), và lần tạo qua agent (MCP).
+ * Chỉ ghi sau khi thao tác thành công; ghi lỗi không làm hỏng thao tác chính (`recordTransactionAudit`).
  */
 export interface ITransactionAudit extends Document {
     userId: Types.ObjectId;
@@ -17,6 +18,8 @@ export interface ITransactionAudit extends Document {
     action: TransactionAuditAction;
     before: ITransactionAuditSnapshot;
     after: ITransactionAuditSnapshot | null;
+    via: TransactionAuditVia;
+    tokenId?: Types.ObjectId | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -29,6 +32,8 @@ const transactionAuditsSchema = new Schema<ITransactionAudit>(
         action: { type: String, enum: Object.values(TransactionAuditAction), required: true },
         before: { type: Schema.Types.Mixed, required: true },
         after: { type: Schema.Types.Mixed, default: null },
+        via: { type: String, enum: ["web", "mcp"], default: "web" },
+        tokenId: { type: Schema.Types.ObjectId, default: null },
     },
     { timestamps: true, minimize: false },
 );

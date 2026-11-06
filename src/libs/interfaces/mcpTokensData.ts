@@ -2,6 +2,8 @@
 
 export enum McpTokenScope {
     READ = "read",
+    /** Tạo chi tiêu / thu nhập / chuyển tiền qua MCP. Chỉ có khi user bật lúc tạo token. */
+    WRITE = "write",
 }
 
 /** Hạn dùng chọn được khi tạo token (số ngày, null = không hạn). */
@@ -41,6 +43,8 @@ export interface ICreatedMcpTokenData extends IMcpTokenData {
 export interface IFromMcpTokenData {
     label?: string;
     expiresInDays: McpTokenExpiryDays;
+    /** true: token có thêm scope `write` (mặc định chỉ đọc) */
+    allowWrite?: boolean;
 }
 
 export const MCP_SERVER_KEY = "money-manager";

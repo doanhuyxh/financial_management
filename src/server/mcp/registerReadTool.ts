@@ -9,7 +9,7 @@ export interface McpAuthExtra {
     tokenId: string;
 }
 
-interface ToolExtra {
+export interface ToolExtra {
     authInfo?: { scopes: string[]; extra?: Record<string, unknown> };
 }
 
@@ -21,11 +21,20 @@ export const daySchema = z
 export const pageSchema = z.number().int().min(1).optional().describe("Page number, starts at 1");
 export const limitSchema = z.number().int().min(1).max(100).optional().describe("Items per page, max 100");
 
-function readAuthContext(extra: ToolExtra): AuthContext | null {
+export function readAuthContext(extra: ToolExtra): AuthContext | null {
     const info = extra.authInfo;
     const auth = info?.extra as Partial<McpAuthExtra> | undefined;
     if (!info || !auth?.userId || !auth.tokenId) return null;
     return { userId: auth.userId, tokenId: auth.tokenId, scopes: info.scopes, via: "mcp" };
+}
+
+/** `registerTool` không đi qua generic của SDK (xem ghi chú TS2589 ở `registerReadTool`). */
+export function registerUntyped(server: McpServer) {
+    return server.registerTool.bind(server) as (
+        toolName: string,
+        toolConfig: Record<string, unknown>,
+        cb: unknown,
+    ) => RegisteredTool;
 }
 
 /**
@@ -47,13 +56,7 @@ export function registerReadTool<Shape extends z.ZodRawShape>(
         return runWithAuth(context, () => callService(() => run(args)));
     };
 
-    const register = server.registerTool.bind(server) as (
-        toolName: string,
-        toolConfig: Record<string, unknown>,
-        cb: unknown,
-    ) => RegisteredTool;
-
-    return register(
+    return registerUntyped(server)(
         name,
         {
             ...config,

@@ -5,7 +5,7 @@ import { DashboardService } from "@/server/services/dashboard.service";
 import { RolloverJourneysService } from "@/server/services/rollover-journeys.service";
 import { SettingsService } from "@/server/services/settings.service";
 import { SourcesOfMoneyService } from "@/server/services/sources-of-money.service";
-import { formatVietnamDay } from "@/server/utils/dayRange";
+import { vietnamDayKey } from "@/server/utils/dayRange";
 import { daySchema, limitSchema, objectIdSchema, pageSchema, registerReadTool } from "../registerReadTool";
 
 const monthInput = {
@@ -15,7 +15,7 @@ const monthInput = {
 
 /** Tháng mặc định theo giờ VN (giống route dashboard, nhưng không phụ thuộc TZ của process). */
 function resolveMonth(year?: number, month?: number) {
-    const [currentYear, currentMonth] = formatVietnamDay(new Date()).split("-").map(Number);
+    const [currentYear, currentMonth] = vietnamDayKey(new Date()).split("-").map(Number);
     return { year: year ?? currentYear, month: month ?? currentMonth };
 }
 
