@@ -29,7 +29,10 @@ export function toolJson(data: unknown): CallToolResult {
  * Mở response: thành công → JSON của `data`; thất bại → lỗi tool kèm message của service.
  * Lỗi ném ra (VD sai ObjectId) không lộ stack cho agent.
  */
-export async function callService(run: () => Promise<Response>): Promise<CallToolResult> {
+export async function callService(
+    run: () => Promise<Response>,
+    failureMessage = "Không đọc được dữ liệu. Kiểm tra lại tham số (id, ngày YYYY-MM-DD).",
+): Promise<CallToolResult> {
     try {
         const response = await run();
         const body = (await response.json()) as { status?: boolean; message?: string; data?: unknown };
@@ -39,6 +42,6 @@ export async function callService(run: () => Promise<Response>): Promise<CallToo
         return toolJson(body.data);
     } catch (error) {
         console.error("MCP: tool failed", error);
-        return toolError("Không đọc được dữ liệu. Kiểm tra lại tham số (id, ngày YYYY-MM-DD).");
+        return toolError(failureMessage);
     }
 }

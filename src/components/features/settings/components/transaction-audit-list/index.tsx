@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, History } from "lucide-react";
+import { Bot, ChevronLeft, ChevronRight, History } from "lucide-react";
 import ChoiceChips from "@/components/common/choice-chips";
 import { Badge } from "@/components/shadcn/ui/badge";
 import { Button } from "@/components/shadcn/ui/button";
@@ -100,21 +100,35 @@ function formatValue(
     return String(value);
 }
 
+const ACTION_BADGE_VARIANT: Record<TransactionAuditAction, "default" | "secondary" | "destructive"> = {
+    [TransactionAuditAction.CREATE]: "default",
+    [TransactionAuditAction.UPDATE]: "secondary",
+    [TransactionAuditAction.DELETE]: "destructive",
+};
+
 function AuditRow({ item, names }: { item: ITransactionAuditData; names: Record<string, string> }) {
     const isUpdate = item.action === TransactionAuditAction.UPDATE;
+    // Tạo: giá trị nằm ở `after`; xóa: ở `before`
+    const shown = item.action === TransactionAuditAction.CREATE ? item.after : item.before;
     const fields = FIELDS.filter((field) =>
         isUpdate
             ? formatValue(field, item.before, names) !== formatValue(field, item.after, names)
-            : item.before[field] !== undefined,
+            : shown?.[field] !== undefined,
     );
 
     return (
         <li className="flex flex-col gap-1.5 border-b py-3 last:border-b-0">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-                <Badge variant={isUpdate ? "secondary" : "destructive"}>
-                    {TRANSACTION_AUDIT_ACTION_LABELS[item.action]}
+                <Badge variant={ACTION_BADGE_VARIANT[item.action] ?? "secondary"}>
+                    {TRANSACTION_AUDIT_ACTION_LABELS[item.action] ?? item.action}
                 </Badge>
                 <span className="font-medium">{TRANSACTION_AUDIT_KIND_LABELS[item.kind]}</span>
+                {item.via === "mcp" ? (
+                    <Badge variant="outline" className="gap-1">
+                        <Bot />
+                        qua agent
+                    </Badge>
+                ) : null}
                 <span className="ml-auto text-xs text-muted-foreground">
                     {formatDate(item.createdAt, "DD/MM/YYYY HH:mm")}
                 </span>
@@ -139,7 +153,7 @@ function AuditRow({ item, names }: { item: ITransactionAuditData; names: Record<
                                         → {formatValue(field, item.after, names)}
                                     </>
                                 ) : (
-                                    formatValue(field, item.before, names)
+                                    formatValue(field, shown, names)
                                 )}
                             </dd>
                         </div>
@@ -173,7 +187,7 @@ export default function TransactionAuditList() {
                 </CardTitle>
                 <CardDescription>
                     Ghi lại giá trị trước và sau mỗi lần sửa hoặc xóa chi tiêu, thu nhập, chuyển tiền,
-                    đáo hạn.
+                    đáo hạn; và các giao dịch do agent (MCP) tạo.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">

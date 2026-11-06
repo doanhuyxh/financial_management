@@ -31,7 +31,7 @@ import { parseMoney } from "../utils/money";
 import { parseTransactionDate } from "../utils/transactionDate";
 import { safeRollback } from "../utils/safeRollback";
 import { assertLedgerUnlocked } from "../utils/ledgerLock";
-import { recordTransactionAudit } from "../utils/transactionAudit";
+import { recordAgentCreateAudit, recordTransactionAudit } from "../utils/transactionAudit";
 import {
     TransactionAuditAction,
     TransactionAuditKind,
@@ -323,6 +323,12 @@ export class ExpensesService {
                     created._id.toString(),
                     user.userId,
                 );
+                // Không throw (lỗi ghi lịch sử chỉ warn) nên không kéo theo rollback
+                await recordAgentCreateAudit({
+                    userId: user.userId,
+                    kind: TransactionAuditKind.EXPENSE,
+                    created: populated,
+                });
                 return successResponse(populated, "Tạo chi tiêu thành công");
             } catch (createError) {
                 const context = {

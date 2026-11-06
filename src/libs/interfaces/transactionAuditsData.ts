@@ -7,6 +7,8 @@ export enum TransactionAuditKind {
 }
 
 export enum TransactionAuditAction {
+    /** Chỉ ghi khi chi tiêu / thu nhập được tạo qua agent (MCP); tạo trên web không ghi */
+    CREATE = "CREATE",
     UPDATE = "UPDATE",
     DELETE = "DELETE",
 }
@@ -19,6 +21,7 @@ export const TRANSACTION_AUDIT_KIND_LABELS: Record<TransactionAuditKind, string>
 };
 
 export const TRANSACTION_AUDIT_ACTION_LABELS: Record<TransactionAuditAction, string> = {
+    [TransactionAuditAction.CREATE]: "Tạo",
     [TransactionAuditAction.UPDATE]: "Sửa",
     [TransactionAuditAction.DELETE]: "Xóa",
 };
@@ -39,14 +42,21 @@ export interface ITransactionAuditSnapshot {
     provider?: string;
 }
 
+/** Thao tác đến từ đâu; bản ghi cũ (trước khi có MCP) không có trường này = web. */
+export type TransactionAuditVia = "web" | "mcp";
+
 export interface ITransactionAuditData {
     _id: string;
     kind: TransactionAuditKind;
     refId: string;
     action: TransactionAuditAction;
+    /** `{}` khi tạo */
     before: ITransactionAuditSnapshot;
     /** null khi xóa */
     after: ITransactionAuditSnapshot | null;
+    via?: TransactionAuditVia;
+    /** Token MCP đã thực hiện (khi `via = "mcp"`) */
+    tokenId?: string | null;
     createdAt: string;
 }
 

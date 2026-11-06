@@ -32,6 +32,8 @@ export const useGetSourcesOfMoney = (query: IPaginatedSourcesOfMoneyQuery = {}) 
         queryFn: () => getSourcesOfMoney(query),
         placeholderData: keepPreviousData,
         staleTime: QUERY_STALE_TIME.REFERENCE,
+        // Số dư có thể đổi từ ngoài app (agent MCP tạo giao dịch): quay lại tab thì làm mới khi đã cũ
+        refetchOnWindowFocus: true,
     });
 };
 

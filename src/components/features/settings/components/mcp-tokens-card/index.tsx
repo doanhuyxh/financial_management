@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, Copy, KeyRound, Trash2, X } from "lucide-react";
+import { Bot, Copy, KeyRound, PenLine, Trash2, TriangleAlert, X } from "lucide-react";
 import ChoiceChips from "@/components/common/choice-chips";
 import { Alert, AlertDescription, AlertTitle } from "@/components/shadcn/ui/alert";
 import { Badge } from "@/components/shadcn/ui/badge";
@@ -16,6 +16,7 @@ import {
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/shadcn/ui/empty";
 import { Input } from "@/components/shadcn/ui/input";
 import { Spinner } from "@/components/shadcn/ui/spinner";
+import { Switch } from "@/components/shadcn/ui/switch";
 import { useSettingsContext } from "@/components/features/settings/context";
 import { notification } from "@/libs/hooks/useAppFeedback";
 import {
@@ -24,6 +25,7 @@ import {
     MCP_ENDPOINT_PATH,
     MCP_TOKEN_EXPIRY_OPTIONS,
     MCP_TOKEN_LABEL_MAX_LENGTH,
+    McpTokenScope,
     type IMcpTokenData,
     type McpTokenExpiryDays,
 } from "@/libs/interfaces/mcpTokensData";
@@ -96,6 +98,11 @@ function TokenItem({
                 <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
                     <span className="truncate">{token.label || "Token không tên"}</span>
                     <code className="font-mono text-xs text-muted-foreground">{token.prefix}…</code>
+                    {token.scopes.includes(McpTokenScope.WRITE) ? (
+                        <Badge variant="outline">Đọc + ghi</Badge>
+                    ) : (
+                        <Badge variant="secondary">Chỉ đọc</Badge>
+                    )}
                     {token.isExpired ? <Badge variant="secondary">Hết hạn</Badge> : null}
                 </span>
                 <span>Tạo lúc {formatDateTime(token.createdAt)}</span>
@@ -133,6 +140,7 @@ export default function McpTokensCard() {
     const [label, setLabel] = useState("");
     const [expiry, setExpiry] = useState(String(DEFAULT_MCP_TOKEN_EXPIRY_DAYS));
     const [clientId, setClientId] = useState(CLIENT_CHOICES[0].value);
+    const [allowWrite, setAllowWrite] = useState(false);
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const endpoint = `${origin}${MCP_ENDPOINT_PATH}`;
@@ -143,8 +151,12 @@ export default function McpTokensCard() {
         const ok = await handleCreateMcpToken({
             label: label.trim() || undefined,
             expiresInDays: toExpiryDays(expiry),
+            allowWrite,
         });
-        if (ok) setLabel("");
+        if (ok) {
+            setLabel("");
+            setAllowWrite(false);
+        }
     };
 
     return (
@@ -155,9 +167,9 @@ export default function McpTokensCard() {
                     Kết nối agent (MCP)
                 </CardTitle>
                 <CardDescription>
-                    Cho agent AI (Claude Code, Claude Desktop…) <strong>chỉ đọc</strong> dữ liệu tài
-                    chính của bạn qua MCP. Ai có token đều đọc được toàn bộ nguồn tiền và giao dịch:
-                    giữ token như mật khẩu.
+                    Cho agent AI (Claude Code, Codex…) đọc dữ liệu tài chính của bạn qua MCP, và nếu
+                    bạn bật, được <strong>tạo</strong> chi tiêu và thu nhập. Ai có token đều
+                    đọc được toàn bộ nguồn tiền và giao dịch: giữ token như mật khẩu.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -215,6 +227,22 @@ export default function McpTokensCard() {
                         value={expiry}
                         onChange={setExpiry}
                     />
+                    <label className="flex items-center gap-2 text-sm">
+                        <Switch checked={allowWrite} onCheckedChange={setAllowWrite} />
+                        <PenLine className="size-4 text-muted-foreground" />
+                        Cho phép tạo chi tiêu và thu nhập
+                    </label>
+                    {allowWrite ? (
+                        <Alert variant="destructive">
+                            <TriangleAlert />
+                            <AlertTitle>Agent sẽ thay đổi được số dư của bạn</AlertTitle>
+                            <AlertDescription>
+                                Agent chỉ tạo được chi tiêu, thu nhập mới (không chuyển tiền, không sửa, không xóa) và vẫn bị chặn bởi
+                                số dư, hạn mức, khóa sổ. Mỗi giao dịch agent tạo hiện trong tab Lịch sử
+                                với nhãn &quot;qua agent&quot;. Chỉ bật cho agent bạn tin.
+                            </AlertDescription>
+                        </Alert>
+                    ) : null}
                     <div>
                         <Button onClick={handleCreate} disabled={isCreatingMcpToken}>
                             {isCreatingMcpToken ? (

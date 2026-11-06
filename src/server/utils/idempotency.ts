@@ -6,7 +6,7 @@ import { getCurrentUser } from "./getCurrentUser";
 import { errorResponseWithStatusCode } from "./responseServer";
 
 export const IDEMPOTENCY_HEADER = "idempotency-key";
-const KEY_PATTERN = /^[A-Za-z0-9_-]{8,100}$/;
+export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{8,100}$/;
 /** Bản ghi PENDING quá lâu (tiến trình chết giữa chừng) thì coi như bỏ, cho chạy lại */
 const STALE_PENDING_MS = 2 * 60 * 1000;
 
@@ -20,11 +20,7 @@ function isDuplicateKeyError(error: unknown) {
 
 /**
  * Chống tạo trùng giao dịch khi client gửi lại cùng một yêu cầu (bấm đúp, mạng chập chờn).
- * Không có header thì chạy bình thường. Có header:
- * - lần đầu: giữ chỗ (PENDING), chạy `handler`; thành công thì lưu response, lỗi thì xóa khóa
- *   để người dùng sửa và gửi lại cùng khóa;
- * - lần sau: trả lại đúng response đã lưu (header `Idempotent-Replayed: true`);
- * - đang chạy: 409; cùng khóa nhưng body khác: 422.
+ * Web gửi khóa qua header `Idempotency-Key`; không có header thì chạy bình thường.
  */
 export async function withIdempotency(
     request: Request,
@@ -34,7 +30,24 @@ export async function withIdempotency(
 ): Promise<NextResponse> {
     const key = request.headers.get(IDEMPOTENCY_HEADER)?.trim();
     if (!key) return handler();
-    if (!KEY_PATTERN.test(key)) {
+    return runIdempotent(key, route, body, handler);
+}
+
+/**
+ * Lõi chống gửi trùng theo `key` (dùng chung cho header web và tham số `idempotencyKey` của MCP).
+ * Khóa thuộc về user hiện tại (`getCurrentUser()`):
+ * - lần đầu: giữ chỗ (PENDING), chạy `handler`; thành công thì lưu response, lỗi thì xóa khóa
+ *   để người dùng sửa và gửi lại cùng khóa;
+ * - lần sau: trả lại đúng response đã lưu (header `Idempotent-Replayed: true`);
+ * - đang chạy: 409; cùng khóa nhưng route/body khác: 422.
+ */
+export async function runIdempotent(
+    key: string,
+    route: string,
+    body: unknown,
+    handler: () => Promise<NextResponse>,
+): Promise<NextResponse> {
+    if (!IDEMPOTENCY_KEY_PATTERN.test(key)) {
         return errorResponseWithStatusCode("Idempotency-Key không hợp lệ", 400);
     }
 
@@ -59,7 +72,7 @@ export async function withIdempotency(
             responseBody?: unknown;
             createdAt: Date;
         }>();
-        if (!existing) return withIdempotency(request, route, body, handler);
+        if (!existing) return runIdempotent(key, route, body, handler);
         if (existing.route !== route || existing.bodyHash !== bodyHash) {
             return errorResponseWithStatusCode(
                 "Idempotency-Key đã dùng cho một yêu cầu khác",
@@ -74,7 +87,7 @@ export async function withIdempotency(
         }
         if (Date.now() - new Date(existing.createdAt).getTime() > STALE_PENDING_MS) {
             await IdempotencyKeysModel.deleteOne({ ...owner, status: IdempotencyStatus.PENDING });
-            return withIdempotency(request, route, body, handler);
+            return runIdempotent(key, route, body, handler);
         }
         return errorResponseWithStatusCode("Yêu cầu này đang được xử lý, vui lòng đợi", 409);
     }

@@ -135,7 +135,10 @@ export class McpTokensService {
             tokenHash: hashMcpToken(token),
             prefix: token.slice(0, DISPLAY_PREFIX_LENGTH),
             label,
-            scopes: [McpTokenScope.READ],
+            scopes:
+                data?.allowWrite === true
+                    ? [McpTokenScope.READ, McpTokenScope.WRITE]
+                    : [McpTokenScope.READ],
             expiresAt: expiresInDays ? new Date(Date.now() + expiresInDays * DAY_MS) : null,
         });
 

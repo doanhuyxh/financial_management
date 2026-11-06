@@ -36,6 +36,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 | Sửa đăng nhập, JWT, proxy | [.agents/business/auth.md](.agents/business/auth.md) |
 | Sửa gợi ý "thường dùng" trong form | [.agents/business/suggestions.md](.agents/business/suggestions.md) |
 | Sửa MCP server cho agent đọc dữ liệu, token cá nhân (`/api/mcp`) | [.agents/business/mcp.md](.agents/business/mcp.md) |
+| Sửa tool MCP ghi dữ liệu (scope `write`, tạo chi tiêu/thu nhập) | [.agents/business/mcp-write.md](.agents/business/mcp-write.md) |
 
 ## Luật không được vi phạm
 
