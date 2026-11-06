@@ -12,7 +12,7 @@
 | `/credit-card-compare` | `credit-card-compare` | So sánh thẻ tín dụng theo kịch bản sử dụng (chỉ tính phía client từ danh sách nguồn tiền) |
 | `/rollover-journey` | `rollover-journey` | Hành trình đáo hạn của một thẻ (`?cardId=`): số liệu, thanh tiến độ, biểu đồ, dòng thời gian, dự kiến, danh sách hành trình; ghi đáo hạn / kết thúc / sửa gốc ngay trên trang ([business/card-rollover.md](business/card-rollover.md)) |
 | `/categories` | `categories` | Danh mục, kéo-thả, lọc theo loại |
-| `/settings` | `settings` | Khóa sổ (mốc ngày), lịch sử sửa/xóa giao dịch ([business/ledger-lock-audit.md](business/ledger-lock-audit.md)), token kết nối agent MCP ([business/mcp.md](business/mcp.md)) |
+| `/settings` | `settings` | Tab chọn bằng `?tab=lock\|audit\|mcp` (mặc định `lock`, giá trị lạ về mặc định): Khóa sổ (mốc ngày), Lịch sử sửa/xóa giao dịch ([business/ledger-lock-audit.md](business/ledger-lock-audit.md)), Kết nối agent MCP ([business/mcp.md](business/mcp.md)) |
 | `/share/[token]` | `public-share` | **Public, không cần đăng nhập**: lịch sử giao dịch một nguồn qua link chia sẻ ([business/source-history.md](business/source-history.md)) |
 
 Ghi giao dịch nhanh: nút "Ghi giao dịch" trên header (desktop, `common/quick-add-button`), phím `N` ở mọi trang (`useHotkey`, bỏ qua khi đang gõ hoặc có modal/drawer mở) và nút "+" của bottom nav đều gọi `useQuickAdd` (`libs/hooks/useQuickAdd.tsx`). Form tạo có `TransactionTypeSwitch` ở tiêu đề để đổi Chi/Thu/Chuyển (dữ liệu đang nhập bị bỏ); `Ctrl/⌘+Enter` = lưu (`useSubmitShortcut`). Nút con mắt trên header bật chế độ ẩn số dư (`usePrivacyMode`, localStorage `privacy-mode`): gắn `data-privacy="on"` lên `<html>`, CSS làm mờ mọi `.money-value`.
