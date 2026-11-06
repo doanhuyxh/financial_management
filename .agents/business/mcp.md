@@ -49,7 +49,15 @@ UI: Cài đặt → thẻ "Kết nối agent (MCP)" (`features/settings/componen
 
 ## Kết nối
 
-- Claude Code: `claude mcp add --transport http money-manager <origin>/api/mcp --header "Authorization: Bearer mm_pat_…"` (UI tạo sẵn lệnh).
+UI Cài đặt có chip chọn client và snippet copy sẵn (`MCP_CLIENT_SNIPPETS` trong `libs/interfaces/mcpTokensData.ts`; client đổi định dạng thì sửa ở đó). Server key `money-manager`, URL `<origin>/api/mcp`, header `Authorization: Bearer mm_pat_…`:
+
+| Client | Cách thêm |
+|---|---|
+| Claude Code | `claude mcp add --transport http money-manager <url> --header "Authorization: Bearer …"`. Claude Desktop "Connectors" cần OAuth (chưa có) → dùng Claude Code hoặc cầu nối stdio `mcp-remote` |
+| Codex | `~/.codex/config.toml`: `[mcp_servers.money-manager]` với `url` và `http_headers = { Authorization = "Bearer …" }` (hoặc `bearer_token_env_var`) |
+| GitHub Copilot (VS Code) | `.vscode/mcp.json`: `servers.money-manager = { type: "http", url, headers: { Authorization: "Bearer ${input:money-manager-token}" } }` + `inputs` kiểu `promptString`/`password` — token không nằm trong file |
+| Antigravity | `~/.gemini/antigravity/mcp_config.json`: `mcpServers.money-manager = { serverUrl, headers }` — bắt buộc `serverUrl`, không nhận `url`; khởi động lại sau khi sửa |
+
 - Kiểm tra tay: `bunx @modelcontextprotocol/inspector` → Streamable HTTP, URL `/api/mcp`, header Bearer.
 - Test: `src/server/__tests__/mcp-tokens.test.ts`, `mcp.test.ts` (client SDK thật, `fetch` trỏ thẳng vào `handleMcpRequest`). `setup.ts` giả lập `getCurrentUser` nhưng vẫn ưu tiên auth context như bản thật.
 

@@ -20,15 +20,18 @@ import { useSettingsContext } from "@/components/features/settings/context";
 import { notification } from "@/libs/hooks/useAppFeedback";
 import {
     DEFAULT_MCP_TOKEN_EXPIRY_DAYS,
+    MCP_CLIENT_SNIPPETS,
     MCP_ENDPOINT_PATH,
     MCP_TOKEN_EXPIRY_OPTIONS,
     MCP_TOKEN_LABEL_MAX_LENGTH,
-    buildClaudeMcpAddCommand,
     type IMcpTokenData,
     type McpTokenExpiryDays,
 } from "@/libs/interfaces/mcpTokensData";
 
 const NEVER = "never";
+/** Chỗ điền token trong snippet khi chưa có token vừa tạo */
+const TOKEN_PLACEHOLDER = "<TOKEN>";
+const CLIENT_CHOICES = MCP_CLIENT_SNIPPETS.map((client) => ({ value: client.id, label: client.label }));
 
 // ChoiceChips cần value chuỗi nên "không hạn" dùng chuỗi riêng
 const EXPIRY_CHOICES = MCP_TOKEN_EXPIRY_OPTIONS.map((option) => ({
@@ -55,14 +58,18 @@ async function copyText(text: string, label: string) {
     }
 }
 
-function CopyRow({ label, value }: { label: string; value: string }) {
+function CopyRow({ label, value, multiline }: { label: string; value: string; multiline?: boolean }) {
     return (
         <div className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">{label}</span>
             <div className="flex items-start gap-2">
-                <code className="min-w-0 flex-1 rounded-md bg-muted px-2 py-1.5 font-mono text-xs break-all">
+                <pre
+                    className={`min-w-0 flex-1 rounded-md bg-muted px-2 py-1.5 font-mono text-xs ${
+                        multiline ? "overflow-x-auto whitespace-pre" : "whitespace-pre-wrap break-all"
+                    }`}
+                >
                     {value}
-                </code>
+                </pre>
                 <Button
                     variant="outline"
                     size="icon-sm"
@@ -125,9 +132,12 @@ export default function McpTokensCard() {
     } = useSettingsContext();
     const [label, setLabel] = useState("");
     const [expiry, setExpiry] = useState(String(DEFAULT_MCP_TOKEN_EXPIRY_DAYS));
+    const [clientId, setClientId] = useState(CLIENT_CHOICES[0].value);
 
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const endpoint = `${origin}${MCP_ENDPOINT_PATH}`;
+    const client = MCP_CLIENT_SNIPPETS.find((item) => item.id === clientId) ?? MCP_CLIENT_SNIPPETS[0];
+    const snippet = client.build(origin, createdMcpToken?.token ?? TOKEN_PLACEHOLDER);
 
     const handleCreate = async () => {
         const ok = await handleCreateMcpToken({
@@ -168,13 +178,25 @@ export default function McpTokensCard() {
                         <AlertDescription className="flex w-full flex-col gap-3">
                             <CopyRow label="Token" value={createdMcpToken.token} />
                             <CopyRow label="URL" value={endpoint} />
-                            <CopyRow
-                                label="Lệnh Claude Code"
-                                value={buildClaudeMcpAddCommand(origin, createdMcpToken.token)}
-                            />
                         </AlertDescription>
                     </Alert>
                 ) : null}
+
+                <div className="flex flex-col gap-2">
+                    <h4 className="text-sm font-semibold">Cấu hình cho agent</h4>
+                    <ChoiceChips options={CLIENT_CHOICES} value={clientId} onChange={setClientId} />
+                    <CopyRow
+                        label={client.kind === "command" ? "Lệnh" : "Nội dung file cấu hình"}
+                        value={snippet}
+                        multiline={client.kind === "file"}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        {client.hint}
+                        {!createdMcpToken && snippet.includes(TOKEN_PLACEHOLDER)
+                            ? ` Thay ${TOKEN_PLACEHOLDER} bằng token của bạn (tạo token mới nếu không còn giữ).`
+                            : null}
+                    </p>
+                </div>
 
                 <div className="flex flex-col gap-2">
                     <label htmlFor="mcp-token-label" className="text-sm text-muted-foreground">

@@ -55,7 +55,7 @@ Chạy bằng `bun scripts/<file>.ts` từ thư mục gốc (alias `@/` hoạt �
 - Dependency: `@modelcontextprotocol/sdk` (server + client cho test) và `zod` (schema input tool). Nghiệp vụ: [business/mcp.md](business/mcp.md).
 - `package.json` có `overrides.zod` ghim **một** bản zod cho cả project lẫn SDK. **Không gỡ:** SDK kéo zod 4 lồng riêng thì `tsc`/`next build` tràn bộ nhớ (TS2589) do so sánh kiểu zod v3/v4 chéo bản. Sau khi đổi dependency, kiểm tra `find node_modules -maxdepth 4 -path "*node_modules/zod/package.json"` chỉ ra đúng 1 dòng (bun không tự dọn thư mục lồng cũ; xóa tay rồi `bun install`).
 - Kiểm tra tay: `bun dev` → Cài đặt tạo token → `bunx @modelcontextprotocol/inspector`, chọn Streamable HTTP, URL `http://localhost:3000/api/mcp`, header `Authorization: Bearer mm_pat_…`.
-- Thêm vào Claude Code: `claude mcp add --transport http money-manager http://localhost:3000/api/mcp --header "Authorization: Bearer mm_pat_…"` (UI copy sẵn lệnh).
+- Thêm vào agent (Claude Code, Codex, Copilot VS Code, Antigravity): UI Cài đặt copy sẵn snippet cho từng client; định dạng từng client ghi ở [business/mcp.md](business/mcp.md#kết-nối).
 
 ## shadcn + Animate UI
 
