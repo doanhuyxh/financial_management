@@ -110,8 +110,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
     // api/public/ và share/: link chia sẻ lịch sử nguồn tiền, xem không cần đăng nhập
+    // api/mcp: agent MCP không có cookie, route tự xác thực Bearer token (quản lý token ở api/settings/mcp-tokens, vẫn qua proxy)
     matcher: [
         // manifest.webmanifest + icon: trình duyệt tải manifest không kèm cookie, chặn thì không cài được PWA
-        "/((?!api/auth|api/public/|share/|public|_next|favicon|robots.txt|sitemap.xml|images|static|manifest.webmanifest|apple-touch-icon|icon-).*)",
+        "/((?!api/auth|api/public/|api/mcp|share/|public|_next|favicon|robots.txt|sitemap.xml|images|static|manifest.webmanifest|apple-touch-icon|icon-).*)",
     ],
 };

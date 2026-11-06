@@ -5,13 +5,22 @@
 import { afterAll, beforeAll, beforeEach, mock } from "bun:test";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
+import { getAuthContext } from "@/server/utils/authContext";
 
 export const testAuth = { userId: new mongoose.Types.ObjectId().toString() };
 
+function getUserFromAuthContext() {
+    const context = getAuthContext();
+    return context ? { userId: context.userId, email: null, phoneNumber: null } : undefined;
+}
+
 mock.module("@/server/connectDb", () => ({ default: async () => mongoose }));
+// Như bản thật: request MCP (runWithAuth) lấy user từ auth context, còn lại giả lập cookie = testAuth
+const fakeCookieUser = () => (testAuth.userId ? { userId: testAuth.userId } : null);
 mock.module("@/server/utils/getCurrentUser", () => ({
-    getCurrentUser: async () => (testAuth.userId ? { userId: testAuth.userId } : null),
-    validateAccessToken: async () => (testAuth.userId ? { userId: testAuth.userId } : null),
+    getCurrentUser: async () => getUserFromAuthContext() ?? fakeCookieUser(),
+    getUserFromAuthContext,
+    validateAccessToken: async () => fakeCookieUser(),
     invalidateTokenVersionCache: () => {},
 }));
 

@@ -20,6 +20,7 @@ MongoDB qua Mongoose 9. Kết nối: `src/server/connectDb.ts` (cache trên `glo
 | TransactionAudit | `transactionAudits` | userId, kind (`EXPENSE`/`INCOME`/`TRANSFER`/`CARD_ROLLOVER`), refId, action (`UPDATE`/`DELETE`), before, after (snapshot, `ledger-lock-audit.md`) | `{userId, createdAt: -1}`, `{userId, kind, createdAt: -1}` |
 | IdempotencyKey | `idempotencyKeys` | userId, key, route, bodyHash, status (`PENDING`/`DONE`), responseStatus, responseBody | `{userId, key}` unique, TTL 24 giờ trên `createdAt` |
 | ShareLink | `shareLinks` | userId, sourceOfMoneyId, tokenHash (SHA-256 của token), label, from/to (`YYYY-MM-DD`), expiresAt, revokedAt, viewCount, lastViewedAt ([business/source-history.md](business/source-history.md)) | `tokenHash` unique, `{userId, sourceOfMoneyId, createdAt: -1}` |
+| McpToken | `mcpTokens` | userId, tokenHash (SHA-256 của token `mm_pat_…`), prefix (11 ký tự đầu để nhận biết), label, scopes (`["read"]`), expiresAt, revokedAt, lastUsedAt ([business/mcp.md](business/mcp.md)) | `tokenHash` unique, `{userId, revokedAt, createdAt: -1}` |
 
 `SourceOfMoney.type`: `BANK`, `CASH`, `E_WALLET`, `CREDIT_CARD`, `OTHER`. Ý nghĩa nghiệp vụ của từng trường: [business/sources-of-money.md](business/sources-of-money.md), phí thẻ: [business/credit-card-fees.md](business/credit-card-fees.md).
 
