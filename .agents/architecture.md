@@ -17,7 +17,7 @@ src/
     models/*.model.ts         # Mongoose schema (xem database.md)
     services/*.service.ts     # Toàn bộ business logic — nguồn sự thật
     mcp/                      # MCP server cho agent ngoài: tool đọc + tool tạo (scope write), mỏng, gọi service (business/mcp.md, mcp-write.md)
-    utils/                    # responseServer, pagination, monthRange, jwtUtil, getCurrentUser, authContext (userId cho request MCP), archived, money, ledgerBalance, safeRollback, idempotency, ledgerLock, transactionAudit...
+    utils/                    # responseServer, pagination, monthRange, jwtUtil, getCurrentUser, authContext (userId cho request MCP), archived, money, ledgerBalance, safeRollback, idempotency, ledgerLock, transactionAudit, depositRates/ (fetch + parse trang lãi suất ngân hàng, business/deposit-rate-compare.md)...
     __tests__/                # bun test + Mongo in-memory (commands.md)
   libs/                       # Dùng phía client (một số utils dùng chung với server)
     networkApi/*.api.ts       # Hàm gọi API

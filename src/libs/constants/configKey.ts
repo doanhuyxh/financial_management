@@ -27,6 +27,7 @@ export const configQueryKey = {
 	SETTINGS: "settings",
 	TRANSACTION_AUDITS: "transaction-audits",
 	MCP_TOKENS: "mcp-tokens",
+	DEPOSIT_RATES: "deposit-rates",
 }
 
 export const configSessionKey = {
@@ -37,6 +38,7 @@ export const configLocalStorageKey = {
 	SOURCES_HIDE_EMPTY: "sources-of-money-hide-empty",
 	CREDIT_CARD_COMPARE_SCENARIO: "credit-card-compare-scenario",
 	CREDIT_CARD_COMPARE_HIDDEN_CARDS: "credit-card-compare-hidden-cards",
+	DEPOSIT_RATE_COMPARE_SCENARIO: "deposit-rate-compare-scenario",
 	DASHBOARD_CARD_FEE_HIDDEN_COLUMNS: "dashboard-card-fee-hidden-columns",
 	/** Chế độ ẩn số dư (làm mờ số tiền) */
 	PRIVACY_MODE: "privacy-mode",

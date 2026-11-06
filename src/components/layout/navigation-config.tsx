@@ -3,6 +3,7 @@ import {
     CreditCardIcon,
     LandmarkIcon,
     LayoutGridIcon,
+    PiggyBankIcon,
     ReceiptIcon,
     RefreshCwIcon,
     SettingsIcon,
@@ -56,6 +57,11 @@ export const sidebarConfig: SidebarConfig = {
             title: "Thẻ tín dụng",
             url: MENU_KEY.CREDIT_CARD_COMPARE,
             icon: <CreditCardIcon />,
+        },
+        {
+            title: "Lãi suất",
+            url: MENU_KEY.DEPOSIT_RATE_COMPARE,
+            icon: <PiggyBankIcon />,
         },
         {
             title: "Đáo hạn",

@@ -18,6 +18,7 @@
 | Dashboard (chi tiêu, dòng tiền, tài sản, dư nợ) | [dashboard.md](dashboard.md) |
 | Bảng phí thẻ trên dashboard | [dashboard-card-fees.md](dashboard-card-fees.md) |
 | Trang so sánh thẻ | [card-compare.md](card-compare.md) |
+| So sánh lãi suất tiết kiệm, bộ lấy lãi suất từ trang ngân hàng | [deposit-rate-compare.md](deposit-rate-compare.md) |
 | Đăng nhập, JWT, proxy, phiên | [auth.md](auth.md) |
 | Gợi ý "thường dùng" trong form | [suggestions.md](suggestions.md) |
 | MCP server cho agent khác đọc dữ liệu, token cá nhân | [mcp.md](mcp.md) |
