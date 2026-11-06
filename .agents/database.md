@@ -21,6 +21,8 @@ MongoDB qua Mongoose 9. Kết nối: `src/server/connectDb.ts` (cache trên `glo
 | IdempotencyKey | `idempotencyKeys` | userId, key, route, bodyHash, status (`PENDING`/`DONE`), responseStatus, responseBody | `{userId, key}` unique, TTL 24 giờ trên `createdAt` |
 | ShareLink | `shareLinks` | userId, sourceOfMoneyId, tokenHash (SHA-256 của token), label, from/to (`YYYY-MM-DD`), expiresAt, revokedAt, viewCount, lastViewedAt ([business/source-history.md](business/source-history.md)) | `tokenHash` unique, `{userId, sourceOfMoneyId, createdAt: -1}` |
 | McpToken | `mcpTokens` | userId, tokenHash (SHA-256 của token `mm_pat_…`), prefix (11 ký tự đầu để nhận biết), label, scopes (`["read"]` hoặc `["read","write"]`), expiresAt, revokedAt, lastUsedAt ([business/mcp.md](business/mcp.md)) | `tokenHash` unique, `{userId, revokedAt, createdAt: -1}` |
+| DepositRateSnapshot | `depositRateSnapshots` | **Không có userId** (lãi suất ngân hàng công khai, dùng chung; chỉ bộ lấy dữ liệu ghi): key (`vcb:online`…), bankCode (VietQR), bankName, product, sourceUrl, tiers `[{minAmount, rates:{"12":5.4}}]`, fetchedAt, lastAttemptAt, lastError ([business/deposit-rate-compare.md](business/deposit-rate-compare.md)) | `key` unique |
+| DepositRate | `depositRates` | userId, bankCode, bankName, product, tiers (1 bậc, `minAmount 0`) — lãi suất user tự nhập | `{userId, createdAt: 1}` |
 
 `SourceOfMoney.type`: `BANK`, `CASH`, `E_WALLET`, `CREDIT_CARD`, `OTHER`. Ý nghĩa nghiệp vụ của từng trường: [business/sources-of-money.md](business/sources-of-money.md), phí thẻ: [business/credit-card-fees.md](business/credit-card-fees.md).
 

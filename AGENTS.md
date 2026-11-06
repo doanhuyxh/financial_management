@@ -33,6 +33,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 | Sửa dashboard | [.agents/business/dashboard.md](.agents/business/dashboard.md) |
 | Sửa bảng phí thẻ trên dashboard | [.agents/business/dashboard-card-fees.md](.agents/business/dashboard-card-fees.md) |
 | Sửa trang so sánh thẻ | [.agents/business/card-compare.md](.agents/business/card-compare.md) |
+| Sửa so sánh lãi suất tiết kiệm, bộ lấy lãi suất từ trang ngân hàng | [.agents/business/deposit-rate-compare.md](.agents/business/deposit-rate-compare.md) |
 | Sửa đăng nhập, JWT, proxy | [.agents/business/auth.md](.agents/business/auth.md) |
 | Sửa gợi ý "thường dùng" trong form | [.agents/business/suggestions.md](.agents/business/suggestions.md) |
 | Sửa MCP server cho agent đọc dữ liệu, token cá nhân (`/api/mcp`) | [.agents/business/mcp.md](.agents/business/mcp.md) |
@@ -40,7 +41,7 @@ File này chỉ là bộ định tuyến. Tài liệu thật nằm trong `.agent
 
 ## Luật không được vi phạm
 
-1. Mọi query lọc theo `userId` từ JWT; không lấy `userId` từ body. Ngoại lệ: API `/api/public/*` lấy `userId` từ ShareLink tìm theo token (xem `source-history.md`); `POST /api/mcp` lấy `userId` từ Personal Access Token đã verify, đưa vào service qua `runWithAuth` (xem `mcp.md`).
+1. Mọi query lọc theo `userId` từ JWT; không lấy `userId` từ body. Ngoại lệ: API `/api/public/*` lấy `userId` từ ShareLink tìm theo token (xem `source-history.md`); `POST /api/mcp` lấy `userId` từ Personal Access Token đã verify, đưa vào service qua `runWithAuth` (xem `mcp.md`). Lãi suất ngân hàng tự lấy (`depositRateSnapshots`) là dữ liệu công khai dùng chung, không có `userId` (xem `deposit-rate-compare.md`).
 2. Không dùng Mongo transaction. Cập nhật số dư bằng `$inc` với điều kiện trong filter, có rollback thủ công — giữ nguyên thứ tự rollback khi sửa.
 3. Business logic chỉ nằm trong `src/server/services/`; `route.ts` chỉ parse và gọi service.
 4. 1 component = 1 folder `kebab-case` có `index.tsx`. Ưu tiên shadcn (`src/components/shadcn/ui`) + lucide-react. **Không viết UI mới bằng antd** — đang gỡ dần (xem [.agents/conventions.md](.agents/conventions.md)).
