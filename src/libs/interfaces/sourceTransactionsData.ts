@@ -78,6 +78,28 @@ export interface ISourceTransactionQuery {
     to?: string;
 }
 
+/**
+ * Tổng tiền một ngày (giờ VN) theo loại, dùng cho biểu đồ cột trong modal lịch sử.
+ * Giá trị là độ lớn không dấu; đáo hạn là số tiền được đáo, không phải phí.
+ */
+export interface ISourceDailyTotal {
+    /** YYYY-MM-DD */
+    date: string;
+    expense: number;
+    income: number;
+    /** Chuyển đi + chuyển đến */
+    transfer: number;
+    adjustment: number;
+    rollover: number;
+}
+
+export interface ISourceDailyTotalsResponse {
+    /** YYYY-MM */
+    month: string;
+    /** Đủ mọi ngày trong tháng, kể cả ngày không có giao dịch. */
+    days: ISourceDailyTotal[];
+}
+
 /** Dòng lịch sử trên link chia sẻ public: chỉ thời gian, số tiền và nội dung. */
 export interface IPublicSourceTransactionData {
     occurredAt: string;

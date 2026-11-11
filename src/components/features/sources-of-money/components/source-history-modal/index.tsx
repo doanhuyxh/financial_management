@@ -7,6 +7,7 @@ import Segmented, { type ISegmentedOption } from "@/components/common/segmented"
 import SourceTransactionList from "@/components/common/source-transaction-list";
 import Tag, { type TagColor } from "@/components/common/tag";
 import { Button } from "@/components/shadcn/ui/button";
+import SourceDailyChart from "@/components/features/sources-of-money/components/source-daily-chart";
 import SourceReconcilePanel from "@/components/features/sources-of-money/components/source-reconcile-panel";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import { CARD_FEE_TYPE_LABELS } from "@/libs/interfaces/expensesData";
@@ -173,6 +174,15 @@ export default function SourceHistoryModal() {
                             </p>
                         </div>
                     </div>
+                ) : null}
+                {historySource ? (
+                    <SourceDailyChart
+                        // Đổi khoảng ngày lọc thì biểu đồ nhảy về tháng của ngày bắt đầu
+                        key={`${historySource._id}-${historyRange.from ?? ""}`}
+                        sourceId={historySource._id}
+                        isCreditCard={isCreditCard}
+                        initialDay={historyRange.from}
+                    />
                 ) : null}
             </div>
             <SourceTransactionList

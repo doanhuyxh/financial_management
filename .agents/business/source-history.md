@@ -22,6 +22,7 @@
 - Response: `{ items, pagination, summary: { increase, decrease } }` (tổng delta dương / âm trong bộ lọc). UI ghi nhãn "Tiền vào/Tiền ra" cho nguồn thường, "Phát sinh nợ/Giảm nợ" cho thẻ.
 - Sắp xếp `occurredAt desc, createdAt desc, _id desc`.
 - Query key `[SOURCES_OF_MONEY, "transactions", id, query]`: mọi mutation đã invalidate `SOURCES_OF_MONEY` nên tự làm mới.
+- **Biểu đồ theo ngày** (`source-daily-chart`, trong modal dưới ô tổng): `GET /api/sources-of-money/[id]/transactions/daily?month=YYYY-MM` → `{ month, days: [{ date, expense, income, transfer, adjustment, rollover }] }`, đủ mọi ngày của tháng (giờ +07:00), dùng chung các nhánh `$unionWith` với danh sách (`querySourceDailyTotals`). Giá trị là độ lớn không dấu: |delta| cho chi/thu/chuyển (đi + đến gộp)/điều chỉnh; đáo hạn lấy **số tiền đáo** (`rolloverAmount`), không phải phí. Không theo bộ lọc loại; tháng mặc định là tháng của "Từ ngày" (không có thì tháng hiện tại), đổi bằng ô chọn tháng riêng. Cột Đáo hạn chỉ hiện với thẻ. Vẽ bằng `@ant-design/plots` `Column` (group); mobile cuộn ngang.
 - **Tổng delta bằng số dư hiện tại** khi nguồn có sổ cái đầy đủ (`ledgerCompleteAt`; nguồn cũ cần chạy `scripts/backfill-opening-balance.ts`). Nút "Đối soát" trong modal so hai số này ([balance-integrity.md](balance-integrity.md)). Chưa làm "số dư sau mỗi giao dịch".
 
 ## Link chia sẻ public

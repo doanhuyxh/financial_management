@@ -6,6 +6,7 @@ import type {
     IShareLinkData,
 } from "@/libs/interfaces/shareLinksData";
 import type {
+    ISourceDailyTotalsResponse,
     ISourceTransactionQuery,
     ISourceTransactionsResponse,
 } from "@/libs/interfaces/sourceTransactionsData";
@@ -78,6 +79,13 @@ export const getSourceTransactions = async (
     const qs = params.toString();
     return fetcherBackEnd<ApiResponse<ISourceTransactionsResponse>>(
         `/sources-of-money/${sourceId}/transactions${qs ? `?${qs}` : ""}`,
+        { method: "GET" },
+    );
+};
+
+export const getSourceDailyTotals = async (sourceId: string, month: string) => {
+    return fetcherBackEnd<ApiResponse<ISourceDailyTotalsResponse>>(
+        `/sources-of-money/${sourceId}/transactions/daily?month=${encodeURIComponent(month)}`,
         { method: "GET" },
     );
 };

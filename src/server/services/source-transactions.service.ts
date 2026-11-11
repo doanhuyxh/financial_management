@@ -10,6 +10,8 @@ import CategoriesModel from "@/server/models/categories.model";
 import {
     SourceTransactionFilter,
     SourceTransactionKind,
+    type ISourceDailyTotal,
+    type ISourceDailyTotalsResponse,
     type ISourceTransactionQuery,
     type ISourceTransactionSummary,
 } from "@/libs/interfaces/sourceTransactionsData";
@@ -56,14 +58,14 @@ export interface ISourceTransactionsOptions {
     internal: boolean;
 }
 
-/**
- * Gộp mọi biến động của một nguồn tiền thành một danh sách theo thời gian.
- * `delta` là biến động số dư (nguồn thường) hoặc dư nợ (thẻ): thẻ đảo dấu so với nguồn thường.
- * Phí chuyển tiền và phí đáo hạn (expense `skipBalanceAdjust`) không thành dòng riêng vì đã nằm
- * trong transfer / đáo hạn gốc.
- */
-export async function querySourceTransactions(options: ISourceTransactionsOptions) {
-    const { kind, internal, page, limit } = options;
+type BranchOptions = Pick<
+    ISourceTransactionsOptions,
+    "userId" | "sourceId" | "sourceType" | "kind" | "from" | "to" | "internal"
+>;
+
+/** Mỗi nhánh `$unionWith` chiếu một loại giao dịch về cùng dạng dòng lịch sử. */
+function buildSourceTransactionBranches(options: BranchOptions): Branch[] {
+    const { kind, internal } = options;
     const userId = new mongoose.Types.ObjectId(options.userId);
     const sourceId = new mongoose.Types.ObjectId(options.sourceId);
     const sign = options.sourceType === SourcesOfMoneyType.CREDIT_CARD ? -1 : 1;
@@ -207,6 +209,33 @@ export async function querySourceTransactions(options: ISourceTransactionsOption
         });
     }
 
+    return branches;
+}
+
+/** Ghép các nhánh thành pipeline `$unionWith` bắt đầu từ collection của nhánh đầu. */
+function unionBranches(branches: Branch[]) {
+    const [first, ...rest] = branches;
+    return {
+        model: first.model,
+        stages: [
+            ...first.pipeline,
+            ...rest.map((branch) => ({
+                $unionWith: { coll: branch.model.collection.name, pipeline: branch.pipeline },
+            })),
+        ] as PipelineStage[],
+    };
+}
+
+/**
+ * Gộp mọi biến động của một nguồn tiền thành một danh sách theo thời gian.
+ * `delta` là biến động số dư (nguồn thường) hoặc dư nợ (thẻ): thẻ đảo dấu so với nguồn thường.
+ * Phí chuyển tiền và phí đáo hạn (expense `skipBalanceAdjust`) không thành dòng riêng vì đã nằm
+ * trong transfer / đáo hạn gốc.
+ */
+export async function querySourceTransactions(options: ISourceTransactionsOptions) {
+    const { internal, page, limit } = options;
+    const branches = buildSourceTransactionBranches(options);
+
     const emptySummary: ISourceTransactionSummary = { increase: 0, decrease: 0 };
     if (branches.length === 0) {
         return { items: [], total: 0, summary: emptySummary };
@@ -249,16 +278,13 @@ export async function querySourceTransactions(options: ISourceTransactionsOption
           ]
         : [{ $project: { _id: 0, occurredAt: 1, delta: 1, note: 1 } }];
 
-    const [first, ...rest] = branches;
-    const [result] = await first.model.aggregate<{
+    const union = unionBranches(branches);
+    const [result] = await union.model.aggregate<{
         items: unknown[];
         total: { count: number }[];
         summary: ISourceTransactionSummary[];
     }>([
-        ...first.pipeline,
-        ...rest.map((branch) => ({
-            $unionWith: { coll: branch.model.collection.name, pipeline: branch.pipeline },
-        })),
+        ...union.stages,
         { $sort: { occurredAt: -1, createdAt: -1, _id: -1 } },
         {
             $facet: {
@@ -287,6 +313,87 @@ export async function querySourceTransactions(options: ISourceTransactionsOption
         total: result?.total[0]?.count ?? 0,
         summary: result?.summary[0] ?? emptySummary,
     };
+}
+
+const MONTH_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/;
+
+/** Loại giao dịch của dòng lịch sử → cột trên biểu đồ theo ngày (chuyển đi/đến gộp làm một). */
+const DAILY_FIELD_BY_KIND: Record<SourceTransactionKind, keyof Omit<ISourceDailyTotal, "date">> = {
+    [SourceTransactionKind.EXPENSE]: "expense",
+    [SourceTransactionKind.INCOME]: "income",
+    [SourceTransactionKind.TRANSFER_OUT]: "transfer",
+    [SourceTransactionKind.TRANSFER_IN]: "transfer",
+    [SourceTransactionKind.ADJUSTMENT]: "adjustment",
+    [SourceTransactionKind.ROLLOVER]: "rollover",
+};
+
+/**
+ * Tổng tiền theo ngày (giờ VN) và theo loại trong một tháng, đủ mọi ngày của tháng.
+ * Giá trị là độ lớn, không dấu: chi/thu/chuyển/điều chỉnh lấy |delta|; đáo hạn lấy số tiền
+ * được đáo (`rolloverAmount`), vì delta của đáo hạn chỉ là phí.
+ */
+export async function querySourceDailyTotals(
+    options: Omit<BranchOptions, "kind" | "from" | "to" | "internal"> & { month: string },
+): Promise<ISourceDailyTotal[]> {
+    const [, yearText, monthText] = MONTH_PATTERN.exec(options.month) ?? [];
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const prefix = options.month;
+
+    const days: ISourceDailyTotal[] = Array.from({ length: daysInMonth }, (_, index) => ({
+        date: `${prefix}-${String(index + 1).padStart(2, "0")}`,
+        expense: 0,
+        income: 0,
+        transfer: 0,
+        adjustment: 0,
+        rollover: 0,
+    }));
+
+    const branches = buildSourceTransactionBranches({
+        ...options,
+        from: days[0].date,
+        to: days[daysInMonth - 1].date,
+        internal: true,
+    });
+    const union = unionBranches(branches);
+    const rows = await union.model.aggregate<{
+        _id: { date: string; kind: SourceTransactionKind };
+        total: number;
+    }>([
+        ...union.stages,
+        {
+            $group: {
+                _id: {
+                    date: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: "$occurredAt",
+                            timezone: "+07:00",
+                        },
+                    },
+                    kind: "$kind",
+                },
+                total: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ["$kind", SourceTransactionKind.ROLLOVER] },
+                            { $ifNull: ["$rolloverAmount", 0] },
+                            { $abs: "$delta" },
+                        ],
+                    },
+                },
+            },
+        },
+    ]);
+
+    const byDate = new Map(days.map((day) => [day.date, day]));
+    for (const row of rows) {
+        const day = byDate.get(row._id.date);
+        const field = DAILY_FIELD_BY_KIND[row._id.kind];
+        if (day && field) day[field] += row.total;
+    }
+    return days;
 }
 
 export function normalizeTransactionQuery(query: ISourceTransactionQuery) {
@@ -334,5 +441,32 @@ export class SourceTransactionsService {
             pagination: buildPagination(total, normalized.page, normalized.limit),
             summary,
         });
+    }
+
+    static async getSourceDailyTotals(sourceId: string, month: string | null) {
+        await dbConnect();
+        const user = await getCurrentUser();
+        if (!user?.userId) return unauthorizedResponse();
+
+        if (!month || !MONTH_PATTERN.test(month)) {
+            return errorResponseWithStatusCode("Tháng không hợp lệ (YYYY-MM)", 400);
+        }
+        if (!mongoose.isValidObjectId(sourceId)) {
+            return errorResponseWithStatusCode("Không tìm thấy nguồn tiền", 404);
+        }
+        const source = await SourcesOfMoneyModel.findOne({ _id: sourceId, userId: user.userId })
+            .select("type")
+            .lean<{ type: SourcesOfMoneyType }>();
+        if (!source) {
+            return errorResponseWithStatusCode("Không tìm thấy nguồn tiền", 404);
+        }
+
+        const days = await querySourceDailyTotals({
+            userId: user.userId,
+            sourceId,
+            sourceType: source.type,
+            month,
+        });
+        return successResponse<ISourceDailyTotalsResponse>({ month, days });
     }
 }
