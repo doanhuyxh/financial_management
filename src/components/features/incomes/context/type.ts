@@ -4,7 +4,7 @@ import type {
     IFromIncomesData,
     IIncomesData,
 } from "@/libs/interfaces/incomesData";
-import type { TablePaginationConfig } from "antd/es/table";
+import type { IPageChange } from "@/components/common/pagination";
 
 export interface IIncomesContextProps {
     // values
@@ -33,7 +33,7 @@ export interface IIncomesContextProps {
     handleSourceFilter: (value: string) => void;
     handleDateRange: (range: [Dayjs | null, Dayjs | null] | null) => void;
     handleChangePage: (page: number) => void;
-    handleTableChange: (pager: TablePaginationConfig) => void;
+    handleTableChange: (pager: IPageChange) => void;
     openCreateModal: () => void;
     openEditModal: (record: IIncomesData) => void;
     closeModal: () => void;

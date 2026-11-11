@@ -1,7 +1,7 @@
 "use client";
 
-import { Select } from "antd";
 import type { Dayjs } from "dayjs";
+import Combobox from "@/components/common/combobox";
 import TransactionDateRange from "@/components/common/transaction-date-range";
 import { useTransfersContext } from "@/components/features/transfers/context";
 import { useSourceOptions } from "@/libs/hooks/customHooks/useSourcesOfMoney";
@@ -22,23 +22,23 @@ export default function TransfersFilterDrawer({ layout }: { layout: "desktop" | 
 
     return (
         <>
-            <Select
+            <Combobox
                 value={fromSourceFilter}
-                onChange={handleFromSourceFilter}
+                onChange={(value) => handleFromSourceFilter(value ?? "")}
                 options={fromOptions}
                 className={selectClass}
-                popupMatchSelectWidth={false}
-                showSearch
-                optionFilterProp="label"
+                popupMatchWidth={false}
+                searchable
+                aria-label="Lọc theo nguồn chuyển"
             />
-            <Select
+            <Combobox
                 value={toSourceFilter}
-                onChange={handleToSourceFilter}
+                onChange={(value) => handleToSourceFilter(value ?? "")}
                 options={toOptions}
                 className={selectClass}
-                popupMatchSelectWidth={false}
-                showSearch
-                optionFilterProp="label"
+                popupMatchWidth={false}
+                searchable
+                aria-label="Lọc theo nguồn nhận"
             />
             <TransactionDateRange
                 value={dateRange}

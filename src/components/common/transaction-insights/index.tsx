@@ -1,12 +1,17 @@
 "use client";
 
 import type { Dayjs } from "dayjs";
-import { Empty, Skeleton } from "antd";
 import BarList, { type IBarRow } from "@/components/common/bar-list";
+import EmptyState from "@/components/common/empty-state";
 import Money, { type MoneyKind } from "@/components/common/money";
+import { Skeleton } from "@/components/shadcn/ui/skeleton";
 import type { IListBreakdownItem, IListSummary } from "@/libs/interfaces/ApiResponseData";
 import { getCategoryColor, OTHER_COLOR } from "@/libs/utils/categoryColor";
 import { formatMoney } from "@/libs/utils/formatMoney";
+import { cn } from "@/libs/shadcn/utils";
+
+/** Số dòng skeleton của phần phân bổ khi đang tải */
+const BREAKDOWN_SKELETON_ROWS = 4;
 
 interface ITransactionInsightsProps {
     summary?: IListSummary;
@@ -68,7 +73,7 @@ export default function TransactionInsights({
                     {days ? ` · ${days} ngày` : ""}
                 </p>
                 {loading && !summary ? (
-                    <Skeleton.Input active size="small" className="mt-1" />
+                    <Skeleton className="skeleton-shimmer mt-1 h-8 w-40 animate-none" />
                 ) : (
                     <Money
                         value={signedTotal}
@@ -90,11 +95,21 @@ export default function TransactionInsights({
             <section className="rounded-xl border border-border bg-card p-4">
                 <h3 className="mb-3 text-sm font-semibold">{breakdownTitle}</h3>
                 {loading && !breakdown ? (
-                    <Skeleton active paragraph={{ rows: 4 }} />
+                    <div className="flex flex-col gap-3">
+                        {Array.from({ length: BREAKDOWN_SKELETON_ROWS }, (_, index) => (
+                            <Skeleton
+                                key={index}
+                                className={cn(
+                                    "skeleton-shimmer h-4 animate-none",
+                                    index === BREAKDOWN_SKELETON_ROWS - 1 ? "w-3/5" : "w-full",
+                                )}
+                            />
+                        ))}
+                    </div>
                 ) : rows.length ? (
                     <BarList rows={rows} total={total} />
                 ) : (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có dữ liệu" />
+                    <EmptyState description="Chưa có dữ liệu" />
                 )}
             </section>
         </aside>

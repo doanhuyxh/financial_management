@@ -1,15 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Card, Empty, Pagination, Spin } from "antd";
-import type { PaginationProps } from "antd";
+import EmptyState from "@/components/common/empty-state";
+import LoadingOverlay from "@/components/common/loading-overlay";
+import AppPagination, { type IPaginationProps } from "@/components/common/pagination";
 
 type MobileRecordListProps<T> = {
     items: T[];
     loading?: boolean;
     rowKey: (item: T) => string;
     renderItem: (item: T) => ReactNode;
-    pagination?: PaginationProps;
+    pagination?: IPaginationProps;
 };
 
 export default function MobileRecordList<T>({
@@ -20,23 +21,26 @@ export default function MobileRecordList<T>({
     pagination,
 }: MobileRecordListProps<T>) {
     return (
-        <Spin spinning={!!loading}>
+        <LoadingOverlay loading={Boolean(loading)}>
             {items.length === 0 ? (
-                <Empty description="Không có dữ liệu" />
+                <EmptyState description="Không có dữ liệu" />
             ) : (
                 <div className="flex flex-col gap-1.5">
                     {items.map((item) => (
-                        <Card key={rowKey(item)} size="small" className="w-full">
+                        <div
+                            key={rowKey(item)}
+                            className="w-full rounded-xl border border-border bg-card p-3"
+                        >
                             {renderItem(item)}
-                        </Card>
+                        </div>
                     ))}
                 </div>
             )}
             {pagination && (pagination.total ?? 0) > 0 ? (
                 <div className="mt-3 flex justify-center">
-                    <Pagination {...pagination} simple showSizeChanger={false} />
+                    <AppPagination {...pagination} simple showSizeChanger={false} />
                 </div>
             ) : null}
-        </Spin>
+        </LoadingOverlay>
     );
 }

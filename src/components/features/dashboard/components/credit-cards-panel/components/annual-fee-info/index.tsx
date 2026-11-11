@@ -1,9 +1,9 @@
-import { Tag } from "antd";
+import Tag, { type TagColor } from "@/components/common/tag";
 import type { ICreditCardFeeItem } from "@/components/features/dashboard/utils";
 import { cn } from "@/libs/shadcn/utils";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
-const STATUS_COLORS: Record<NonNullable<ICreditCardFeeItem["status"]>, string> = {
+const STATUS_COLORS: Record<NonNullable<ICreditCardFeeItem["status"]>, TagColor> = {
     today: "red",
     urgent: "red",
     soon: "orange",
@@ -38,8 +38,7 @@ export default function AnnualFeeInfo({ item }: { item: ICreditCardFeeItem }) {
                     {item.nextAnnualFeeDate.format("DD/MM/YYYY")}
                     <Tag
                         color={STATUS_COLORS[item.status]}
-                        variant={item.status === "normal" ? "filled" : "solid"}
-                        className="m-0"
+                        variant={item.status === "normal" ? "soft" : "solid"}
                     >
                         {item.status === "today" ? "Thu hôm nay" : `Còn ${item.daysLeft} ngày`}
                     </Tag>

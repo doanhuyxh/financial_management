@@ -1,9 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Table, Tooltip } from "antd";
-import type { ColumnsType } from "antd/es/table";
 import { Info } from "lucide-react";
+import DataTable, { type IDataTableColumn } from "@/components/common/data-table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/shadcn/ui/tooltip";
 import { useCreditCardCompareContext } from "@/components/features/credit-card-compare/context";
 import {
     COMPARE_CRITERIA,
@@ -119,7 +119,7 @@ export default function CompareTable() {
         ranks: rankCriterion(criterion, cards),
     }));
 
-    const columns: ColumnsType<Row> = [
+    const columns: IDataTableColumn<Row>[] = [
         {
             title: "Tiêu chí",
             key: "label",
@@ -129,23 +129,28 @@ export default function CompareTable() {
                 <span className="flex items-center gap-1 font-medium">
                     {row.label}
                     {row.hint ? (
-                        <Tooltip title={row.hint}>
-                            <Info className="size-3.5 text-muted-foreground" />
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Info className="size-3.5 cursor-help text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-72">{row.hint}</TooltipContent>
                         </Tooltip>
                     ) : null}
                 </span>
             ),
         },
-        ...cards.map((card) => ({
-            title: card.name,
-            key: card._id,
-            width: 180,
-            onCell: (row: Row) => {
-                const rank = row.ranks.get(card._id);
-                return { className: rank ? RANK_CLASS[rank] : undefined };
-            },
-            render: (_: unknown, row: Row) => renderCell(row.key, card),
-        })),
+        ...cards.map(
+            (card): IDataTableColumn<Row> => ({
+                title: card.name,
+                key: card._id,
+                width: 180,
+                onCell: (row) => {
+                    const rank = row.ranks.get(card._id);
+                    return { className: rank ? RANK_CLASS[rank] : undefined };
+                },
+                render: (_, row) => renderCell(row.key, card),
+            }),
+        ),
     ];
 
     return (
@@ -172,14 +177,7 @@ export default function CompareTable() {
                     />
                 ) : null}
             </div>
-            <Table<Row>
-                rowKey="key"
-                size="small"
-                columns={columns}
-                dataSource={rows}
-                pagination={false}
-                scroll={{ x: "max-content" }}
-            />
+            <DataTable<Row> rowKey="key" size="small" columns={columns} dataSource={rows} />
         </div>
     );
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ResponsiveModal from "@/components/common/responsive-modal";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import ResponsiveModal, { MODAL_AUTOFOCUS_CLASS } from "@/components/common/responsive-modal";
 import { useRolloverJourneyContext } from "@/components/features/rollover-journey/context";
 
 /** Sửa số tiền gốc của hành trình (mặc định = A + x của lần đáo đầu). */
@@ -34,7 +34,17 @@ export default function BaseAmountModal() {
                     Gốc là mốc để tính &quot;phí đã bằng bao nhiêu % số tiền ban đầu&quot;. Mặc định là số tiền của lần đáo
                     đầu tiên (dịch vụ ứng + bạn tự trả).
                 </p>
-                <DebouncedNumberInput className="w-full!" min={0} step={1000000} delay={200} value={value} onChange={(next) => setValue(next ?? "")} />
+                <div className={MODAL_AUTOFOCUS_CLASS}>
+                    <DebouncedNumberInput
+                        min={0}
+                        precision={0}
+                        delay={200}
+                        suffix="₫"
+                        aria-label="Số tiền gốc"
+                        value={value}
+                        onChange={(next) => setValue(next ?? "")}
+                    />
+                </div>
             </div>
         </ResponsiveModal>
     );

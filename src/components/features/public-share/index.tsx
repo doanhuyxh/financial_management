@@ -1,6 +1,7 @@
 "use client";
 
-import { Result, Spin } from "antd";
+import { Link2Off } from "lucide-react";
+import { Spinner } from "@/components/shadcn/ui/spinner";
 import PublicShareContextProvider, {
     usePublicShareContext,
 } from "@/components/features/public-share/context";
@@ -13,18 +14,20 @@ function PublicShareContent() {
     if (isInfoLoading) {
         return (
             <div className="flex justify-center py-20">
-                <Spin />
+                <Spinner className="size-6 text-primary" />
             </div>
         );
     }
 
     if (isNotFound) {
         return (
-            <Result
-                status="404"
-                title="Link không tồn tại hoặc đã hết hạn"
-                subTitle="Hãy liên hệ người đã gửi link cho bạn."
-            />
+            <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
+                <span className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Link2Off className="size-8" />
+                </span>
+                <h1 className="text-lg font-semibold">Link không tồn tại hoặc đã hết hạn</h1>
+                <p className="text-sm text-muted-foreground">Hãy liên hệ người đã gửi link cho bạn.</p>
+            </div>
         );
     }
 

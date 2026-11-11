@@ -1,14 +1,20 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { Empty, Pagination, Skeleton, Spin } from "antd";
-import type { PaginationProps } from "antd";
 import dayjs from "dayjs";
+import EmptyState from "@/components/common/empty-state";
+import LoadingOverlay from "@/components/common/loading-overlay";
 import Money, { type MoneyKind } from "@/components/common/money";
+import AppPagination, { type IPaginationProps } from "@/components/common/pagination";
+import { Skeleton } from "@/components/shadcn/ui/skeleton";
 import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
+import { cn } from "@/libs/shadcn/utils";
 
 const WEEKDAYS = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
+
+/** Số dòng skeleton khi tải lần đầu */
+const SKELETON_ROWS = 6;
 
 /** "Chủ nhật, 01/11" (thêm năm khi khác năm hiện tại) */
 function formatDayLabel(key: string) {
@@ -28,7 +34,7 @@ interface IGroupedTransactionListProps<T> {
     /** Màu + dấu của tổng ngày */
     totalKind: MoneyKind;
     renderRow: (item: T) => ReactNode;
-    pagination?: PaginationProps;
+    pagination?: IPaginationProps;
     empty?: ReactNode;
 }
 
@@ -74,17 +80,25 @@ export default function GroupedTransactionList<T>({
 
     if (loading && items.length === 0) {
         return (
-            <div className="rounded-xl border border-border bg-card p-4">
-                <Skeleton active paragraph={{ rows: 6 }} />
+            <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+                {Array.from({ length: SKELETON_ROWS }, (_, index) => (
+                    <Skeleton
+                        key={index}
+                        className={cn(
+                            "skeleton-shimmer h-4 animate-none",
+                            index === SKELETON_ROWS - 1 ? "w-3/5" : "w-full",
+                        )}
+                    />
+                ))}
             </div>
         );
     }
 
     return (
-        <Spin spinning={Boolean(loading)}>
+        <LoadingOverlay loading={Boolean(loading)}>
             {groups.length === 0 ? (
                 <div className="rounded-xl border border-border bg-card py-10">
-                    {empty ?? <Empty description="Không có giao dịch" />}
+                    {empty ?? <EmptyState description="Không có giao dịch" />}
                 </div>
             ) : (
                 <div className="flex flex-col gap-3">
@@ -119,7 +133,7 @@ export default function GroupedTransactionList<T>({
             )}
             {pagination && (pagination.total ?? 0) > 0 ? (
                 <div className="mt-4 flex justify-center md:justify-end">
-                    <Pagination
+                    <AppPagination
                         {...pagination}
                         simple={isMobile}
                         showSizeChanger={!isMobile}
@@ -127,6 +141,6 @@ export default function GroupedTransactionList<T>({
                     />
                 </div>
             ) : null}
-        </Spin>
+        </LoadingOverlay>
     );
 }

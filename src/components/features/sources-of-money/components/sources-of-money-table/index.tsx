@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { Button, Dropdown, Progress } from "antd";
-import type { ColumnsType } from "antd/es/table";
 import { History, MoreHorizontal, QrCode } from "lucide-react";
+import ActionMenu, { type IActionMenuItem } from "@/components/common/action-menu";
+import type { IDataTableColumn } from "@/components/common/data-table";
 import Money from "@/components/common/money";
 import SortableTable from "@/components/common/sortable-table";
+import { Button } from "@/components/shadcn/ui/button";
+import { Progress } from "@/components/shadcn/ui/progress";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import CardFeeDetails from "@/components/features/sources-of-money/components/sources-of-money-table/components/card-fee-details";
 import {
@@ -16,6 +18,7 @@ import {
 import { useRouter } from "next/navigation";
 import { MENU_KEY } from "@/libs/constants/menuKey";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
+import { cn } from "@/libs/shadcn/utils";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import { maskAccountNumber } from "@/libs/utils/maskAccountNumber";
 
@@ -55,12 +58,14 @@ function BalanceCell({ record }: { record: ISourcesOfMoneyData }) {
                 </span>
             </div>
             <Progress
-                percent={usedPercent}
-                showInfo={false}
-                size="small"
-                strokeColor={usedPercent >= 90 ? "var(--debt)" : "var(--credit)"}
-                railColor="var(--muted)"
-                className="m-0"
+                value={usedPercent}
+                aria-label="Tỷ lệ dùng hạn mức"
+                className={cn(
+                    "my-1 h-1.5",
+                    usedPercent >= 90
+                        ? "[&>[data-slot=progress-indicator]]:bg-debt"
+                        : "[&>[data-slot=progress-indicator]]:bg-credit",
+                )}
             />
             <CardFeeDetails record={record} />
         </div>
@@ -90,7 +95,7 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
     const isMobile = useIsMobile();
     const router = useRouter();
 
-    const columns: ColumnsType<ISourcesOfMoneyData> = useMemo(() => {
+    const columns: IDataTableColumn<ISourcesOfMoneyData>[] = useMemo(() => {
         const hasQr = (record: ISourcesOfMoneyData) =>
             record.type === SourcesOfMoneyType.BANK && Boolean(record.bankAccount);
 
@@ -98,33 +103,32 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
         const canRollover = (record: ISourcesOfMoneyData) =>
             isCredit(record) && (record.creditDetails?.currentDebt ?? 0) > 0;
 
-        const menu = (record: ISourcesOfMoneyData) => ({
-            items: [
-                ...(isMobile
-                    ? [
-                          { key: "history", label: "Lịch sử giao dịch" },
-                          ...(hasQr(record) ? [{ key: "qr", label: "Mã QR nhận tiền" }] : []),
-                      ]
-                    : []),
-                ...(canRollover(record)
-                    ? [
-                          { key: "rollover", label: "Đáo hạn thẻ" },
-                          { key: "journey", label: "Hành trình đáo hạn" },
-                      ]
-                    : []),
-                { key: "edit", label: "Sửa" },
-                { key: "delete", label: "Xóa", danger: true },
-            ],
-            onClick: ({ key }: { key: string }) => {
-                if (key === "history") openHistory(record);
-                else if (key === "qr") openQr(record);
-                else if (key === "rollover") openRollover(record._id);
-                else if (key === "journey")
-                    router.push(`${MENU_KEY.ROLLOVER_JOURNEY}?cardId=${record._id}`);
-                else if (key === "edit") openEditModal(record);
-                else handleDelete(record);
-            },
-        });
+        const menuItems = (record: ISourcesOfMoneyData): IActionMenuItem[] => [
+            ...(isMobile
+                ? [
+                      { key: "history", label: "Lịch sử giao dịch" },
+                      ...(hasQr(record) ? [{ key: "qr", label: "Mã QR nhận tiền" }] : []),
+                  ]
+                : []),
+            ...(canRollover(record)
+                ? [
+                      { key: "rollover", label: "Đáo hạn thẻ" },
+                      { key: "journey", label: "Hành trình đáo hạn" },
+                  ]
+                : []),
+            { key: "edit", label: "Sửa" },
+            { key: "delete", label: "Xóa", danger: true },
+        ];
+
+        const onMenuClick = (record: ISourcesOfMoneyData, key: string) => {
+            if (key === "history") openHistory(record);
+            else if (key === "qr") openQr(record);
+            else if (key === "rollover") openRollover(record._id);
+            else if (key === "journey")
+                router.push(`${MENU_KEY.ROLLOVER_JOURNEY}?cardId=${record._id}`);
+            else if (key === "edit") openEditModal(record);
+            else handleDelete(record);
+        };
 
         const nameCell = (record: ISourcesOfMoneyData) => (
             <div className="min-w-0 leading-5">
@@ -136,28 +140,33 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
         const actions = (record: ISourcesOfMoneyData) => (
             <div className="flex items-center justify-end gap-1">
                 {!isMobile && hasQr(record) ? (
-                    <Button size="small" icon={<QrCode className="size-3.5" />} onClick={() => openQr(record)}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => openQr(record)}>
+                        <QrCode data-icon="inline-start" className="size-3.5" />
                         QR
                     </Button>
                 ) : null}
                 {!isMobile ? (
                     <Button
-                        size="small"
-                        icon={<History className="size-3.5" />}
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => openHistory(record)}
                     >
+                        <History data-icon="inline-start" className="size-3.5" />
                         Lịch sử
                     </Button>
                 ) : null}
-                <Dropdown trigger={["click"]} placement="bottomRight" menu={menu(record)}>
+                <ActionMenu items={menuItems(record)} onClick={(key) => onMenuClick(record, key)}>
                     <Button
-                        type="text"
-                        size={isMobile ? "middle" : "small"}
+                        type="button"
+                        variant="ghost"
+                        size={isMobile ? "icon" : "icon-sm"}
                         aria-label="Thao tác"
                         className={isMobile ? "size-10" : undefined}
-                        icon={<MoreHorizontal className="size-4" />}
-                    />
-                </Dropdown>
+                    >
+                        <MoreHorizontal className="size-4" />
+                    </Button>
+                </ActionMenu>
             </div>
         );
 

@@ -1,10 +1,13 @@
 "use client";
 
-import { Button, Segmented, Tag } from "antd";
 import { Share2 } from "lucide-react";
 import DayRangeFilter from "@/components/common/day-range-filter";
 import ResponsiveModal from "@/components/common/responsive-modal";
+import Segmented, { type ISegmentedOption } from "@/components/common/segmented";
 import SourceTransactionList from "@/components/common/source-transaction-list";
+import Tag, { type TagColor } from "@/components/common/tag";
+import { Button } from "@/components/shadcn/ui/button";
+import SourceDailyChart from "@/components/features/sources-of-money/components/source-daily-chart";
 import SourceReconcilePanel from "@/components/features/sources-of-money/components/source-reconcile-panel";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import { CARD_FEE_TYPE_LABELS } from "@/libs/interfaces/expensesData";
@@ -19,8 +22,12 @@ import { withArchivedLabel } from "@/libs/utils/archivedRef";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 
-const KIND_OPTIONS: { value: SourceTransactionFilter | ""; label: string }[] = [
-    { value: "", label: "Tất cả" },
+/** Segmented cần giá trị khác rỗng, nên "Tất cả" (bộ lọc "") dùng khóa riêng. */
+const ALL_KINDS = "ALL";
+type KindOption = SourceTransactionFilter | typeof ALL_KINDS;
+
+const KIND_OPTIONS: ISegmentedOption<KindOption>[] = [
+    { value: ALL_KINDS, label: "Tất cả" },
     { value: SourceTransactionFilter.EXPENSE, label: "Chi" },
     { value: SourceTransactionFilter.INCOME, label: "Thu" },
     { value: SourceTransactionFilter.TRANSFER, label: "Chuyển" },
@@ -28,12 +35,12 @@ const KIND_OPTIONS: { value: SourceTransactionFilter | ""; label: string }[] = [
 ];
 
 /** Chỉ thẻ tín dụng mới có đáo hạn. */
-const CREDIT_KIND_OPTIONS = [
+const CREDIT_KIND_OPTIONS: ISegmentedOption<KindOption>[] = [
     ...KIND_OPTIONS,
     { value: SourceTransactionFilter.ROLLOVER, label: "Đáo hạn" },
 ];
 
-const KIND_TAG_COLORS: Record<SourceTransactionKind, string> = {
+const KIND_TAG_COLORS: Record<SourceTransactionKind, TagColor> = {
     [SourceTransactionKind.EXPENSE]: "red",
     [SourceTransactionKind.INCOME]: "green",
     [SourceTransactionKind.TRANSFER_OUT]: "orange",
@@ -48,13 +55,11 @@ function TransactionMeta({ item }: { item: ISourceTransactionData }) {
 
     return (
         <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-            <Tag className="m-0" color={KIND_TAG_COLORS[item.kind]}>
+            <Tag color={KIND_TAG_COLORS[item.kind]}>
                 {SOURCE_TRANSACTION_KIND_LABELS[item.kind] ?? item.kind}
             </Tag>
             {item.cardFeeType ? (
-                <Tag className="m-0" color="purple">
-                    {CARD_FEE_TYPE_LABELS[item.cardFeeType] ?? item.cardFeeType}
-                </Tag>
+                <Tag color="purple">{CARD_FEE_TYPE_LABELS[item.cardFeeType] ?? item.cardFeeType}</Tag>
             ) : null}
             {category ? <span>{category.name}</span> : null}
             {counterpart ? (
@@ -118,7 +123,8 @@ export default function SourceHistoryModal() {
                             {historySource ? formatMoney(getTrackedAmount(historySource)) : "—"}
                         </span>
                     </div>
-                    <Button icon={<Share2 className="size-4" />} onClick={openShareModal}>
+                    <Button type="button" variant="outline" onClick={openShareModal}>
+                        <Share2 data-icon="inline-start" className="size-4" />
                         Chia sẻ
                     </Button>
                 </div>
@@ -129,13 +135,12 @@ export default function SourceHistoryModal() {
                         isCreditCard={isCreditCard}
                     />
                 ) : null}
-                <Segmented
+                <Segmented<KindOption>
                     block
-                    value={historyKind}
+                    aria-label="Loại giao dịch"
+                    value={historyKind || ALL_KINDS}
                     options={isCreditCard ? CREDIT_KIND_OPTIONS : KIND_OPTIONS}
-                    onChange={(value) =>
-                        handleHistoryKindChange(value as SourceTransactionFilter | "")
-                    }
+                    onChange={(value) => handleHistoryKindChange(value === ALL_KINDS ? "" : value)}
                 />
                 <DayRangeFilter value={historyRange} onChange={handleHistoryRangeChange} />
                 {historySummary ? (
@@ -169,6 +174,15 @@ export default function SourceHistoryModal() {
                             </p>
                         </div>
                     </div>
+                ) : null}
+                {historySource ? (
+                    <SourceDailyChart
+                        // Đổi khoảng ngày lọc thì biểu đồ nhảy về tháng của ngày bắt đầu
+                        key={`${historySource._id}-${historyRange.from ?? ""}`}
+                        sourceId={historySource._id}
+                        isCreditCard={isCreditCard}
+                        initialDay={historyRange.from}
+                    />
                 ) : null}
             </div>
             <SourceTransactionList

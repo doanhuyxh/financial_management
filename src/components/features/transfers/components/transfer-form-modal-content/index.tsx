@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Alert, Form, Input, Select, Switch } from "antd";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { Info } from "lucide-react";
 import ResponsiveModal, {
     MODAL_AUTOFOCUS_CLASS,
     focusModalField,
 } from "@/components/common/responsive-modal";
+import FormField from "@/components/common/form-field";
+import Combobox from "@/components/common/combobox";
 import QuickDateField from "@/components/common/quick-date-field";
 import TransactionTypeSwitch from "@/components/common/transaction-type-switch";
+import { Alert, AlertTitle } from "@/components/shadcn/ui/alert";
+import { Switch } from "@/components/shadcn/ui/switch";
+import { Textarea } from "@/components/shadcn/ui/textarea";
 import { useSubmitShortcut } from "@/libs/hooks/useHotkey";
 import dayjs from "dayjs";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
@@ -36,11 +42,14 @@ type FormValues = {
     fromSourceId: string;
     toSourceId: string;
     amount: string | number | null;
-    feePercent?: string | number | null;
-    feeCategoryId?: string;
-    note?: string;
+    feePercent: string | number | null;
+    /** "" = chưa chọn */
+    feeCategoryId: string;
+    note: string;
     transferredAt: dayjs.Dayjs;
 };
+
+const NOTE_MAX_LENGTH = 500;
 
 export type TransferFormModalContentProps = {
     open: boolean;
@@ -71,15 +80,16 @@ function getMaxToCredit(source?: ISourcesOfMoneyData | null) {
     return source.creditDetails?.currentDebt ?? 0;
 }
 
-function resetCreateForm(form: ReturnType<typeof Form.useForm<FormValues>>[0]) {
-    form.resetFields();
-    form.setFieldsValue({
-        transferredAt: dayjs(),
+function createFormDefaults(): FormValues {
+    return {
+        fromSourceId: "",
+        toSourceId: "",
         amount: "",
         feePercent: 0,
+        feeCategoryId: "",
         note: "",
-        feeCategoryId: undefined,
-    });
+        transferredAt: dayjs(),
+    };
 }
 
 export default function TransferFormModalContent({
@@ -90,14 +100,19 @@ export default function TransferFormModalContent({
     onClose,
     onSubmit,
 }: TransferFormModalContentProps) {
-    const [form] = Form.useForm<FormValues>();
     const [keepCreating, setKeepCreating] = useState(false);
+    const noteId = useId();
 
-    const fromSourceId = Form.useWatch("fromSourceId", form);
-    const toSourceId = Form.useWatch("toSourceId", form);
-    const amountWatch = Form.useWatch("amount", form);
-    const feePercentWatch = Form.useWatch("feePercent", form);
-    const transferredAtWatch = Form.useWatch("transferredAt", form);
+    const { control, handleSubmit, reset, getValues, setValue, setError } = useForm<FormValues>({
+        mode: "onChange",
+        defaultValues: createFormDefaults(),
+    });
+
+    const fromSourceId = useWatch({ control, name: "fromSourceId" });
+    const toSourceId = useWatch({ control, name: "toSourceId" });
+    const amountWatch = useWatch({ control, name: "amount" });
+    const feePercentWatch = useWatch({ control, name: "feePercent" });
+    const transferredAtWatch = useWatch({ control, name: "transferredAt" });
 
     const { data: categoriesData, isLoading: categoriesLoading } = useGetCategories({
         page: 1,
@@ -135,6 +150,13 @@ export default function TransferFormModalContent({
             : 0;
     const receiveAmount = fromIsCredit ? Math.max(0, amount - feeAmount) : amount;
 
+    // Rule của react-hook-form được đăng ký lúc mount/onChange nên đọc giá trị mới nhất qua ref
+    // (cập nhật sau mỗi render; validate chỉ chạy lúc có sự kiện nên luôn thấy giá trị mới)
+    const feeRuleRef = useRef({ fromIsCredit, feePercent });
+    useEffect(() => {
+        feeRuleRef.current = { fromIsCredit, feePercent };
+    });
+
     const availableOut = getAvailableOut(fromSource);
     const maxToCredit = getMaxToCredit(toSource);
 
@@ -166,26 +188,24 @@ export default function TransferFormModalContent({
           : undefined;
 
     const handleFromChange = (nextFromId?: string) => {
-        if (!nextFromId || form.getFieldValue("toSourceId")) return;
+        if (!nextFromId || getValues("toSourceId")) return;
         const suggestedPair = suggestions?.pairs.find(
             (pair) =>
                 pair.fromSourceId === nextFromId &&
                 sources.some((item) => item._id === pair.toSourceId),
         );
         if (suggestedPair) {
-            form.setFieldValue("toSourceId", suggestedPair.toSourceId);
+            setValue("toSourceId", suggestedPair.toSourceId, { shouldValidate: true });
         }
     };
 
     const handlePairSelect = (pair: ITransferPairSuggestion) => {
-        form.setFields([
-            { name: "fromSourceId", value: pair.fromSourceId, errors: [] },
-            { name: "toSourceId", value: pair.toSourceId, errors: [] },
-        ]);
+        setValue("fromSourceId", pair.fromSourceId, { shouldValidate: true });
+        setValue("toSourceId", pair.toSourceId, { shouldValidate: true });
     };
 
     const handleAmountSuggestion = (value: number) => {
-        form.setFields([{ name: "amount", value: String(value), errors: [] }]);
+        setValue("amount", String(value), { shouldValidate: true });
     };
 
     const toOptionsFlat = sourceOptions.filter((opt) => {
@@ -227,11 +247,11 @@ export default function TransferFormModalContent({
         }));
 
     const selectFrom = (id: string) => {
-        form.setFields([{ name: "fromSourceId", value: id, errors: [] }]);
+        setValue("fromSourceId", id, { shouldValidate: true });
         handleFromChange(id);
     };
     const selectTo = (id: string) => {
-        form.setFields([{ name: "toSourceId", value: id, errors: [] }]);
+        setValue("toSourceId", id, { shouldValidate: true });
     };
 
     useEffect(() => {
@@ -239,15 +259,17 @@ export default function TransferFormModalContent({
             setKeepCreating(false);
             return;
         }
-        resetCreateForm(form);
-        if (defaults) {
-            form.setFieldsValue({
-                fromSourceId: defaults.fromSourceId,
-                toSourceId: defaults.toSourceId,
-                amount: defaults.amount != null ? String(defaults.amount) : "",
-            });
-        }
-    }, [open, form, defaults]);
+        reset({
+            ...createFormDefaults(),
+            ...(defaults
+                ? {
+                      fromSourceId: defaults.fromSourceId ?? "",
+                      toSourceId: defaults.toSourceId ?? "",
+                      amount: defaults.amount != null ? String(defaults.amount) : "",
+                  }
+                : {}),
+        });
+    }, [open, reset, defaults]);
 
     // Đổi nguồn chuyển: thẻ có cấu hình phí rút tiền mặt thì điền sẵn %, người dùng vẫn sửa được
     const cashAdvanceFeePercent = fromIsCredit
@@ -255,23 +277,23 @@ export default function TransferFormModalContent({
         : undefined;
     useEffect(() => {
         if (!fromIsCredit) {
-            form.setFieldsValue({ feePercent: 0, feeCategoryId: undefined });
+            setValue("feePercent", 0);
+            setValue("feeCategoryId", "");
         } else if (cashAdvanceFeePercent != null) {
-            form.setFieldValue("feePercent", cashAdvanceFeePercent);
+            setValue("feePercent", cashAdvanceFeePercent);
         }
-    }, [fromIsCredit, fromSourceId, cashAdvanceFeePercent, form]);
+    }, [fromIsCredit, fromSourceId, cashAdvanceFeePercent, setValue]);
 
     useEffect(() => {
         if (toIsCredit && fromIsCredit) {
-            form.setFieldValue("toSourceId", undefined);
+            setValue("toSourceId", "");
         }
-    }, [toIsCredit, fromIsCredit, form]);
+    }, [toIsCredit, fromIsCredit, setValue]);
 
-    const handleOk = async () => {
-        const values = await form.validateFields();
+    const onValid = async (values: FormValues) => {
         const parsedAmount = Number(values.amount);
         if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-            form.setFields([{ name: "amount", errors: ["Số tiền phải lớn hơn 0"] }]);
+            setError("amount", { message: "Số tiền phải lớn hơn 0" });
             return;
         }
 
@@ -283,12 +305,7 @@ export default function TransferFormModalContent({
             selectedFrom.type === SourcesOfMoneyType.CREDIT_CARD &&
             selectedTo.type === SourcesOfMoneyType.CREDIT_CARD
         ) {
-            form.setFields([
-                {
-                    name: "toSourceId",
-                    errors: ["Không hỗ trợ chuyển giữa hai thẻ tín dụng"],
-                },
-            ]);
+            setError("toSourceId", { message: "Không hỗ trợ chuyển giữa hai thẻ tín dụng" });
             return;
         }
 
@@ -304,14 +321,9 @@ export default function TransferFormModalContent({
         if (selectedTo.type === SourcesOfMoneyType.CREDIT_CARD) {
             const debt = selectedTo.creditDetails?.currentDebt ?? 0;
             if (parsedAmount > debt) {
-                form.setFields([
-                    {
-                        name: "amount",
-                        errors: [
-                            `Tối đa bằng dư nợ đang nợ (${formatMoney(debt)})`,
-                        ],
-                    },
-                ]);
+                setError("amount", {
+                    message: `Tối đa bằng dư nợ đang nợ (${formatMoney(debt)})`,
+                });
                 return;
             }
         }
@@ -321,12 +333,7 @@ export default function TransferFormModalContent({
             parsedFeeAmount > 0 &&
             !values.feeCategoryId
         ) {
-            form.setFields([
-                {
-                    name: "feeCategoryId",
-                    errors: ["Danh mục chi tiêu phí là bắt buộc"],
-                },
-            ]);
+            setError("feeCategoryId", { message: "Danh mục chi tiêu phí là bắt buộc" });
             return;
         }
 
@@ -343,23 +350,12 @@ export default function TransferFormModalContent({
         const success = await onSubmit(payload, { keepOpen: keepCreating });
         if (success && keepCreating) {
             // Giữ lại ngày đã chọn để nhập nhanh nhiều khoản trong cùng ngày
-            form.resetFields([
-                "fromSourceId",
-                "toSourceId",
-                "amount",
-                "feePercent",
-                "feeCategoryId",
-                "note",
-            ]);
-            form.setFieldsValue({
-                amount: "",
-                feePercent: 0,
-                note: "",
-                feeCategoryId: undefined,
-            });
+            reset({ ...createFormDefaults(), transferredAt: getValues("transferredAt") });
             focusModalField();
         }
     };
+
+    const handleOk = handleSubmit(onValid);
 
     useSubmitShortcut(handleOk, open);
 
@@ -385,12 +381,8 @@ export default function TransferFormModalContent({
             width={600}
             footer={(_, { OkBtn, CancelBtn }) => (
                 <div className="flex items-center justify-end gap-3">
-                    <label className="mr-auto flex shrink-0 items-center gap-2 text-sm text-neutral-600">
-                        <Switch
-                            size="small"
-                            checked={keepCreating}
-                            onChange={setKeepCreating}
-                        />
+                    <label className="mr-auto flex shrink-0 cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+                        <Switch size="sm" checked={keepCreating} onCheckedChange={setKeepCreating} />
                         Tạo tiếp
                     </label>
                     {/* Mobile: 1 hàng [Tạo tiếp | nút chính], bỏ Hủy vì Drawer đã có nút đóng */}
@@ -405,27 +397,27 @@ export default function TransferFormModalContent({
                 </div>
             )}
         >
-            <Form form={form} layout="vertical" className="mt-4" requiredMark={false}>
-                <Form.Item
+            <div className="mt-4 flex flex-col gap-4">
+                <Controller
                     name="amount"
-                    className={MODAL_AUTOFOCUS_CLASS}
-                    label="Số tiền"
-                    rules={[{ required: true, message: "Số tiền là bắt buộc" }]}
-                    extra={
-                        amountExtra || amountSuggestions?.length ? (
-                            <>
-                                {amountExtra}
-                                <AmountSuggestionChips
-                                    amounts={amountSuggestions}
-                                    value={amountWatch}
-                                    onSelect={handleAmountSuggestion}
-                                />
-                            </>
-                        ) : undefined
-                    }
-                >
-                    <AmountInput defaultKeypadOpen />
-                </Form.Item>
+                    control={control}
+                    rules={{ required: "Số tiền là bắt buộc" }}
+                    render={({ field, fieldState }) => (
+                        <FormField
+                            label="Số tiền"
+                            className={MODAL_AUTOFOCUS_CLASS}
+                            error={fieldState.error?.message}
+                            extra={amountExtra}
+                        >
+                            <AmountInput value={field.value} onChange={field.onChange} defaultKeypadOpen />
+                            <AmountSuggestionChips
+                                amounts={amountSuggestions}
+                                value={amountWatch}
+                                onSelect={handleAmountSuggestion}
+                            />
+                        </FormField>
+                    )}
+                />
 
                 <TransferPairSuggestions
                     pairs={suggestions?.pairs}
@@ -435,146 +427,190 @@ export default function TransferFormModalContent({
                     onSelect={handlePairSelect}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
-                    <Form.Item
-                        label="Từ nguồn"
-                        required
-                        extra={
-                            fromSource
-                                ? fromIsCredit
-                                    ? `Hạn mức còn lại: ${formatMoney(availableOut)}`
-                                    : `Số dư: ${formatMoney(availableOut)}`
-                                : undefined
-                        }
-                    >
-                        <div className="flex flex-col gap-2">
-                            <ChoiceChips
-                                options={fromChips}
-                                value={fromSourceId}
-                                onChange={selectFrom}
-                            />
-                            <Form.Item
-                                name="fromSourceId"
-                                noStyle
-                                rules={[{ required: true, message: "Nguồn chuyển là bắt buộc" }]}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-4">
+                    <Controller
+                        name="fromSourceId"
+                        control={control}
+                        rules={{ required: "Nguồn chuyển là bắt buộc" }}
+                        render={({ field, fieldState }) => (
+                            <FormField
+                                label="Từ nguồn"
+                                error={fieldState.error?.message}
+                                extra={
+                                    fromSource
+                                        ? fromIsCredit
+                                            ? `Hạn mức còn lại: ${formatMoney(availableOut)}`
+                                            : `Số dư: ${formatMoney(availableOut)}`
+                                        : undefined
+                                }
                             >
-                                <Select
-                                    showSearch
-                                    optionFilterProp="label"
-                                    placeholder="Chọn nguồn chuyển"
-                                    loading={sourcesLoading}
-                                    options={fromOptions}
-                                    onChange={handleFromChange}
-                                />
-                            </Form.Item>
-                        </div>
-                    </Form.Item>
+                                <div className="flex flex-col gap-2">
+                                    <ChoiceChips
+                                        options={fromChips}
+                                        value={field.value}
+                                        onChange={selectFrom}
+                                    />
+                                    <Combobox
+                                        value={field.value || null}
+                                        onChange={(value) => {
+                                            field.onChange(value ?? "");
+                                            handleFromChange(value);
+                                        }}
+                                        options={fromOptions}
+                                        placeholder="Chọn nguồn chuyển"
+                                        loading={sourcesLoading}
+                                        searchable
+                                    />
+                                </div>
+                            </FormField>
+                        )}
+                    />
 
-                    <Form.Item
-                        label="Đến nguồn"
-                        required
-                        extra={
-                            toIsCredit && maxToCredit != null
-                                ? `Dư nợ đang nợ: ${formatMoney(maxToCredit)}`
-                                : toSource
-                                  ? `Số dư: ${formatMoney(toSource.balance ?? 0)}`
-                                  : undefined
-                        }
-                    >
-                        <div className="flex flex-col gap-2">
-                            <ChoiceChips options={toChips} value={toSourceId} onChange={selectTo} />
-                            <Form.Item
-                                name="toSourceId"
-                                noStyle
-                                rules={[{ required: true, message: "Nguồn nhận là bắt buộc" }]}
+                    <Controller
+                        name="toSourceId"
+                        control={control}
+                        rules={{ required: "Nguồn nhận là bắt buộc" }}
+                        render={({ field, fieldState }) => (
+                            <FormField
+                                label="Đến nguồn"
+                                error={fieldState.error?.message}
+                                extra={
+                                    toIsCredit && maxToCredit != null
+                                        ? `Dư nợ đang nợ: ${formatMoney(maxToCredit)}`
+                                        : toSource
+                                          ? `Số dư: ${formatMoney(toSource.balance ?? 0)}`
+                                          : undefined
+                                }
                             >
-                                <Select
-                                    showSearch
-                                    optionFilterProp="label"
-                                    placeholder="Chọn nguồn nhận"
-                                    loading={sourcesLoading}
-                                    options={toOptions}
-                                />
-                            </Form.Item>
-                        </div>
-                    </Form.Item>
+                                <div className="flex flex-col gap-2">
+                                    <ChoiceChips options={toChips} value={field.value} onChange={selectTo} />
+                                    <Combobox
+                                        value={field.value || null}
+                                        onChange={(value) => field.onChange(value ?? "")}
+                                        options={toOptions}
+                                        placeholder="Chọn nguồn nhận"
+                                        loading={sourcesLoading}
+                                        searchable
+                                    />
+                                </div>
+                            </FormField>
+                        )}
+                    />
                 </div>
-
 
                 <CardPaymentFeeAlert source={toSource} date={transferredAtWatch} />
 
                 {fromIsCredit && !toIsCredit && interestRate != null ? (
-                    <Alert
-                        type="info"
-                        showIcon
-                        className="mb-4"
-                        message={`Rút tiền từ thẻ bị tính lãi ${interestRate}%/năm ngay từ ngày rút, đến khi trả hết`}
-                    />
+                    <Alert>
+                        <Info />
+                        <AlertTitle className="font-normal">
+                            {`Rút tiền từ thẻ bị tính lãi ${interestRate}%/năm ngay từ ngày rút, đến khi trả hết`}
+                        </AlertTitle>
+                    </Alert>
                 ) : null}
 
                 {fromIsCredit && !toIsCredit ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-4">
-                        <Form.Item
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-4">
+                        <Controller
                             name="feePercent"
-                            label="% phí chuyển đổi"
-                            extra={
-                                amount > 0
-                                    ? `Phí: ${formatMoney(feeAmount)}${cashAdvanceFeeMin && feePercent > 0 ? ` (tối thiểu ${formatMoney(cashAdvanceFeeMin)})` : ""} · Nhận thực tế: ${formatMoney(receiveAmount)}`
-                                    : "Phí trừ vào số tiền nhận; dư nợ thẻ tăng đúng số tiền chuyển"
-                            }
-                        >
-                            <DebouncedNumberInput
-                                min={0}
-                                max={100}
-                                placeholder="0"
-                                delay={300}
-                            />
-                        </Form.Item>
+                            control={control}
+                            rules={{
+                                validate: (value) =>
+                                    (Number(value) || 0) <= 100 || "% phí tối đa là 100",
+                            }}
+                            render={({ field, fieldState }) => (
+                                <FormField
+                                    label="% phí chuyển đổi"
+                                    error={fieldState.error?.message}
+                                    extra={
+                                        amount > 0
+                                            ? `Phí: ${formatMoney(feeAmount)}${cashAdvanceFeeMin && feePercent > 0 ? ` (tối thiểu ${formatMoney(cashAdvanceFeeMin)})` : ""} · Nhận thực tế: ${formatMoney(receiveAmount)}`
+                                            : "Phí trừ vào số tiền nhận; dư nợ thẻ tăng đúng số tiền chuyển"
+                                    }
+                                >
+                                    <DebouncedNumberInput
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        min={0}
+                                        placeholder="0"
+                                        delay={300}
+                                        suffix="%"
+                                    />
+                                </FormField>
+                            )}
+                        />
 
-                        <Form.Item
+                        <Controller
                             name="feeCategoryId"
-                            label="Danh mục chi tiêu phí"
-                            rules={[
-                                {
-                                    required: feePercent > 0,
-                                    message: "Danh mục chi tiêu phí là bắt buộc",
-                                },
-                            ]}
-                            extra={
-                                feePercent > 0
-                                    ? "Phí sẽ được ghi nhận là một khoản chi tiêu"
-                                    : "Chỉ bắt buộc khi % phí > 0"
-                            }
-                        >
-                            <Select
-                                showSearch
-                                allowClear
-                                optionFilterProp="label"
-                                placeholder="Chọn danh mục"
-                                loading={categoriesLoading}
-                                options={categoryOptions}
-                            />
-                        </Form.Item>
+                            control={control}
+                            rules={{
+                                validate: (value) =>
+                                    !(feeRuleRef.current.fromIsCredit && feeRuleRef.current.feePercent > 0) ||
+                                    Boolean(value) ||
+                                    "Danh mục chi tiêu phí là bắt buộc",
+                            }}
+                            render={({ field, fieldState }) => (
+                                <FormField
+                                    label="Danh mục chi tiêu phí"
+                                    error={fieldState.error?.message}
+                                    extra={
+                                        feePercent > 0
+                                            ? "Phí sẽ được ghi nhận là một khoản chi tiêu"
+                                            : "Chỉ bắt buộc khi % phí > 0"
+                                    }
+                                >
+                                    <Combobox
+                                        value={field.value || null}
+                                        onChange={(value) => field.onChange(value ?? "")}
+                                        options={categoryOptions}
+                                        placeholder="Chọn danh mục"
+                                        loading={categoriesLoading}
+                                        allowClear
+                                        searchable
+                                    />
+                                </FormField>
+                            )}
+                        />
                     </div>
                 ) : null}
 
-                <Form.Item
+                <Controller
                     name="transferredAt"
-                    label="Ngày chuyển"
-                    rules={[{ required: true, message: "Ngày chuyển là bắt buộc" }]}
-                >
-                    <QuickDateField />
-                </Form.Item>
+                    control={control}
+                    rules={{ required: "Ngày chuyển là bắt buộc" }}
+                    render={({ field, fieldState }) => (
+                        <FormField label="Ngày chuyển" error={fieldState.error?.message}>
+                            <QuickDateField value={field.value} onChange={field.onChange} />
+                        </FormField>
+                    )}
+                />
 
-                <Form.Item name="note" label="Ghi chú" className="mb-0">
-                    <Input.TextArea
-                        rows={2}
-                        maxLength={500}
-                        placeholder="Ghi chú (không bắt buộc)"
-                        showCount
-                    />
-                </Form.Item>
-            </Form>
+                <Controller
+                    name="note"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                        <FormField
+                            label="Ghi chú"
+                            htmlFor={noteId}
+                            error={fieldState.error?.message}
+                            extra={
+                                <span className="block text-right tabular-nums">
+                                    {(field.value ?? "").length}/{NOTE_MAX_LENGTH}
+                                </span>
+                            }
+                        >
+                            <Textarea
+                                {...field}
+                                id={noteId}
+                                rows={2}
+                                maxLength={NOTE_MAX_LENGTH}
+                                placeholder="Ghi chú (không bắt buộc)"
+                                aria-invalid={fieldState.invalid || undefined}
+                            />
+                        </FormField>
+                    )}
+                />
+            </div>
         </ResponsiveModal>
     );
 }

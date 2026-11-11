@@ -43,4 +43,4 @@ Giữ mỗi file ≤ ~8 KB. Vượt thì tách tiếp theo domain con và thêm 
 6. Chuyển tiền không sửa được, chỉ xóa rồi tạo lại.
 7. Xóa giao dịch cũ khi số dư/dư nợ không đủ để hoàn vẫn bị chặn — **cố ý**, user không muốn "xóa và ghi điều chỉnh bù" (đừng đề xuất lại). Muốn đóng băng kỳ cũ thì dùng khóa sổ ([ledger-lock-audit.md](ledger-lock-audit.md)).
 8. `formatMoney` dùng chung ở `src/libs/utils/formatMoney.ts`. `getRefId` vẫn nằm trong utils của từng feature.
-9. **Đang gỡ antd sang shadcn** (quyết định 03/11/2026, giữ giao diện giống hiện tại). Đợt 1 xong: shadcn đủ bộ + Animate UI, thông báo/xác nhận qua `useAppFeedback` (sonner + `confirm-dialog`). Còn lại ~70 file antd: Form (9 form → react-hook-form + zod), Table có sort, Select tìm kiếm, DatePicker, Segmented, Pagination, QRCode, `AntdProvider`/`themeColors.ts`. Thứ tự dự kiến: `common/` → từng feature → gỡ package.
+9. **antd đã gỡ xong** (07/11/2026, giữ giao diện như cũ): mọi form dùng react-hook-form + `FormField`; bảng, chọn, ngày, phân trang, menu… dùng bộ component trong `src/components/common/` (xem [conventions.md](../conventions.md)). `reactStrictMode` đã bật.

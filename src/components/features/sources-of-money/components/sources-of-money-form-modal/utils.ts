@@ -4,8 +4,10 @@ import {
     AnnualFeeWaiverPeriod,
     type SourcesOfMoneyType,
 } from "@/libs/interfaces/sourcesOfMoneyData";
+import type { SelectOption } from "@/libs/interfaces/selectOption";
 
-type NumberValue = string | number | null;
+/** Giá trị của ô số (DebouncedNumberInput trả chuỗi số; "" là trống). */
+export type NumberValue = string | number | null;
 
 /** Lãi, các phí theo % (kèm mức tối thiểu/tối đa) và phí sử dụng của thẻ. */
 export const RATE_FEE_FIELDS = [
@@ -50,6 +52,11 @@ export type FormValues = {
     accountName?: string;
 } & Partial<Record<RateFeeFieldName, NumberValue>>;
 
+/** Tên các ô số của form (giá trị `NumberValue`), dùng cho ô nhập số dùng chung. */
+export type NumberFieldName = {
+    [K in keyof FormValues]-?: number extends NonNullable<FormValues[K]> ? K : never;
+}[keyof FormValues];
+
 /** Các mục phí thu gọn của thẻ; `fields` dùng để biết mục đã nhập hay có lỗi. */
 export const CARD_FEE_SECTIONS = [
     {
@@ -92,50 +99,45 @@ export const CARD_FEE_SECTIONS = [
 export type CardFeeSectionKey = (typeof CARD_FEE_SECTIONS)[number]["key"];
 
 /** Mục phí chứa các ô đang báo lỗi, để mở ra cho người dùng thấy. */
-export function getSectionsWithErrors(errorFieldNames: (string | number)[]): CardFeeSectionKey[] {
+export function getSectionsWithErrors(errorFieldNames: string[]): CardFeeSectionKey[] {
     return CARD_FEE_SECTIONS.filter((section) =>
         (section.fields as readonly string[]).some((field) => errorFieldNames.includes(field)),
     ).map((section) => section.key);
 }
 
-export const waiverPeriodOptions = Object.values(AnnualFeeWaiverPeriod).map((period) => ({
+export const waiverPeriodOptions: SelectOption<AnnualFeeWaiverPeriod>[] = Object.values(
+    AnnualFeeWaiverPeriod,
+).map((period) => ({
     value: period,
     label: ANNUAL_FEE_WAIVER_PERIOD_LABELS[period],
 }));
 
-/** DebouncedNumberInput uses stringMode — coerce before validate/submit. */
-export function toNumber(value: string | number | null | undefined): number | undefined {
-    if (value === undefined || value === null || value === "") return undefined;
+/** Ô số đang trống (chưa nhập). */
+export function isBlankValue(value: NumberValue | undefined): boolean {
+    return value === undefined || value === null || value === "";
+}
+
+/** DebouncedNumberInput trả chuỗi — ép về số trước khi validate/submit. */
+export function toNumber(value: NumberValue | undefined): number | undefined {
+    if (isBlankValue(value)) return undefined;
     const num = typeof value === "number" ? value : Number(String(value).replace(/,/g, ""));
     return Number.isFinite(num) ? num : undefined;
 }
 
+/** Rule `validate` của react-hook-form: bỏ qua ô trống, có giá trị thì phải ≥ `min`. */
 export function numberMinRule(min: number, message: string) {
-    return {
-        validator(_: unknown, value: string | number | null | undefined) {
-            if (value === undefined || value === null || value === "") {
-                return Promise.resolve();
-            }
-            const num = toNumber(value);
-            if (num === undefined || num < min) {
-                return Promise.reject(new Error(message));
-            }
-            return Promise.resolve();
-        },
+    return (value: NumberValue | undefined) => {
+        if (isBlankValue(value)) return true;
+        const num = toNumber(value);
+        return num !== undefined && num >= min ? true : message;
     };
 }
 
+/** Rule `validate` của react-hook-form: bỏ qua ô trống, có giá trị thì phải trong [min, max]. */
 export function numberRangeRule(min: number, max: number, message: string) {
-    return {
-        validator(_: unknown, value: string | number | null | undefined) {
-            if (value === undefined || value === null || value === "") {
-                return Promise.resolve();
-            }
-            const num = toNumber(value);
-            if (num === undefined || num < min || num > max) {
-                return Promise.reject(new Error(message));
-            }
-            return Promise.resolve();
-        },
+    return (value: NumberValue | undefined) => {
+        if (isBlankValue(value)) return true;
+        const num = toNumber(value);
+        return num !== undefined && num >= min && num <= max ? true : message;
     };
 }

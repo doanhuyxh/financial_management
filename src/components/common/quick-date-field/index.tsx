@@ -1,14 +1,14 @@
 "use client";
 
-import { DatePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { Lock } from "lucide-react";
 import ChoiceChips from "@/components/common/choice-chips";
+import DatePicker from "@/components/common/date-picker";
 import { useLedgerLock } from "@/libs/hooks/customHooks/useSettings";
 import { formatDate } from "@/libs/utils/formatDate";
 
 interface IQuickDateFieldProps {
-    /** antd Form.Item tự truyền value/onChange */
+    /** Form.Item hoặc Controller (react-hook-form) tự truyền value/onChange */
     value?: Dayjs | null;
     onChange?: (value: Dayjs) => void;
 }
@@ -41,11 +41,12 @@ export default function QuickDateField({ value, onChange }: IQuickDateFieldProps
                 onChange={(key) => onChange?.(key === "today" ? dayjs() : dayjs().subtract(1, "day"))}
             />
             <DatePicker
-                inputReadOnly
                 allowClear={false}
                 format="DD/MM/YYYY"
                 value={value}
-                onChange={(next) => next && onChange?.(next)}
+                onChange={(next) => {
+                    if (next) onChange?.(next);
+                }}
                 // Server nhận tối đa 1 ngày sau hôm nay
                 disabledDate={(date) => isLocked(date) || date.isAfter(today.add(1, "day"), "day")}
                 className="min-w-36 flex-1"

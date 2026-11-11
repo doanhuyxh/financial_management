@@ -1,10 +1,21 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Collapse, DatePicker, Form, Select, Tag } from "antd";
+import { Controller, useFormContext, useWatch, type ControllerProps } from "react-hook-form";
+import { ChevronDown } from "lucide-react";
+import Combobox from "@/components/common/combobox";
+import DatePicker from "@/components/common/date-picker";
+import FormField from "@/components/common/form-field";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
+import Tag from "@/components/common/tag";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/shadcn/ui/collapsible";
 import {
     CARD_FEE_SECTIONS,
+    isBlankValue,
     numberMinRule,
     numberRangeRule,
     RATE_FEE_FIELDS,
@@ -12,44 +23,77 @@ import {
     waiverPeriodOptions,
     type CardFeeSectionKey,
     type FormValues,
+    type NumberFieldName,
     type RateFeeFieldName,
 } from "@/components/features/sources-of-money/components/sources-of-money-form-modal/utils";
+import { cn } from "@/libs/shadcn/utils";
 
 function Grid({ children }: { children: ReactNode }) {
-    return <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">{children}</div>;
+    return <div className="grid grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2">{children}</div>;
 }
 
 function SectionNote({ children }: { children: ReactNode }) {
-    return <p className="mb-3 text-xs text-muted-foreground">{children}</p>;
+    return <p className="text-xs text-muted-foreground">{children}</p>;
+}
+
+interface INumberFieldProps {
+    name: NumberFieldName;
+    label: string;
+    tooltip?: string;
+    rules?: ControllerProps<FormValues, NumberFieldName>["rules"];
+    /** Số chữ số thập phân; mặc định 0 (số tiền, ngày, số lần) */
+    precision?: number;
+    placeholder?: string;
+    disabled?: boolean;
+}
+
+/** Một ô số của form thẻ: nhãn + tooltip + DebouncedNumberInput nối với react-hook-form. */
+function NumberField({ name, label, tooltip, rules, precision = 0, placeholder, disabled }: INumberFieldProps) {
+    const { control } = useFormContext<FormValues>();
+    return (
+        <Controller
+            name={name}
+            control={control}
+            rules={rules}
+            render={({ field, fieldState }) => (
+                <FormField label={label} tooltip={tooltip} error={fieldState.error?.message}>
+                    <DebouncedNumberInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        min={0}
+                        precision={precision}
+                        placeholder={placeholder}
+                        disabled={disabled}
+                    />
+                </FormField>
+            )}
+        />
+    );
 }
 
 function RateFeeItems({ names }: { names: RateFeeFieldName[] }) {
     return RATE_FEE_FIELDS.filter((field) => names.includes(field.name)).map((field) => (
-        <Form.Item
+        <NumberField
             key={field.name}
             name={field.name}
             label={field.label}
             tooltip={"tooltip" in field ? field.tooltip : undefined}
-            rules={[
-                field.kind === "percent"
-                    ? numberRangeRule(0, 100, "Từ 0 đến 100")
-                    : numberMinRule(0, "Phải >= 0"),
-            ]}
-        >
-            <DebouncedNumberInput
-                className="w-full!"
-                min={0}
-                max={field.kind === "percent" ? 100 : undefined}
-                step={field.kind === "percent" ? 0.01 : 1000}
-                placeholder="0"
-            />
-        </Form.Item>
+            precision={field.kind === "percent" ? 2 : 0}
+            placeholder="0"
+            rules={{
+                validate:
+                    field.kind === "percent"
+                        ? numberRangeRule(0, 100, "Từ 0 đến 100")
+                        : numberMinRule(0, "Phải >= 0"),
+            }}
+        />
     ));
 }
 
 /**
  * Các ô của thẻ tín dụng: thông tin thẻ luôn hiện, phí gom vào từng mục thu gọn.
- * Mục được render sẵn (forceRender) để giá trị và validate vẫn chạy khi đang đóng.
+ * Nội dung mục luôn được mount (`forceMount`) để giá trị và validate vẫn chạy khi đang đóng.
  */
 export default function CreditCardFields({
     activeKeys,
@@ -58,110 +102,115 @@ export default function CreditCardFields({
     activeKeys: CardFeeSectionKey[];
     onActiveKeysChange: (keys: CardFeeSectionKey[]) => void;
 }) {
-    const form = Form.useFormInstance<FormValues>();
-    const values = Form.useWatch((all: FormValues) => all, form);
-    const waiverPeriodWatch = values?.annualFeeWaiverPeriod;
-    const paymentFeeWatch = values?.paymentFee;
+    const { control } = useFormContext<FormValues>();
+    const values = useWatch({ control });
+    const waiverPeriodWatch = values.annualFeeWaiverPeriod;
+    const paymentFeeWatch = values.paymentFee;
 
     const isFilled = (field: keyof FormValues) => {
-        const value = values?.[field];
+        const value = values[field];
         return value !== undefined && value !== null && value !== "";
+    };
+
+    const toggleSection = (key: CardFeeSectionKey, open: boolean) => {
+        onActiveKeysChange(
+            open ? Array.from(new Set([...activeKeys, key])) : activeKeys.filter((item) => item !== key),
+        );
     };
 
     const sectionBodies: Record<CardFeeSectionKey, ReactNode> = {
         annual: (
             <Grid>
-                <Form.Item
+                <NumberField
                     name="annualFee"
                     label="Phí (ước tính)"
                     tooltip="Số thực tế có thể khác; khi bị thu, ghi một khoản chi tiêu trên thẻ"
-                    rules={[numberMinRule(0, "Phí phải >= 0")]}
-                >
-                    <DebouncedNumberInput className="w-full!" min={0} step={1000} placeholder="0" />
-                </Form.Item>
-                <Form.Item
+                    placeholder="0"
+                    rules={{ validate: numberMinRule(0, "Phí phải >= 0") }}
+                />
+                <Controller
                     name="annualFeeDate"
-                    label="Ngày thu"
-                    tooltip="Lặp lại mỗi năm vào ngày/tháng này"
-                >
-                    <DatePicker className="w-full" format="DD/MM" placeholder="Chọn ngày/tháng" />
-                </Form.Item>
-                <Form.Item
+                    control={control}
+                    render={({ field }) => (
+                        <FormField label="Ngày thu" tooltip="Lặp lại mỗi năm vào ngày/tháng này">
+                            <DatePicker
+                                value={field.value ?? null}
+                                onChange={field.onChange}
+                                format="DD/MM"
+                                placeholder="Chọn ngày/tháng"
+                            />
+                        </FormField>
+                    )}
+                />
+                <Controller
                     name="annualFeeWaiverPeriod"
-                    label="Miễn phí khi chi tiêu"
-                    tooltip="Theo năm: tổng chi tiêu trong 12 tháng trước ngày thu phí. Theo kỳ sao kê: chi tiêu mỗi kỳ (tháng dương lịch nếu chưa nhập ngày sao kê). Không tính các khoản phí thẻ và phí chuyển tiền"
-                >
-                    <Select allowClear options={waiverPeriodOptions} placeholder="Không áp dụng" />
-                </Form.Item>
-                <Form.Item
+                    control={control}
+                    render={({ field }) => (
+                        <FormField
+                            label="Miễn phí khi chi tiêu"
+                            tooltip="Theo năm: tổng chi tiêu trong 12 tháng trước ngày thu phí. Theo kỳ sao kê: chi tiêu mỗi kỳ (tháng dương lịch nếu chưa nhập ngày sao kê). Không tính các khoản phí thẻ và phí chuyển tiền"
+                        >
+                            <Combobox
+                                allowClear
+                                options={waiverPeriodOptions}
+                                placeholder="Không áp dụng"
+                                value={field.value ?? null}
+                                onChange={(value) => field.onChange(value ?? null)}
+                            />
+                        </FormField>
+                    )}
+                />
+                <NumberField
                     name="annualFeeWaiverMinSpend"
                     label="Chi tiêu tối thiểu"
-                    rules={[
-                        {
-                            required: Boolean(waiverPeriodWatch),
-                            message: "Nhập mức chi tiêu tối thiểu",
+                    placeholder="0"
+                    disabled={!waiverPeriodWatch}
+                    rules={{
+                        validate: {
+                            required: (value, formValues) =>
+                                !formValues.annualFeeWaiverPeriod ||
+                                !isBlankValue(value) ||
+                                "Nhập mức chi tiêu tối thiểu",
+                            min: numberMinRule(1, "Phải > 0"),
                         },
-                        numberMinRule(1, "Phải > 0"),
-                    ]}
-                >
-                    <DebouncedNumberInput
-                        className="w-full!"
-                        min={0}
-                        step={1000}
-                        placeholder="0"
-                        disabled={!waiverPeriodWatch}
-                    />
-                </Form.Item>
+                    }}
+                />
             </Grid>
         ),
         management: (
             <>
                 <Grid>
-                    <Form.Item
+                    <NumberField
                         name="managementFee"
                         label="Phí (ước tính/tháng)"
                         tooltip="Số thực tế có thể khác; khi bị thu, ghi một khoản chi tiêu trên thẻ"
-                        rules={[numberMinRule(0, "Phí phải >= 0")]}
-                    >
-                        <DebouncedNumberInput className="w-full!" min={0} step={1000} placeholder="0" />
-                    </Form.Item>
-                    <Form.Item
+                        placeholder="0"
+                        rules={{ validate: numberMinRule(0, "Phí phải >= 0") }}
+                    />
+                    <NumberField
                         name="managementFeeDay"
                         label="Ngày thu"
-                        rules={[numberRangeRule(1, 31, "Từ 1 đến 31")]}
-                    >
-                        <DebouncedNumberInput className="w-full!" min={1} max={31} placeholder="1-31" />
-                    </Form.Item>
+                        placeholder="1-31"
+                        rules={{ validate: numberRangeRule(1, 31, "Từ 1 đến 31") }}
+                    />
                 </Grid>
                 <SectionNote>
                     Miễn phí khi đạt <b>một trong hai</b> điều kiện trong kỳ sao kê (không tính phí
                     thẻ và phí chuyển tiền):
                 </SectionNote>
                 <Grid>
-                    <Form.Item
+                    <NumberField
                         name="managementFeeWaiverMinTransactions"
                         label="Số giao dịch tối thiểu"
-                        rules={[numberRangeRule(1, 1000, "Từ 1 đến 1000")]}
-                    >
-                        <DebouncedNumberInput
-                            className="w-full!"
-                            min={1}
-                            step={1}
-                            placeholder="Số giao dịch/kỳ"
-                        />
-                    </Form.Item>
-                    <Form.Item
+                        placeholder="Số giao dịch/kỳ"
+                        rules={{ validate: numberRangeRule(1, 1000, "Từ 1 đến 1000") }}
+                    />
+                    <NumberField
                         name="managementFeeWaiverMinSpend"
                         label="Hoặc chi tiêu tối thiểu"
-                        rules={[numberMinRule(1, "Phải > 0")]}
-                    >
-                        <DebouncedNumberInput
-                            className="w-full!"
-                            min={0}
-                            step={100000}
-                            placeholder="Chi tiêu/kỳ"
-                        />
-                    </Form.Item>
+                        placeholder="Chi tiêu/kỳ"
+                        rules={{ validate: numberMinRule(1, "Phải > 0") }}
+                    />
                 </Grid>
             </>
         ),
@@ -172,26 +221,19 @@ export default function CreditCardFields({
                     trong kỳ sao kê.
                 </SectionNote>
                 <Grid>
-                    <Form.Item
+                    <NumberField
                         name="paymentFee"
                         label="Phí mỗi lần"
-                        rules={[numberMinRule(0, "Phí phải >= 0")]}
-                    >
-                        <DebouncedNumberInput className="w-full!" min={0} step={1000} placeholder="0" />
-                    </Form.Item>
-                    <Form.Item
+                        placeholder="0"
+                        rules={{ validate: numberMinRule(0, "Phí phải >= 0") }}
+                    />
+                    <NumberField
                         name="freePaymentsPerCycle"
                         label="Số lần miễn phí/kỳ"
-                        rules={[numberRangeRule(0, 100, "Từ 0 đến 100")]}
-                    >
-                        <DebouncedNumberInput
-                            className="w-full!"
-                            min={0}
-                            step={1}
-                            placeholder="0"
-                            disabled={toNumber(paymentFeeWatch) == null}
-                        />
-                    </Form.Item>
+                        placeholder="0"
+                        disabled={toNumber(paymentFeeWatch) == null}
+                        rules={{ validate: numberRangeRule(0, 100, "Từ 0 đến 100") }}
+                    />
                 </Grid>
             </>
         ),
@@ -243,73 +285,85 @@ export default function CreditCardFields({
 
     return (
         <>
-            <div className="mb-2 text-sm font-medium">Thông tin thẻ</div>
-            <Grid>
-                <Form.Item
-                    name="creditLimit"
-                    label="Hạn mức tín dụng"
-                    rules={[
-                        { required: true, message: "Hạn mức là bắt buộc" },
-                        numberMinRule(0, "Hạn mức phải >= 0"),
-                    ]}
-                >
-                    <DebouncedNumberInput className="w-full!" min={0} step={1000} />
-                </Form.Item>
-                <Form.Item
-                    name="currentDebt"
-                    label="Dư nợ hiện tại"
-                    rules={[
-                        { required: true, message: "Dư nợ là bắt buộc" },
-                        numberMinRule(0, "Dư nợ phải >= 0"),
-                    ]}
-                >
-                    <DebouncedNumberInput className="w-full!" min={0} step={1000} />
-                </Form.Item>
-                <Form.Item
-                    name="statementDate"
-                    label="Ngày sao kê"
-                    tooltip="Xác định kỳ sao kê để tính điều kiện miễn phí và số lần trả nợ"
-                    rules={[numberRangeRule(1, 31, "Từ 1 đến 31")]}
-                >
-                    <DebouncedNumberInput className="w-full!" min={1} max={31} placeholder="1-31" />
-                </Form.Item>
-                <Form.Item
-                    name="dueDate"
-                    label="Ngày đến hạn"
-                    rules={[numberRangeRule(1, 31, "Từ 1 đến 31")]}
-                >
-                    <DebouncedNumberInput className="w-full!" min={1} max={31} placeholder="1-31" />
-                </Form.Item>
-            </Grid>
-
-            <div className="mb-2 text-sm font-medium">
-                Phí & lãi{" "}
-                <span className="font-normal text-muted-foreground">
-                    (tùy chọn, là số ước tính)
-                </span>
+            <div className="flex flex-col gap-2">
+                <div className="text-sm font-medium">Thông tin thẻ</div>
+                <Grid>
+                    <NumberField
+                        name="creditLimit"
+                        label="Hạn mức tín dụng"
+                        rules={{
+                            required: "Hạn mức là bắt buộc",
+                            validate: numberMinRule(0, "Hạn mức phải >= 0"),
+                        }}
+                    />
+                    <NumberField
+                        name="currentDebt"
+                        label="Dư nợ hiện tại"
+                        rules={{
+                            required: "Dư nợ là bắt buộc",
+                            validate: numberMinRule(0, "Dư nợ phải >= 0"),
+                        }}
+                    />
+                    <NumberField
+                        name="statementDate"
+                        label="Ngày sao kê"
+                        tooltip="Xác định kỳ sao kê để tính điều kiện miễn phí và số lần trả nợ"
+                        placeholder="1-31"
+                        rules={{ validate: numberRangeRule(1, 31, "Từ 1 đến 31") }}
+                    />
+                    <NumberField
+                        name="dueDate"
+                        label="Ngày đến hạn"
+                        placeholder="1-31"
+                        rules={{ validate: numberRangeRule(1, 31, "Từ 1 đến 31") }}
+                    />
+                </Grid>
             </div>
-            <Collapse
-                className="mb-4"
-                activeKey={activeKeys}
-                onChange={(keys) => onActiveKeysChange(keys as CardFeeSectionKey[])}
-                items={CARD_FEE_SECTIONS.map((section) => {
-                    const filled = section.fields.filter((field) => isFilled(field)).length;
-                    return {
-                        key: section.key,
-                        label: section.title,
-                        forceRender: true,
-                        extra:
-                            filled > 0 ? (
-                                <Tag color="green" className="m-0">
-                                    Đã nhập {filled}
-                                </Tag>
-                            ) : (
-                                <span className="text-xs text-muted-foreground">Chưa nhập</span>
-                            ),
-                        children: sectionBodies[section.key],
-                    };
-                })}
-            />
+
+            <div className="flex flex-col gap-2">
+                <div className="text-sm font-medium">
+                    Phí & lãi{" "}
+                    <span className="font-normal text-muted-foreground">
+                        (tùy chọn, là số ước tính)
+                    </span>
+                </div>
+                <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+                    {CARD_FEE_SECTIONS.map((section) => {
+                        const open = activeKeys.includes(section.key);
+                        const filled = section.fields.filter((field) => isFilled(field)).length;
+                        return (
+                            <Collapsible
+                                key={section.key}
+                                open={open}
+                                onOpenChange={(next) => toggleSection(section.key, next)}
+                            >
+                                <CollapsibleTrigger className="flex w-full cursor-pointer items-center gap-2 bg-muted/40 px-3 py-2.5 text-left text-sm font-medium transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
+                                    <ChevronDown
+                                        className={cn(
+                                            "size-4 shrink-0 text-muted-foreground transition-transform",
+                                            open && "rotate-180",
+                                        )}
+                                    />
+                                    <span className="flex-1">{section.title}</span>
+                                    {filled > 0 ? (
+                                        <Tag color="green">Đã nhập {filled}</Tag>
+                                    ) : (
+                                        <span className="text-xs font-normal text-muted-foreground">
+                                            Chưa nhập
+                                        </span>
+                                    )}
+                                </CollapsibleTrigger>
+                                {/* forceMount: ô trong mục đang đóng vẫn đăng ký với form để validate */}
+                                <CollapsibleContent forceMount>
+                                    <div className="flex flex-col gap-4 px-3 pt-3 pb-4">
+                                        {sectionBodies[section.key]}
+                                    </div>
+                                </CollapsibleContent>
+                            </Collapsible>
+                        );
+                    })}
+                </div>
+            </div>
         </>
     );
 }

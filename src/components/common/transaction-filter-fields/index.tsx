@@ -1,7 +1,7 @@
 "use client";
 
-import { Select } from "antd";
 import type { Dayjs } from "dayjs";
+import Combobox from "@/components/common/combobox";
 import TransactionDateRange from "@/components/common/transaction-date-range";
 
 type Option = { value: string; label: string };
@@ -29,30 +29,33 @@ export default function TransactionFilterFields({
     onDateRange,
     layout,
 }: TransactionFilterFieldsProps) {
-    const selectClass = layout === "desktop" ? "w-full lg:w-fit lg:min-w-40" : "w-full";
+    const desktop = layout === "desktop";
+    const selectClass = desktop ? "w-full lg:w-fit lg:min-w-40" : "w-full";
 
     return (
         <>
             {categoryOptions && onCategoryFilter ? (
-                <Select
+                <Combobox
                     value={categoryFilter}
-                    onChange={onCategoryFilter}
+                    // Bấm xóa (không có) → coi như "Tất cả"
+                    onChange={(value) => onCategoryFilter(value ?? "")}
                     options={categoryOptions}
+                    placeholder="Danh mục"
+                    aria-label="Lọc theo danh mục"
                     className={selectClass}
-                    popupMatchSelectWidth={false}
-                    showSearch
-                    optionFilterProp="label"
+                    // Toolbar desktop: ô hẹp, danh sách rộng theo nội dung
+                    popupMatchWidth={!desktop}
                 />
             ) : null}
             {sourceOptions && onSourceFilter ? (
-                <Select
+                <Combobox
                     value={sourceFilter}
-                    onChange={onSourceFilter}
+                    onChange={(value) => onSourceFilter(value ?? "")}
                     options={sourceOptions}
+                    placeholder="Nguồn tiền"
+                    aria-label="Lọc theo nguồn tiền"
                     className={selectClass}
-                    popupMatchSelectWidth={false}
-                    showSearch
-                    optionFilterProp="label"
+                    popupMatchWidth={!desktop}
                 />
             ) : null}
             <TransactionDateRange value={dateRange} onChange={onDateRange} layout={layout} />

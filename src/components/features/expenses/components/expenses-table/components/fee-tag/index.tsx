@@ -1,4 +1,4 @@
-import { Tag } from "antd";
+import Tag from "@/components/common/tag";
 import {
     CARD_FEE_TYPE_LABELS,
     CardFeeType,
@@ -12,17 +12,13 @@ import {
 export default function FeeTag({ record }: { record: IExpensesData }) {
     if (record.skipBalanceAdjust) {
         return (
-            <Tag color="orange" className="w-fit">
+            <Tag color="orange">
                 {record.cardFeeType === CardFeeType.ROLLOVER_FEE ? "Phí đáo hạn" : "Phí chuyển tiền"}
             </Tag>
         );
     }
     if (record.cardFeeType) {
-        return (
-            <Tag color="purple" className="w-fit">
-                {CARD_FEE_TYPE_LABELS[record.cardFeeType]}
-            </Tag>
-        );
+        return <Tag color="purple">{CARD_FEE_TYPE_LABELS[record.cardFeeType]}</Tag>;
     }
     return null;
 }

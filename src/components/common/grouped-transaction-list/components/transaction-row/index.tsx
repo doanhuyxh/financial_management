@@ -1,9 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Button, Dropdown } from "antd";
-import type { MenuProps } from "antd";
 import { MoreHorizontal } from "lucide-react";
+import ActionMenu, { type IActionMenuItem } from "@/components/common/action-menu";
+import { Button } from "@/components/shadcn/ui/button";
 import { cn } from "@/libs/shadcn/utils";
 
 interface ITransactionRowProps {
@@ -23,7 +23,7 @@ interface ITransactionRowProps {
     /** Bấm dòng (VD: mở form sửa). Không có thì dòng không bấm được. */
     onClick?: () => void;
     /** Menu "⋯" (Sửa, Xóa…) */
-    actions?: MenuProps["items"];
+    actions?: IActionMenuItem[];
     onAction?: (key: string) => void;
     /** Ghi chú nhỏ thay cho menu khi dòng bị khóa */
     lockedHint?: ReactNode;
@@ -100,24 +100,26 @@ export default function TransactionRow({
                     {lockedHint}
                 </span>
             ) : actions?.length ? (
-                // Chặn click lan ra dòng (dòng bấm = sửa)
-                <div onClick={(event) => event.stopPropagation()} className="shrink-0">
-                    <Dropdown
-                        trigger={["click"]}
-                        placement="bottomRight"
-                        menu={{ items: actions, onClick: ({ key }) => onAction?.(key) }}
-                    >
+                // Chặn click/phím lan ra dòng (dòng bấm = sửa)
+                <div
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                    className="shrink-0"
+                >
+                    <ActionMenu items={actions} onClick={(key) => onAction?.(key)} align="end">
                         <Button
-                            type="text"
-                            size="small"
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
                             aria-label="Thao tác"
                             className="text-muted-foreground"
-                            icon={<MoreHorizontal className="size-4" />}
-                        />
-                    </Dropdown>
+                        >
+                            <MoreHorizontal className="size-4" />
+                        </Button>
+                    </ActionMenu>
                 </div>
             ) : (
-                <span className="hidden w-8 shrink-0 md:block" />
+                <span className="hidden w-7 shrink-0 md:block" />
             )}
         </div>
     );

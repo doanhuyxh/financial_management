@@ -7,10 +7,8 @@ function shouldIgnore(event: KeyboardEvent) {
     const target = event.target as HTMLElement | null;
     if (target?.isContentEditable) return true;
     if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return true;
-    if (document.querySelector(".ant-drawer-open")) return true;
-    return Array.from(document.querySelectorAll<HTMLElement>(".ant-modal-wrap")).some(
-        (element) => getComputedStyle(element).display !== "none",
-    );
+    // Dialog / AlertDialog / Drawer (vaul) / Sheet / menu đang mở đều là Radix content có `data-state="open"`
+    return Boolean(document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [role="menu"][data-state="open"]'));
 }
 
 /**

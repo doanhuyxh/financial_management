@@ -1,7 +1,8 @@
 "use client";
 
-import { Alert } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
+import { Info, TriangleAlert } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/shadcn/ui/alert";
 import { useGetCreditCardFeeProgress } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { SourcesOfMoneyType, type ISourcesOfMoneyData } from "@/libs/interfaces/sourcesOfMoneyData";
 import { formatMoney } from "@/libs/utils/formatMoney";
@@ -35,27 +36,27 @@ export default function CardPaymentFeeAlert({
 
     if (paymentNumber > freePayments) {
         return (
-            <Alert
-                type="warning"
-                showIcon
-                className="mb-4"
-                message={`Lần trả nợ thứ ${paymentNumber} trong kỳ sao kê, có thể bị thu ~${formatMoney(paymentFee)}`}
-                description={
-                    freePayments > 0
-                        ? `Thẻ chỉ miễn phí ${freePayments} lần trả nợ mỗi kỳ. Nên gộp các lần trả nợ thành một.`
-                        : undefined
-                }
-            />
+            <Alert className="border-warn/40 bg-warn-soft text-warn">
+                <TriangleAlert />
+                <AlertTitle>
+                    {`Lần trả nợ thứ ${paymentNumber} trong kỳ sao kê, có thể bị thu ~${formatMoney(paymentFee)}`}
+                </AlertTitle>
+                {freePayments > 0 ? (
+                    <AlertDescription className="text-foreground/80">
+                        {`Thẻ chỉ miễn phí ${freePayments} lần trả nợ mỗi kỳ. Nên gộp các lần trả nợ thành một.`}
+                    </AlertDescription>
+                ) : null}
+            </Alert>
         );
     }
     if (paymentNumber === freePayments) {
         return (
-            <Alert
-                type="info"
-                showIcon
-                className="mb-4"
-                message={`Lần trả nợ miễn phí cuối cùng của kỳ này; lần sau sẽ mất ~${formatMoney(paymentFee)}`}
-            />
+            <Alert className="border-credit/40 bg-credit-soft text-credit">
+                <Info />
+                <AlertTitle>
+                    {`Lần trả nợ miễn phí cuối cùng của kỳ này; lần sau sẽ mất ~${formatMoney(paymentFee)}`}
+                </AlertTitle>
+            </Alert>
         );
     }
     return null;

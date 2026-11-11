@@ -4,7 +4,7 @@ import type {
     IFromTransfersData,
     ITransfersData,
 } from "@/libs/interfaces/transfersData";
-import type { TablePaginationConfig } from "antd/es/table";
+import type { IPageChange } from "@/components/common/pagination";
 
 /** Giá trị điền sẵn khi mở form tạo từ màn khác (VD: nút "Trả nợ" trên dashboard). */
 export interface ITransferCreateDefaults {
@@ -38,7 +38,7 @@ export interface ITransfersContextProps {
     handleToSourceFilter: (value: string) => void;
     handleDateRange: (range: [Dayjs | null, Dayjs | null] | null) => void;
     handleChangePage: (page: number) => void;
-    handleTableChange: (pager: TablePaginationConfig) => void;
+    handleTableChange: (pager: IPageChange) => void;
     openCreateModal: () => void;
     closeModal: () => void;
     handleSubmit: (

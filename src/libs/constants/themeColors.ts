@@ -1,5 +1,5 @@
 /**
- * Màu hex dùng cho antd (antd cần hex để tự sinh màu hover/active/nền nhạt, không đọc được CSS var).
+ * Màu hex cho nơi không đọc được CSS var (biểu đồ @ant-design/plots trong dashboard).
  * Giá trị PHẢI khớp với token trong src/app/globals.css; sửa một bên thì sửa cả bên kia.
  */
 export const THEME_COLORS = {

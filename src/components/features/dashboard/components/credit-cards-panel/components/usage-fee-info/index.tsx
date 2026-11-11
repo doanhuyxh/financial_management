@@ -1,4 +1,4 @@
-import { Tag } from "antd";
+import Tag from "@/components/common/tag";
 import type { IUsageFeeStatus } from "@/components/features/dashboard/utils";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
@@ -13,7 +13,7 @@ export default function UsageFeeInfo({ status }: { status: IUsageFeeStatus | nul
             {status.transactions != null ? (
                 <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                     Kỳ này {status.transactions} giao dịch
-                    <Tag color={status.charged ? "red" : "green"} variant="solid" className="m-0">
+                    <Tag color={status.charged ? "red" : "green"} variant="solid">
                         {status.charged ? "Đã phát sinh phí" : "Chưa mất phí"}
                     </Tag>
                 </span>

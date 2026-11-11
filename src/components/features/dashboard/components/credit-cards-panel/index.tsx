@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button, Progress, Skeleton } from "antd";
 import { ArrowLeftRight, ArrowRight, ChevronDown, RefreshCw } from "lucide-react";
 import Money from "@/components/common/money";
 import VisibilitySettings from "@/components/common/visibility-settings";
+import { Button } from "@/components/shadcn/ui/button";
+import { Progress } from "@/components/shadcn/ui/progress";
 import { useDashboardContext } from "@/components/features/dashboard/context";
+import ParagraphSkeleton from "@/components/common/paragraph-skeleton";
 import type {
     CreditDueStatus,
     HeadlineTone,
@@ -110,12 +112,14 @@ function CardRow({
                         className="text-sm font-semibold"
                     />
                     <Progress
-                        percent={usedPercent}
-                        showInfo={false}
-                        size="small"
-                        strokeColor={usedPercent >= 90 ? "var(--debt)" : "var(--credit)"}
-                        railColor="var(--muted)"
-                        className="m-0"
+                        value={usedPercent}
+                        aria-label="Dư nợ / hạn mức"
+                        className={cn(
+                            "my-1.5 h-1.5",
+                            usedPercent >= 90
+                                ? "*:data-[slot=progress-indicator]:bg-debt"
+                                : "*:data-[slot=progress-indicator]:bg-credit",
+                        )}
                     />
                     <p className="money-value text-xs text-muted-foreground tabular-nums">
                         {usedPercent}% của {formatMoney(card.creditLimit)}
@@ -134,38 +138,40 @@ function CardRow({
                     {hasDebt ? (
                         <>
                             <Button
-                                size="small"
-                                icon={<ArrowLeftRight className="size-3.5" />}
+                                type="button"
+                                variant="outline"
+                                size="sm"
                                 onClick={() => handlePayCard(card._id, card.currentDebt)}
                             >
+                                <ArrowLeftRight data-icon="inline-start" />
                                 Trả nợ
                             </Button>
                             <Button
-                                size="small"
-                                icon={<RefreshCw className="size-3.5" />}
+                                type="button"
+                                variant="outline"
+                                size="sm"
                                 title="Ghi lần dùng dịch vụ đáo hạn thẻ"
                                 onClick={() => openRollover(card._id)}
                             >
+                                <RefreshCw data-icon="inline-start" />
                                 Đáo hạn
                             </Button>
                         </>
                     ) : null}
                     {card.fee ? (
                         <Button
-                            size="small"
-                            type="text"
+                            type="button"
+                            variant="ghost"
+                            size="sm"
                             aria-expanded={expanded}
                             aria-label={expanded ? "Ẩn chi tiết phí" : "Xem chi tiết phí"}
                             onClick={onToggle}
-                            icon={
-                                <ChevronDown
-                                    className={cn(
-                                        "size-4 transition-transform",
-                                        expanded && "rotate-180",
-                                    )}
-                                />
-                            }
+                            // Desktop chỉ còn icon → nút vuông; mobile có chữ "Chi tiết phí"
+                            className="md:w-7 md:px-0"
                         >
+                            <ChevronDown
+                                className={cn("size-4 transition-transform", expanded && "rotate-180")}
+                            />
                             <span className="md:hidden">Chi tiết phí</span>
                         </Button>
                     ) : null}
@@ -213,11 +219,12 @@ export default function CreditCardsPanel() {
                         buttonLabel="Mục phí"
                         title="Chọn mục phí hiển thị khi mở rộng"
                     />
-                    <Link href={MENU_KEY.CREDIT_CARD_COMPARE}>
-                        <Button size="small">
-                            So sánh thẻ <ArrowRight className="size-3.5" />
-                        </Button>
-                    </Link>
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href={MENU_KEY.CREDIT_CARD_COMPARE}>
+                            So sánh thẻ
+                            <ArrowRight data-icon="inline-end" />
+                        </Link>
+                    </Button>
                 </div>
             </div>
 
@@ -235,7 +242,7 @@ export default function CreditCardsPanel() {
             </div>
 
             {isSourcesLoading ? (
-                <Skeleton active paragraph={{ rows: 3 }} />
+                <ParagraphSkeleton rows={3} />
             ) : (
                 <ul>
                     {creditCards.map((card) => (

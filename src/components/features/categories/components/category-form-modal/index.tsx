@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { Form, Input, Segmented } from "antd";
-import ResponsiveModal from "@/components/common/responsive-modal";
+import { useEffect, useId } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import ResponsiveModal, { MODAL_AUTOFOCUS_CLASS } from "@/components/common/responsive-modal";
+import FormField from "@/components/common/form-field";
+import Segmented from "@/components/common/segmented";
+import { Input } from "@/components/shadcn/ui/input";
 import { useCategoryContext } from "@/components/features/categories/context";
 import { CATEGORY_KIND_LABELS, CategoryKind } from "@/libs/interfaces/categoriesData";
 import { getCategoryColor } from "@/libs/utils/categoryColor";
@@ -12,9 +15,11 @@ import ColorPicker from "@/components/features/categories/components/category-fo
 type FormValues = {
     name: string;
     kind: CategoryKind;
-    icon?: string | null;
-    color?: string | null;
+    icon: string | null;
+    color: string | null;
 };
+
+const NAME_MAX_LENGTH = 100;
 
 const KIND_OPTIONS = Object.values(CategoryKind).map((value) => ({
     value,
@@ -28,16 +33,20 @@ export default function CategoryFormModal() {
         kindFilter,
         isSubmitting,
         closeModal,
-        handleSubmit,
+        handleSubmit: submitCategory,
     } = useCategoryContext();
 
-    const [form] = Form.useForm<FormValues>();
+    const nameId = useId();
+    const { control, handleSubmit, reset } = useForm<FormValues>({
+        mode: "onChange",
+        defaultValues: { name: "", kind: CategoryKind.EXPENSE, icon: null, color: null },
+    });
     const isEdit = Boolean(editingCategory?._id);
 
     useEffect(() => {
         if (!modalOpen) return;
         if (editingCategory) {
-            form.setFieldsValue({
+            reset({
                 name: editingCategory.name,
                 kind: editingCategory.kind ?? CategoryKind.EXPENSE,
                 icon: editingCategory.icon ?? null,
@@ -45,25 +54,23 @@ export default function CategoryFormModal() {
             });
         } else {
             // Tạo mới: mặc định theo tab đang xem
-            form.resetFields();
-            form.setFieldsValue({ kind: kindFilter, icon: null, color: null });
+            reset({ name: "", kind: kindFilter, icon: null, color: null });
         }
-    }, [modalOpen, editingCategory, kindFilter, form]);
+    }, [modalOpen, editingCategory, kindFilter, reset]);
 
-    const nameWatch = Form.useWatch("name", form);
-    const iconWatch = Form.useWatch("icon", form);
-    const colorWatch = Form.useWatch("color", form);
+    const nameWatch = useWatch({ control, name: "name" });
+    const iconWatch = useWatch({ control, name: "icon" });
+    const colorWatch = useWatch({ control, name: "color" });
     const previewColor = getCategoryColor(editingCategory?._id ?? nameWatch, colorWatch);
 
-    const handleOk = async () => {
-        const values = await form.validateFields();
-        await handleSubmit({
+    const handleOk = handleSubmit(async (values) => {
+        await submitCategory({
             name: values.name.trim(),
             kind: values.kind,
             icon: values.icon || "",
             color: values.color || "",
         });
-    };
+    });
 
     return (
         <ResponsiveModal
@@ -76,44 +83,80 @@ export default function CategoryFormModal() {
             okText={isEdit ? "Cập nhật" : "Tạo mới"}
             cancelText="Hủy"
         >
-            <Form
-                form={form}
-                layout="vertical"
-                className="mt-4"
-                initialValues={{ kind: CategoryKind.EXPENSE }}
-            >
-                <Form.Item
+            <div className="mt-4 flex flex-col gap-4">
+                <Controller
                     name="kind"
-                    label="Loại danh mục"
-                    extra={
-                        isEdit
-                            ? "Chỉ đổi được loại khi danh mục chưa có giao dịch"
-                            : undefined
-                    }
-                >
-                    <Segmented block options={KIND_OPTIONS} />
-                </Form.Item>
-                <Form.Item
+                    control={control}
+                    render={({ field }) => (
+                        <FormField
+                            label="Loại danh mục"
+                            extra={
+                                isEdit
+                                    ? "Chỉ đổi được loại khi danh mục chưa có giao dịch"
+                                    : undefined
+                            }
+                        >
+                            <Segmented<CategoryKind>
+                                block
+                                options={KIND_OPTIONS}
+                                value={field.value}
+                                onChange={field.onChange}
+                                aria-label="Loại danh mục"
+                            />
+                        </FormField>
+                    )}
+                />
+                <Controller
                     name="name"
-                    label="Tên danh mục"
-                    rules={[
-                        { required: true, message: "Tên danh mục là bắt buộc" },
-                        { max: 100, message: "Tên danh mục tối đa 100 ký tự" },
-                    ]}
-                >
-                    <Input
-                        placeholder="Ví dụ: Ăn uống, Đi lại..."
-                        maxLength={100}
-                        autoFocus
-                        onPressEnter={handleOk}
-                    />
-                </Form.Item>
-                <Form.Item name="icon" label="Icon">
-                    <IconPicker />
-                </Form.Item>
-                <Form.Item name="color" label="Màu" extra="Dùng cho biểu đồ và danh sách giao dịch">
-                    <ColorPicker />
-                </Form.Item>
+                    control={control}
+                    rules={{
+                        required: "Tên danh mục là bắt buộc",
+                        maxLength: {
+                            value: NAME_MAX_LENGTH,
+                            message: `Tên danh mục tối đa ${NAME_MAX_LENGTH} ký tự`,
+                        },
+                    }}
+                    render={({ field, fieldState }) => (
+                        <FormField
+                            label="Tên danh mục"
+                            htmlFor={nameId}
+                            className={MODAL_AUTOFOCUS_CLASS}
+                            error={fieldState.error?.message}
+                        >
+                            <Input
+                                {...field}
+                                id={nameId}
+                                placeholder="Ví dụ: Ăn uống, Đi lại..."
+                                maxLength={NAME_MAX_LENGTH}
+                                aria-invalid={fieldState.invalid || undefined}
+                                onKeyDown={(event) => {
+                                    // Enter = lưu (như onPressEnter cũ); bỏ qua khi đang gõ bộ gõ
+                                    if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+                                    event.preventDefault();
+                                    void handleOk();
+                                }}
+                            />
+                        </FormField>
+                    )}
+                />
+                <Controller
+                    name="icon"
+                    control={control}
+                    render={({ field }) => (
+                        <FormField label="Icon">
+                            <IconPicker value={field.value} onChange={field.onChange} />
+                        </FormField>
+                    )}
+                />
+                <Controller
+                    name="color"
+                    control={control}
+                    render={({ field }) => (
+                        <FormField label="Màu" extra="Dùng cho biểu đồ và danh sách giao dịch">
+                            <ColorPicker value={field.value} onChange={field.onChange} />
+                        </FormField>
+                    )}
+                />
                 <div className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2">
                     <span className="text-xs text-muted-foreground">Xem trước</span>
                     <span
@@ -125,7 +168,7 @@ export default function CategoryFormModal() {
                     </span>
                     <span className="truncate font-medium">{nameWatch || "Tên danh mục"}</span>
                 </div>
-            </Form>
+            </div>
         </ResponsiveModal>
     );
 }

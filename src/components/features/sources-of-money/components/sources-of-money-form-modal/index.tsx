@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Avatar, Form, Input, Select } from "antd";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Controller, FormProvider, useForm, useWatch, type FieldErrors } from "react-hook-form";
 import dayjs, { type Dayjs } from "dayjs";
-import ResponsiveModal from "@/components/common/responsive-modal";
-import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
-import {
-    SOURCES_OF_MONEY_TYPE_LABELS,
-    SourcesOfMoneyType,
-    type IFromSourcesOfMoneyData,
-} from "@/libs/interfaces/sourcesOfMoneyData";
+import Combobox from "@/components/common/combobox";
+import FormField from "@/components/common/form-field";
 import DebouncedNumberInput from "@/components/common/input/DebouncedNumberInput";
-import { getTrackedAmount } from "@/libs/utils/trackedAmount";
-import { useVietQrBanks } from "@/libs/hooks/customHooks/useVietQrBanks";
+import ResponsiveModal, { MODAL_AUTOFOCUS_CLASS } from "@/components/common/responsive-modal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/shadcn/ui/avatar";
+import { Input } from "@/components/shadcn/ui/input";
+import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
 import CreditCardFields from "@/components/features/sources-of-money/components/sources-of-money-form-modal/components/credit-card-fields";
 import {
     getSectionsWithErrors,
@@ -21,12 +18,25 @@ import {
     toNumber,
     type CardFeeSectionKey,
     type FormValues,
+    type NumberValue,
+    type RateFeeFieldName,
 } from "@/components/features/sources-of-money/components/sources-of-money-form-modal/utils";
+import { useVietQrBanks } from "@/libs/hooks/customHooks/useVietQrBanks";
+import type { SelectOption } from "@/libs/interfaces/selectOption";
+import {
+    SOURCES_OF_MONEY_TYPE_LABELS,
+    SourcesOfMoneyType,
+    type IFromSourcesOfMoneyData,
+    type ISourcesOfMoneyData,
+} from "@/libs/interfaces/sourcesOfMoneyData";
+import { getTrackedAmount } from "@/libs/utils/trackedAmount";
 
-const typeOptions = Object.values(SourcesOfMoneyType).map((type) => ({
-    value: type,
-    label: SOURCES_OF_MONEY_TYPE_LABELS[type],
-}));
+const typeOptions: SelectOption<SourcesOfMoneyType>[] = Object.values(SourcesOfMoneyType).map(
+    (type) => ({
+        value: type,
+        label: SOURCES_OF_MONEY_TYPE_LABELS[type],
+    }),
+);
 
 /** Ngày thu phí chỉ có ngày/tháng; dùng năm nhuận để hiển thị được 29/02. */
 function toAnnualFeeDate(day?: number, month?: number): Dayjs | null {
@@ -34,47 +44,105 @@ function toAnnualFeeDate(day?: number, month?: number): Dayjs | null {
     return dayjs(new Date(2024, month - 1, day));
 }
 
-export default function SourcesOfMoneyFormModal() {
-    const { modalOpen, editingItem, isSubmitting, closeModal, handleSubmit } =
-        useSourcesOfMoneyContext();
+/** Ô số trống dùng "" (không dùng undefined) để DebouncedNumberInput xóa giá trị cũ khi reset. */
+const num = (value?: number | null): NumberValue => value ?? "";
 
-    const [form] = Form.useForm<FormValues>();
-    const selectedType = Form.useWatch("type", form);
+const EMPTY_RATE_FEES = Object.fromEntries(
+    RATE_FEE_FIELDS.map(({ name }) => [name, ""]),
+) as Record<RateFeeFieldName, NumberValue>;
+
+const EMPTY_VALUES: FormValues = {
+    ...EMPTY_RATE_FEES,
+    name: "",
+    type: SourcesOfMoneyType.CASH,
+    balance: 0,
+    creditLimit: 0,
+    currentDebt: 0,
+    statementDate: "",
+    dueDate: "",
+    annualFee: "",
+    annualFeeDate: null,
+    annualFeeWaiverPeriod: null,
+    annualFeeWaiverMinSpend: "",
+    managementFee: "",
+    managementFeeDay: "",
+    managementFeeWaiverMinTransactions: "",
+    managementFeeWaiverMinSpend: "",
+    paymentFee: "",
+    freePaymentsPerCycle: "",
+    adjustmentNote: "",
+    bankBin: "",
+    accountNumber: "",
+    accountName: "",
+};
+
+function toFormValues(item: ISourcesOfMoneyData): FormValues {
+    const details = item.creditDetails;
+    return {
+        ...EMPTY_VALUES,
+        ...(Object.fromEntries(
+            RATE_FEE_FIELDS.map(({ name }) => [name, num(details?.[name])]),
+        ) as Record<RateFeeFieldName, NumberValue>),
+        name: item.name,
+        type: item.type,
+        balance: num(item.balance),
+        creditLimit: num(details?.creditLimit),
+        currentDebt: num(details?.currentDebt),
+        statementDate: num(details?.statementDate),
+        dueDate: num(details?.dueDate),
+        annualFee: num(details?.annualFee),
+        annualFeeDate: toAnnualFeeDate(details?.annualFeeDay, details?.annualFeeMonth),
+        annualFeeWaiverPeriod: details?.annualFeeWaiverPeriod ?? null,
+        annualFeeWaiverMinSpend: num(details?.annualFeeWaiverMinSpend),
+        managementFee: num(details?.managementFee),
+        managementFeeDay: num(details?.managementFeeDay),
+        managementFeeWaiverMinTransactions: num(details?.managementFeeWaiverMinTransactions),
+        managementFeeWaiverMinSpend: num(details?.managementFeeWaiverMinSpend),
+        paymentFee: num(details?.paymentFee),
+        freePaymentsPerCycle: num(details?.freePaymentsPerCycle),
+        bankBin: item.bankAccount?.bin ?? "",
+        accountNumber: item.bankAccount?.accountNumber ?? "",
+        accountName: item.bankAccount?.accountName ?? "",
+    };
+}
+
+export default function SourcesOfMoneyFormModal() {
+    const {
+        modalOpen,
+        editingItem,
+        isSubmitting,
+        closeModal,
+        handleSubmit: submitSource,
+    } = useSourcesOfMoneyContext();
+
+    const form = useForm<FormValues>({ mode: "onTouched", defaultValues: EMPTY_VALUES });
+    const { control, reset, getValues, handleSubmit } = form;
+    const wasOpenRef = useRef(false);
+    const fieldId = useId();
+    const selectedType = useWatch({ control, name: "type" });
     const isEdit = Boolean(editingItem?._id);
     const isCreditCard = selectedType === SourcesOfMoneyType.CREDIT_CARD;
-    const balanceWatch = Form.useWatch("balance", form);
-    const currentDebtWatch = Form.useWatch("currentDebt", form);
+    const balanceWatch = useWatch({ control, name: "balance" });
+    const currentDebtWatch = useWatch({ control, name: "currentDebt" });
     const [activeFeeSections, setActiveFeeSections] = useState<CardFeeSectionKey[]>([]);
     const isBank = selectedType === SourcesOfMoneyType.BANK;
-    const bankBinWatch = Form.useWatch("bankBin", form);
-    const accountNumberWatch = Form.useWatch("accountNumber", form);
+    const bankBinWatch = useWatch({ control, name: "bankBin" });
 
     const { data: banks = [], isLoading: isBanksLoading, isError: isBanksError } =
         useVietQrBanks(modalOpen && isBank);
-    const bankOptions = useMemo(() => {
-        const options = banks.map((bank) => ({
+    const bankOptions = useMemo<SelectOption[]>(() => {
+        const options: SelectOption[] = banks.map((bank) => ({
             value: bank.bin,
-            label: (
-                <span className="flex items-center gap-2">
-                    <Avatar src={bank.logo} size={20} shape="square" />
-                    {bank.shortName}
-                </span>
-            ),
-            bankName: bank.shortName,
-            searchText: `${bank.shortName} ${bank.code} ${bank.name}`,
+            label: bank.shortName,
         }));
         // Ngân hàng đã lưu vẫn hiện tên khi chưa tải được danh sách
         const saved = editingItem?.bankAccount;
         if (saved && !options.some((option) => option.value === saved.bin)) {
-            options.unshift({
-                value: saved.bin,
-                label: <span>{saved.bankName}</span>,
-                bankName: saved.bankName,
-                searchText: saved.bankName,
-            });
+            options.unshift({ value: saved.bin, label: saved.bankName });
         }
         return options;
     }, [banks, editingItem]);
+    const selectedBank = bankBinWatch ? banks.find((bank) => bank.bin === bankBinWatch) : undefined;
 
     // Số dư (nguồn thường) hoặc dư nợ (thẻ) lúc mở form; server dùng để phát hiện ghi đè
     const expectedAmount = editingItem ? getTrackedAmount(editingItem) : undefined;
@@ -83,64 +151,27 @@ export default function SourcesOfMoneyFormModal() {
         isEdit && enteredAmount !== undefined && enteredAmount !== expectedAmount;
 
     useEffect(() => {
-        if (!modalOpen) return;
-        setActiveFeeSections([]);
-
-        if (editingItem) {
-            form.setFieldsValue({
-                name: editingItem.name,
-                type: editingItem.type,
-                balance: editingItem.balance,
-                creditLimit: editingItem.creditDetails?.creditLimit,
-                currentDebt: editingItem.creditDetails?.currentDebt,
-                statementDate: editingItem.creditDetails?.statementDate,
-                dueDate: editingItem.creditDetails?.dueDate,
-                annualFee: editingItem.creditDetails?.annualFee,
-                annualFeeDate: toAnnualFeeDate(
-                    editingItem.creditDetails?.annualFeeDay,
-                    editingItem.creditDetails?.annualFeeMonth,
-                ),
-                annualFeeWaiverPeriod: editingItem.creditDetails?.annualFeeWaiverPeriod,
-                annualFeeWaiverMinSpend: editingItem.creditDetails?.annualFeeWaiverMinSpend,
-                managementFee: editingItem.creditDetails?.managementFee,
-                managementFeeDay: editingItem.creditDetails?.managementFeeDay,
-                managementFeeWaiverMinTransactions:
-                    editingItem.creditDetails?.managementFeeWaiverMinTransactions,
-                managementFeeWaiverMinSpend: editingItem.creditDetails?.managementFeeWaiverMinSpend,
-                paymentFee: editingItem.creditDetails?.paymentFee,
-                freePaymentsPerCycle: editingItem.creditDetails?.freePaymentsPerCycle,
-                ...Object.fromEntries(
-                    RATE_FEE_FIELDS.map(({ name }) => [name, editingItem.creditDetails?.[name]]),
-                ),
-                bankBin: editingItem.bankAccount?.bin,
-                accountNumber: editingItem.bankAccount?.accountNumber,
-                accountName: editingItem.bankAccount?.accountName,
-            });
-        } else {
-            form.resetFields();
-            form.setFieldsValue({
-                type: SourcesOfMoneyType.CASH,
-                balance: 0,
-                creditLimit: 0,
-                currentDebt: 0,
-            });
-        }
-    }, [modalOpen, editingItem, form]);
-
-    const handleOk = async () => {
-        let values: FormValues;
-        try {
-            values = await form.validateFields();
-        } catch (error) {
-            // Mở các mục phí đang đóng có ô lỗi để người dùng thấy
-            const errorFields =
-                (error as { errorFields?: { name: (string | number)[] }[] }).errorFields ?? [];
-            const sections = getSectionsWithErrors(errorFields.map((field) => field.name[0]));
-            if (sections.length > 0) {
-                setActiveFeeSections((current) => Array.from(new Set([...current, ...sections])));
-            }
+        if (!modalOpen) {
+            wasOpenRef.current = false;
             return;
         }
+        // Form đang mở mà editingItem đổi (409: nạp lại số mới nhất) thì giữ lý do người dùng đã gõ
+        const keepNote = wasOpenRef.current;
+        wasOpenRef.current = true;
+        setActiveFeeSections([]);
+        const next = editingItem ? toFormValues(editingItem) : EMPTY_VALUES;
+        reset(keepNote ? { ...next, adjustmentNote: getValues("adjustmentNote") } : next);
+    }, [modalOpen, editingItem, reset, getValues]);
+
+    // Mở các mục phí đang đóng có ô lỗi để người dùng thấy
+    const onInvalid = (errors: FieldErrors<FormValues>) => {
+        const sections = getSectionsWithErrors(Object.keys(errors));
+        if (sections.length > 0) {
+            setActiveFeeSections((current) => Array.from(new Set([...current, ...sections])));
+        }
+    };
+
+    const onValid = async (values: FormValues) => {
         const payload: IFromSourcesOfMoneyData = {
             name: values.name.trim(),
             type: values.type,
@@ -183,8 +214,7 @@ export default function SourcesOfMoneyFormModal() {
         if (values.type === SourcesOfMoneyType.BANK && values.bankBin && accountNumber) {
             payload.bankAccount = {
                 bin: values.bankBin,
-                bankName:
-                    bankOptions.find((option) => option.value === values.bankBin)?.bankName ?? "",
+                bankName: bankOptions.find((option) => option.value === values.bankBin)?.label ?? "",
                 accountNumber,
                 accountName: values.accountName?.trim() || undefined,
             };
@@ -197,8 +227,10 @@ export default function SourcesOfMoneyFormModal() {
             if (amountChanged) payload.adjustmentNote = values.adjustmentNote?.trim();
         }
 
-        await handleSubmit(payload);
+        await submitSource(payload);
     };
+
+    const handleOk = handleSubmit(onValid, onInvalid);
 
     return (
         <ResponsiveModal
@@ -213,125 +245,224 @@ export default function SourcesOfMoneyFormModal() {
             cancelText="Hủy"
             width={580}
         >
-            <Form form={form} layout="vertical" className="mt-4">
-                <Form.Item
-                    name="name"
-                    label="Tên nguồn tiền"
-                    rules={[
-                        { required: true, message: "Tên nguồn tiền là bắt buộc" },
-                        { max: 100, message: "Tên tối đa 100 ký tự" },
-                    ]}
-                >
-                    <Input placeholder="Ví dụ: Ví MoMo, Vietcombank..." maxLength={100} />
-                </Form.Item>
-
-                <Form.Item
-                    name="type"
-                    label="Loại"
-                    rules={[{ required: true, message: "Loại là bắt buộc" }]}
-                    tooltip={isEdit ? "Không đổi được loại sau khi tạo" : undefined}
-                >
-                    <Select options={typeOptions} placeholder="Chọn loại" disabled={isEdit} />
-                </Form.Item>
-
-                {!isCreditCard ? (
-                    <Form.Item
-                        name="balance"
-                        label="Số dư hiện có"
-                        rules={[
-                            { required: true, message: "Số dư là bắt buộc" },
-                            numberMinRule(0, "Số dư phải >= 0"),
-                        ]}
-                    >
-                        <DebouncedNumberInput
-                            className="w-full!"
-                            min={0}
-                            step={1000}
-                            placeholder="0"
-                        />
-                    </Form.Item>
-                ) : (
-                    <CreditCardFields
-                        activeKeys={activeFeeSections}
-                        onActiveKeysChange={setActiveFeeSections}
-                    />
-                )}
-
-                {isBank ? (
-                    <>
-                        <div className="mb-2 text-sm font-medium">
-                            Tài khoản nhận tiền{" "}
-                            <span className="font-normal text-muted-foreground">
-                                (tùy chọn, để tạo mã VietQR)
-                            </span>
-                        </div>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <Form.Item
-                                name="bankBin"
-                                label="Ngân hàng"
-                                rules={[
-                                    {
-                                        required: Boolean(accountNumberWatch?.trim()),
-                                        message: "Chọn ngân hàng của số tài khoản",
-                                    },
-                                ]}
-                                help={
-                                    isBanksError
-                                        ? "Không tải được danh sách ngân hàng từ VietQR"
-                                        : undefined
-                                }
+            <FormProvider {...form}>
+                {/* Không bọc <form>: Enter không được lưu vì ô số debounce có thể chưa đẩy giá trị vào form */}
+                <div className="mt-1 flex flex-col gap-4">
+                    <Controller
+                        name="name"
+                        control={control}
+                        rules={{
+                            required: "Tên nguồn tiền là bắt buộc",
+                            maxLength: { value: 100, message: "Tên tối đa 100 ký tự" },
+                            validate: (value) =>
+                                value.trim().length > 0 || "Tên nguồn tiền là bắt buộc",
+                        }}
+                        render={({ field, fieldState }) => (
+                            <FormField
+                                label="Tên nguồn tiền"
+                                error={fieldState.error?.message}
+                                htmlFor={`${fieldId}-name`}
+                                className={MODAL_AUTOFOCUS_CLASS}
                             >
-                                <Select
-                                    showSearch
-                                    optionFilterProp="searchText"
-                                    allowClear
-                                    loading={isBanksLoading}
-                                    options={bankOptions}
-                                    placeholder="Chọn ngân hàng"
+                                <Input
+                                    {...field}
+                                    id={`${fieldId}-name`}
+                                    aria-invalid={fieldState.invalid || undefined}
+                                    placeholder="Ví dụ: Ví MoMo, Vietcombank..."
+                                    maxLength={100}
                                 />
-                            </Form.Item>
-                            <Form.Item
-                                name="accountNumber"
-                                label="Số tài khoản"
-                                rules={[
-                                    {
-                                        required: Boolean(bankBinWatch),
-                                        message: "Nhập số tài khoản",
-                                    },
-                                    {
-                                        pattern: /^[0-9A-Za-z]{1,19}$/,
-                                        message: "Chỉ gồm chữ/số, tối đa 19 ký tự",
-                                    },
-                                ]}
-                            >
-                                <Input placeholder="Ví dụ: 0123456789" maxLength={19} />
-                            </Form.Item>
-                        </div>
-                        <Form.Item
-                            name="accountName"
-                            label="Tên chủ tài khoản"
-                            extra="Lưu dạng in hoa, không dấu"
-                            rules={[{ max: 50, message: "Tối đa 50 ký tự" }]}
-                        >
-                            <Input placeholder="NGUYEN VAN A" maxLength={50} />
-                        </Form.Item>
-                    </>
-                ) : null}
+                            </FormField>
+                        )}
+                    />
 
-                {amountChanged ? (
-                    <Form.Item
-                        name="adjustmentNote"
-                        label="Lý do điều chỉnh"
-                        extra="Lần điều chỉnh này được lưu vào lịch sử của nguồn tiền"
-                        rules={[{ max: 200, message: "Tối đa 200 ký tự" }]}
-                    >
-                        <Input
-                            placeholder="Ví dụ: Đối chiếu với app ngân hàng"
-                            maxLength={200}
+                    <Controller
+                        name="type"
+                        control={control}
+                        rules={{ required: "Loại là bắt buộc" }}
+                        render={({ field, fieldState }) => (
+                            <FormField
+                                label="Loại"
+                                error={fieldState.error?.message}
+                                tooltip={isEdit ? "Không đổi được loại sau khi tạo" : undefined}
+                            >
+                                <Combobox
+                                    options={typeOptions}
+                                    placeholder="Chọn loại"
+                                    disabled={isEdit}
+                                    value={field.value}
+                                    onChange={(value) => {
+                                        if (value) field.onChange(value);
+                                    }}
+                                />
+                            </FormField>
+                        )}
+                    />
+
+                    {!isCreditCard ? (
+                        <Controller
+                            name="balance"
+                            control={control}
+                            rules={{
+                                required: "Số dư là bắt buộc",
+                                validate: numberMinRule(0, "Số dư phải >= 0"),
+                            }}
+                            render={({ field, fieldState }) => (
+                                <FormField label="Số dư hiện có" error={fieldState.error?.message}>
+                                    <DebouncedNumberInput
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                        onBlur={field.onBlur}
+                                        min={0}
+                                        precision={0}
+                                        placeholder="0"
+                                    />
+                                </FormField>
+                            )}
                         />
-                    </Form.Item>
-                ) : null}
-            </Form>
+                    ) : (
+                        <CreditCardFields
+                            activeKeys={activeFeeSections}
+                            onActiveKeysChange={setActiveFeeSections}
+                        />
+                    )}
+
+                    {isBank ? (
+                        <div className="flex flex-col gap-4">
+                            <div className="text-sm font-medium">
+                                Tài khoản nhận tiền{" "}
+                                <span className="font-normal text-muted-foreground">
+                                    (tùy chọn, để tạo mã VietQR)
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-2">
+                                <Controller
+                                    name="bankBin"
+                                    control={control}
+                                    rules={{
+                                        validate: (value, formValues) =>
+                                            !formValues.accountNumber?.trim() ||
+                                            Boolean(value) ||
+                                            "Chọn ngân hàng của số tài khoản",
+                                    }}
+                                    render={({ field, fieldState }) => (
+                                        <FormField
+                                            label="Ngân hàng"
+                                            error={fieldState.error?.message}
+                                            extra={
+                                                isBanksError
+                                                    ? "Không tải được danh sách ngân hàng từ VietQR"
+                                                    : undefined
+                                            }
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {selectedBank ? (
+                                                    <Avatar className="size-5 rounded-md after:rounded-md">
+                                                        <AvatarImage
+                                                            src={selectedBank.logo}
+                                                            alt=""
+                                                            className="rounded-md object-contain"
+                                                        />
+                                                        <AvatarFallback className="rounded-md text-[10px]">
+                                                            {selectedBank.shortName.charAt(0)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                ) : null}
+                                                <Combobox
+                                                    className="min-w-0 flex-1"
+                                                    searchable
+                                                    allowClear
+                                                    loading={isBanksLoading}
+                                                    options={bankOptions}
+                                                    placeholder="Chọn ngân hàng"
+                                                    searchPlaceholder="Tìm ngân hàng…"
+                                                    value={field.value || null}
+                                                    onChange={(value) => field.onChange(value ?? "")}
+                                                />
+                                            </div>
+                                        </FormField>
+                                    )}
+                                />
+                                <Controller
+                                    name="accountNumber"
+                                    control={control}
+                                    rules={{
+                                        validate: {
+                                            required: (value, formValues) =>
+                                                !formValues.bankBin ||
+                                                Boolean(value?.trim()) ||
+                                                "Nhập số tài khoản",
+                                            pattern: (value) =>
+                                                !value ||
+                                                /^[0-9A-Za-z]{1,19}$/.test(value) ||
+                                                "Chỉ gồm chữ/số, tối đa 19 ký tự",
+                                        },
+                                    }}
+                                    render={({ field, fieldState }) => (
+                                        <FormField
+                                            label="Số tài khoản"
+                                            error={fieldState.error?.message}
+                                            htmlFor={`${fieldId}-account-number`}
+                                        >
+                                            <Input
+                                                {...field}
+                                                id={`${fieldId}-account-number`}
+                                                aria-invalid={fieldState.invalid || undefined}
+                                                placeholder="Ví dụ: 0123456789"
+                                                maxLength={19}
+                                            />
+                                        </FormField>
+                                    )}
+                                />
+                            </div>
+                            <Controller
+                                name="accountName"
+                                control={control}
+                                rules={{ maxLength: { value: 50, message: "Tối đa 50 ký tự" } }}
+                                render={({ field, fieldState }) => (
+                                    <FormField
+                                        label="Tên chủ tài khoản"
+                                        error={fieldState.error?.message}
+                                        extra="Lưu dạng in hoa, không dấu"
+                                        htmlFor={`${fieldId}-account-name`}
+                                    >
+                                        <Input
+                                            {...field}
+                                            id={`${fieldId}-account-name`}
+                                            aria-invalid={fieldState.invalid || undefined}
+                                            placeholder="NGUYEN VAN A"
+                                            maxLength={50}
+                                        />
+                                    </FormField>
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
+                    {amountChanged ? (
+                        <Controller
+                            name="adjustmentNote"
+                            control={control}
+                            rules={{ maxLength: { value: 200, message: "Tối đa 200 ký tự" } }}
+                            render={({ field, fieldState }) => (
+                                <FormField
+                                    label="Lý do điều chỉnh"
+                                    error={fieldState.error?.message}
+                                    extra="Lần điều chỉnh này được lưu vào lịch sử của nguồn tiền"
+                                    htmlFor={`${fieldId}-adjustment-note`}
+                                >
+                                    <Input
+                                        {...field}
+                                        id={`${fieldId}-adjustment-note`}
+                                        aria-invalid={fieldState.invalid || undefined}
+                                        placeholder="Ví dụ: Đối chiếu với app ngân hàng"
+                                        maxLength={200}
+                                    />
+                                </FormField>
+                            )}
+                        />
+                    ) : null}
+                </div>
+            </FormProvider>
         </ResponsiveModal>
     );
 }

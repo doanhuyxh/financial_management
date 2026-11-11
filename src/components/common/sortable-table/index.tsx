@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useId, useMemo } from "react";
-import { Table } from "antd";
-import type { ColumnsType, TableProps } from "antd/es/table";
 import {
     DndContext,
     KeyboardSensor,
@@ -22,17 +20,18 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
+import DataTable, {
+    type IDataTableColumn,
+    type IDataTableProps,
+    type IDataTableRowProps,
+} from "@/components/common/data-table";
 
 export interface ISortableItem {
     _id: string;
     sortOrder?: number;
 }
 
-interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
-    "data-row-key": string;
-}
-
-function SortableRow({ children, ...props }: RowProps) {
+function SortableRow({ children, ...props }: IDataTableRowProps) {
     const {
         attributes,
         listeners,
@@ -47,9 +46,7 @@ function SortableRow({ children, ...props }: RowProps) {
         ...props.style,
         transform: CSS.Translate.toString(transform),
         transition,
-        ...(isDragging
-            ? { position: "relative", zIndex: 9999, background: "var(--ant-color-bg-container)" }
-            : {}),
+        ...(isDragging ? { position: "relative", zIndex: 9999, background: "var(--card)" } : {}),
     };
 
     return (
@@ -80,25 +77,24 @@ function SortableRow({ children, ...props }: RowProps) {
     );
 }
 
-// Module-level so antd Table doesn't see a new `components` object every render.
+// Module-level so DataTable doesn't see a new `components` object every render.
 const TABLE_COMPONENTS = {
-    body: {
-        row: SortableRow,
-    },
+    row: SortableRow,
 };
 
-export function createSortColumn<T>(): ColumnsType<T>[number] {
+export function createSortColumn<T>(): IDataTableColumn<T> {
     return {
         key: "sort",
         width: 48,
         align: "center",
         title: "",
+        className: "px-1",
     };
 }
 
 type SortableTableProps<T extends ISortableItem> = Omit<
-    TableProps<T>,
-    "rowKey" | "dataSource" | "components" | "onRow"
+    IDataTableProps<T>,
+    "rowKey" | "dataSource" | "components"
 > & {
     items: T[];
     onReorder: (nextItems: T[]) => void | Promise<void>;
@@ -111,7 +107,6 @@ export default function SortableTable<T extends ISortableItem>({
     columns,
     onReorder,
     reorderDisabled = false,
-    pagination = false,
     ...tableProps
 }: SortableTableProps<T>) {
     // Stable id: dnd-kit's global counter differs between SSR and client, causing a
@@ -148,15 +143,11 @@ export default function SortableTable<T extends ISortableItem>({
 
     return (
         <DndContext id={dndContextId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext
-                items={itemIds}
-                strategy={verticalListSortingStrategy}
-            >
-                <Table<T>
+            <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+                <DataTable<T>
                     rowKey="_id"
                     columns={mergedColumns}
                     dataSource={items}
-                    pagination={pagination}
                     components={TABLE_COMPONENTS}
                     {...tableProps}
                 />

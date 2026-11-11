@@ -18,6 +18,7 @@ import {
     getCreditCardFeeProgress,
     getShareLinks,
     getSourceReconcile,
+    getSourceDailyTotals,
     getSourceTransactions,
     getSourcesOfMoney,
     reorderSourcesOfMoney,
@@ -48,6 +49,16 @@ export const useGetSourceTransactions = (
     return useQuery({
         queryKey: [configQueryKey.SOURCES_OF_MONEY, "transactions", sourceId, query],
         queryFn: () => getSourceTransactions(sourceId as string, query),
+        enabled: Boolean(sourceId),
+        placeholderData: keepPreviousData,
+    });
+};
+
+/** Tổng theo ngày/loại trong tháng `YYYY-MM` cho biểu đồ lịch sử; key dưới SOURCES_OF_MONEY. */
+export const useGetSourceDailyTotals = (sourceId: string | null, month: string) => {
+    return useQuery({
+        queryKey: [configQueryKey.SOURCES_OF_MONEY, "transactions-daily", sourceId, month],
+        queryFn: () => getSourceDailyTotals(sourceId as string, month),
         enabled: Boolean(sourceId),
         placeholderData: keepPreviousData,
     });

@@ -1,7 +1,8 @@
 "use client";
 
-import { Tag } from "antd";
 import type { Dayjs } from "dayjs";
+import { X } from "lucide-react";
+import Tag from "@/components/common/tag";
 import { matchDateRangePreset } from "@/libs/utils/dateRangePresets";
 
 export interface IActiveFilterChip {
@@ -43,14 +44,17 @@ export default function ActiveFilterChips({
             {visible.map((chip) => (
                 <Tag
                     key={chip.key}
-                    closable
-                    onClose={(event) => {
-                        event.preventDefault();
-                        chip.onRemove();
-                    }}
-                    className="m-0 rounded-full border border-border! bg-card! px-2.5 py-0.5 text-[13px]"
+                    className="h-auto rounded-full border-border bg-card px-2.5 py-0.5 text-[13px] leading-5 font-normal text-foreground"
                 >
                     {chip.label}
+                    <button
+                        type="button"
+                        aria-label={`Bỏ lọc ${chip.label}`}
+                        onClick={chip.onRemove}
+                        className="-mr-0.5 flex cursor-pointer items-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        <X className="size-3" />
+                    </button>
                 </Tag>
             ))}
             {visible.length > 1 && onClearAll ? (

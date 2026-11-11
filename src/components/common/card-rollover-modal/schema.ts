@@ -1,7 +1,7 @@
 import { z } from "zod";
 import dayjs, { type Dayjs } from "dayjs";
 
-/** Ô số của antd/DebouncedNumberInput trả về chuỗi; ép về số trước khi validate. */
+/** Ô số DebouncedNumberInput trả về chuỗi; ép về số trước khi validate. */
 function toNumber(value: unknown) {
     if (value === undefined || value === null || value === "") return undefined;
     const num = typeof value === "number" ? value : Number(String(value).replace(/,/g, ""));

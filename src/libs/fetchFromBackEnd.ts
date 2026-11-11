@@ -1,4 +1,3 @@
-import { RcFile } from "antd/es/upload";
 import { EnvsConfig } from "./constants/configKey";
 type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -57,7 +56,7 @@ export async function fetcherBackEnd<T = any>(endpoint: string, options: FetchOp
     }
 }
 
-export async function uploadFileServer(file: RcFile): Promise<any> {
+export async function uploadFileServer(file: File): Promise<any> {
     try {
         const formData = new FormData();
         formData.append("file", file);

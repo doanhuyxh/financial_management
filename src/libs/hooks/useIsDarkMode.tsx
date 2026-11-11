@@ -7,7 +7,7 @@ function readIsDark() {
     return document.documentElement.classList.contains("dark");
 }
 
-/** Syncs with the `dark` class on `<html>` (same source as AntdProvider). */
+/** Syncs with the `dark` class on `<html>` (same source as the inline theme script in the root layout). */
 export function useIsDarkMode() {
     const [isDark, setIsDark] = useState(false);
 
