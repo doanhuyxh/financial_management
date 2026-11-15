@@ -19,7 +19,7 @@ import {
     InputGroupInput,
 } from "@/components/shadcn/ui/input-group";
 import { Spinner } from "@/components/shadcn/ui/spinner";
-import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
+import { useSourceHistoryContext } from "@/components/features/source-history/context";
 import { useCommon } from "@/libs/hooks/useCommon";
 import type { SelectOption } from "@/libs/interfaces/selectOption";
 import {
@@ -93,7 +93,7 @@ function ShareLinkItem({
 
 export default function ShareLinksModal() {
     const {
-        historySource,
+        source,
         shareModalOpen,
         shareLinks,
         isShareLinksLoading,
@@ -102,7 +102,7 @@ export default function ShareLinksModal() {
         closeShareModal,
         handleCreateShareLink,
         handleRevokeShareLink,
-    } = useSourcesOfMoneyContext();
+    } = useSourceHistoryContext();
     const { copiedToClipboard } = useCommon();
     const labelId = useId();
     const { control, handleSubmit, reset } = useForm<FormValues>({
@@ -132,8 +132,8 @@ export default function ShareLinksModal() {
 
     return (
         <ResponsiveModal
-            title={historySource ? `Chia sẻ lịch sử: ${historySource.name}` : "Chia sẻ lịch sử"}
-            open={shareModalOpen && Boolean(historySource)}
+            title={source ? `Chia sẻ lịch sử: ${source.name}` : "Chia sẻ lịch sử"}
+            open={shareModalOpen && Boolean(source)}
             onCancel={handleClose}
             footer={null}
             destroyOnHidden

@@ -5,6 +5,7 @@ Các kế hoạch đã triển khai xong được xóa khỏi thư mục này. `
 | # | Vấn đề | Mức độ | File kế hoạch |
 |---|--------|--------|---------------|
 | — | Hiện không có kế hoạch nào đang làm (plan 12 loading và 13 MCP đã kiểm tay xong 07/11/2026; thư mục `mcp/`, `redesign-loading-ui/` chỉ còn để tham khảo, xóa được) | | |
+| 14 | Lịch sử nguồn tiền chuyển từ modal sang trang riêng `/source-history/<id>` (đã code 15/11/2026, chờ kiểm tay; còn phải chạy `bun run test` và `bun run build`) | Trung bình | [14-trang-lich-su-nguon-tien-mockup.html](14-trang-lich-su-nguon-tien-mockup.html) |
 
 ## Định nghĩa "xong"
 

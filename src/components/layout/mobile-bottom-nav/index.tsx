@@ -26,7 +26,9 @@ export default function MobileBottomNav() {
     const { setOpenMobile } = useSidebar();
 
     const isActive = (url: string) => pathname === url || pathname.startsWith(`${url}/`);
-    const isOtherActive = !ITEMS.some((item) => isActive(item.url));
+    // Trang lịch sử của một nguồn tiền thuộc mục Nguồn tiền
+    const isSourcesActive = isActive(MENU_KEY.SOURCES_OF_MONEY) || isActive(MENU_KEY.SOURCE_HISTORY);
+    const isOtherActive = !isSourcesActive && !ITEMS.some((item) => isActive(item.url));
 
     const linkClass = (active: boolean) =>
         cn(
@@ -58,7 +60,7 @@ export default function MobileBottomNav() {
                     <PlusIcon className="size-6" />
                 </button>
             </div>
-            <Link href={third.url} className={linkClass(isActive(third.url))}>
+            <Link href={third.url} className={linkClass(isSourcesActive)}>
                 <third.icon className="size-5" />
                 {third.title}
             </Link>

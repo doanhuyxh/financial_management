@@ -18,7 +18,7 @@ BalanceAdjustment `kind`: `OPENING` (số dư ban đầu) hoặc `MANUAL` (sửa
 - **API:** `GET /api/sources-of-money/[id]/reconcile` → `{ stored, ledger, diff = stored − ledger, ledgerComplete, canApply, blockReason?, openIssues }`. `POST` cùng URL `{ expectedStored, expectedLedger }`: chỉ ghi khi cả hai số vẫn bằng số người dùng đã xem (khác → 409), filter `[trackedPath] = stored` nên giao dịch chen giữa cũng 409.
 - **Sửa = đặt số lưu về đúng sổ cái**, không tạo BalanceAdjustment (ghi điều chỉnh sẽ làm sổ cái "khớp" với số sai). Ghi một IntegrityIssue `operation = "reconcile"` đã xử lý làm vết và đóng mọi issue mở của nguồn.
 - **Không tự sửa** (`blockReason`): `LEDGER_INCOMPLETE` (chưa backfill), `ARCHIVED`, `LEDGER_OUT_OF_RANGE` (sổ cái âm, lẻ, hoặc thẻ vượt hạn mức — cần người xem giao dịch).
-- **UI:** modal lịch sử nguồn (`source-reconcile-panel`): nút "Đối soát số dư/dư nợ" → khớp thì báo xanh; lệch thì 3 số + "Sửa về theo sổ" (confirm) hoặc lý do không sửa được.
+- **UI:** trang lịch sử nguồn `/source-history/<id>` (`source-history/components/source-reconcile-panel`): nút "Đối soát số dư/dư nợ" → khớp thì báo xanh; lệch thì 3 số + "Sửa về theo sổ" (confirm) hoặc lý do không sửa được.
 - **Script:** `scripts/reconcile-balances.ts` (dry-run; `--apply`, `--all`, `--user`) dùng chung `inspectSourceBalance`/`applySourceReconcile`, đọc lại sau 0,5 giây trước khi sửa, in issue mở, mã thoát 1 khi còn lệch.
 
 ## Ghi vết rollback lỗi

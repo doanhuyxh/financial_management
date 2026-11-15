@@ -115,7 +115,7 @@ export default function SourceDailyChart({ sourceId, isCreditCard, initialDay }:
     }, [days, series, isDark, month]);
 
     return (
-        <div className="flex flex-col gap-2 rounded-md border px-3 py-2">
+        <section className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
             <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium">Biến động theo ngày</span>
                 <div className="flex items-center gap-2">
@@ -155,6 +155,6 @@ export default function SourceDailyChart({ sourceId, isCreditCard, initialDay }:
                     </div>
                 </div>
             )}
-        </div>
+        </section>
     );
 }

@@ -42,7 +42,7 @@ function isLedgerInRange(source: ReconcileSource, ledger: number) {
 }
 
 /**
- * So số dư/dư nợ đang lưu với sổ cái. Dùng chung cho API (modal lịch sử) và
+ * So số dư/dư nợ đang lưu với sổ cái. Dùng chung cho API (trang lịch sử nguồn tiền) và
  * `scripts/reconcile-balances.ts`.
  */
 export async function inspectSourceBalance(

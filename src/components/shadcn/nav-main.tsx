@@ -29,6 +29,10 @@ export function NavMain({
     url: string
     icon?: React.ReactNode
     isActive?: boolean
+    childPages?: {
+      title: string
+      url: string
+    }[]
     items?: {
       title: string
       url: string
@@ -58,7 +62,8 @@ export function NavMain({
         {items.map((item) => {
           const hasSubItems = Boolean(item.items?.length)
           const hasActiveSubItem = Boolean(item.items?.some((subItem) => isPathActive(subItem.url)))
-          const isItemActive = hasActiveSubItem || isPathActive(item.url)
+          const hasActiveChildPage = Boolean(item.childPages?.some((page) => isPathActive(page.url)))
+          const isItemActive = hasActiveSubItem || hasActiveChildPage || isPathActive(item.url)
 
           if (!hasSubItems) {
             return (
