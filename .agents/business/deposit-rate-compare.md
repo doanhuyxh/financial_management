@@ -31,10 +31,11 @@
 - Kịch bản (localStorage `deposit-rate-compare-scenario`): số tiền (mặc định 100 triệu), kỳ hạn (mặc định 12 tháng; chip 1, 3, 6, 9, 12, 13, 18, 24, 36).
 - `pickTier`: bậc có `minAmount` lớn nhất ≤ số tiền. Ngân hàng không có kỳ hạn đó → "Không có kỳ hạn này", xuống cuối, không xếp hạng.
 - Tiền lãi = `round(số tiền × %/năm × tháng / 12)` — lãi đơn, nhận cuối kỳ, không tái tục (ngân hàng tính theo ngày thực tế/365 nên chênh nhỏ).
-- Xếp hạng (`rankValues`, như so sánh thẻ): cần ≥ 2 giá trị khác nhau; cao nhất xanh, thấp nhất đỏ. Bảng ma trận tô từng cột kỳ hạn.
+- **Gộp lựa chọn** (`buildDepositOptions`, theo số tiền đang nhập): các bảng **tự lấy** cùng `bankCode` có ít nhất một kỳ hạn chung và mọi kỳ hạn chung cùng lãi suất được gộp thành một dòng (sản phẩm nối " · ", VD Vietcombank "Tiết kiệm tại quầy · Gửi online"); kỳ hạn chỉ một phần sản phẩm có thì ghi "chỉ <sản phẩm>" ở ô đó (`onlyIn`). Bảng tự nhập không gộp.
+- Xếp hạng theo kỳ hạn đang chọn: lãi cao trước, lựa chọn không có kỳ hạn này xuống cuối. Bảng chi tiết chỉ tô xanh ô cao nhất mỗi kỳ hạn (`rankValues`: cần ≥ 2 giá trị khác nhau), không tô đỏ.
 
 ## Bố cục trang
 
-Kịch bản gửi → ngân hàng lãi cao nhất (kèm chênh lệch so với thấp nhất) → bảng xếp hạng kỳ hạn đang chọn → bảng ngân hàng × kỳ hạn (bấm kỳ hạn để chọn) → nguồn số liệu (link trang ngân hàng, ngày cập nhật, lỗi, nút "Lấy lại"; danh sách tự nhập + sửa/xóa). Query key `DEPOSIT_RATES` (stale 30 phút). Logo ngân hàng lấy từ VietQR theo `bankCode`.
+Khối đầu: số tiền (chip nhanh) + kỳ hạn (`Segmented` nền cam, kỳ hạn chưa ai có thì không chọn được), câu trả lời "Gửi X kỳ hạn N tháng: <ngân hàng> cho nhiều lãi nhất, …, hơn chỗ thấp nhất …" và top 3 (tiền lãi, lãi suất, nhận cuối kỳ, chênh với hạng trên) → tiền lãi dạng thanh ngang (`rate-bars`, ghi ngân hàng không có kỳ hạn này) → lãi suất theo kỳ hạn dạng đường, mỗi lựa chọn một đường (`rate-chart`, SVG tự vẽ, bấm nhãn kỳ hạn để chọn) → bảng chi tiết lựa chọn × kỳ hạn, đổi "%/năm" / "Tiền lãi" (`rate-matrix`) → nguồn số liệu thu gọn một dòng (`rate-sources`: lần cập nhật mới nhất, số nguồn, số lỗi, số nguồn quá 24 giờ; "Chi tiết nguồn" mở danh sách tự lấy + tự nhập, tự mở khi có lỗi hoặc quá cũ; nút "Lấy lại", "Tự nhập"). Query key `DEPOSIT_RATES` (stale 30 phút). Logo ngân hàng lấy từ VietQR theo `bankCode`.
 
 Test: `src/server/__tests__/deposit-rates.test.ts` (HTML mẫu thu gọn đúng cấu trúc trang thật, `fetch` giả).

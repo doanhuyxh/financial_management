@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import Money from "@/components/common/money";
+import Segmented from "@/components/common/segmented";
 import {
     Table,
     TableBody,
@@ -9,28 +12,48 @@ import {
     TableRow,
 } from "@/components/shadcn/ui/table";
 import BankLabel from "@/components/features/deposit-rate-compare/components/bank-label";
-import { formatRate, RANK_CLASS } from "@/components/features/deposit-rate-compare/components/rate-ranking";
 import { useDepositRateCompareContext } from "@/components/features/deposit-rate-compare/context";
-import { getRate, rankValues } from "@/components/features/deposit-rate-compare/utils";
+import { calcDepositInterest, formatRate, rankValues } from "@/components/features/deposit-rate-compare/utils";
 import { cn } from "@/libs/shadcn/utils";
 
-/** Bảng đầy đủ: mọi ngân hàng × mọi kỳ hạn (theo bậc của số tiền đang nhập); tô xanh/đỏ từng cột. */
+type MatrixUnit = "rate" | "money";
+
+/**
+ * Bảng đầy đủ: mọi lựa chọn × mọi kỳ hạn (theo bậc của số tiền đang nhập).
+ * Chỉ tô xanh ô cao nhất mỗi kỳ hạn; cột kỳ hạn đang chọn nền cam nhạt. Đổi xem %/năm hoặc tiền lãi.
+ */
 export default function RateMatrix() {
     const { rows, availableTerms, scenario, handleScenarioChange } = useDepositRateCompareContext();
+    const [unit, setUnit] = useState<MatrixUnit>("rate");
     if (availableTerms.length === 0) return null;
 
     const ranksByTerm = new Map(
         availableTerms.map((term) => [
             term,
-            rankValues(rows.map((row) => ({ id: row.table._id, value: getRate(row.table, scenario.amount, term) }))),
+            rankValues(rows.map((row) => ({ id: row.option.id, value: row.option.rates.get(term) ?? null }))),
         ]),
     );
 
     return (
         <section className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
-            <div>
-                <h2 className="text-base font-semibold">Bảng lãi suất theo kỳ hạn</h2>
-                <p className="text-xs text-muted-foreground">%/năm, áp dụng cho số tiền đang nhập. Bấm tên kỳ hạn để chọn.</p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-base font-semibold">Bảng chi tiết</h2>
+                    <p className="text-xs text-muted-foreground">
+                        Tô xanh ô cao nhất mỗi kỳ hạn · cột cam là kỳ hạn đang chọn · bấm tên kỳ hạn để chọn
+                    </p>
+                </div>
+                <Segmented<MatrixUnit>
+                    variant="primary"
+                    size="small"
+                    aria-label="Đơn vị hiển thị"
+                    value={unit}
+                    onChange={setUnit}
+                    options={[
+                        { value: "rate", label: "%/năm" },
+                        { value: "money", label: "Tiền lãi" },
+                    ]}
+                />
             </div>
             <div className="overflow-x-auto">
                 <Table className="w-max min-w-full">
@@ -38,12 +61,15 @@ export default function RateMatrix() {
                         <TableRow>
                             <TableHead className="sticky left-0 z-10 min-w-44 bg-card">Ngân hàng</TableHead>
                             {availableTerms.map((term) => (
-                                <TableHead key={term} className="text-right">
+                                <TableHead
+                                    key={term}
+                                    className={cn("text-right", term === scenario.termMonths && "bg-primary-soft")}
+                                >
                                     <button
                                         type="button"
                                         className={cn(
                                             "rounded px-1 hover:text-foreground",
-                                            term === scenario.termMonths && "font-semibold text-primary",
+                                            term === scenario.termMonths && "font-bold text-accent-text",
                                         )}
                                         onClick={() => handleScenarioChange({ termMonths: term })}
                                     >
@@ -55,24 +81,39 @@ export default function RateMatrix() {
                     </TableHeader>
                     <TableBody>
                         {rows.map((row) => (
-                            <TableRow key={row.table._id}>
-                                <TableCell className="sticky left-0 z-10 max-w-52 bg-card">
-                                    <BankLabel table={row.table} />
+                            <TableRow key={row.option.id}>
+                                <TableCell className="sticky left-0 z-10 max-w-60 bg-card">
+                                    <BankLabel item={row.option} />
                                 </TableCell>
                                 {availableTerms.map((term) => {
-                                    const rate = getRate(row.table, scenario.amount, term);
-                                    const rank = ranksByTerm.get(term)?.get(row.table._id);
+                                    const rate = row.option.rates.get(term) ?? null;
+                                    const isBest = ranksByTerm.get(term)?.get(row.option.id) === "best";
+                                    const onlyIn = row.option.onlyIn.get(term);
                                     return (
                                         <TableCell
                                             key={term}
                                             className={cn(
                                                 "text-right tabular-nums",
-                                                rate == null && "text-muted-foreground",
-                                                rank && RANK_CLASS[rank],
-                                                term === scenario.termMonths && "font-semibold",
+                                                term === scenario.termMonths && "bg-primary-soft/60",
+                                                rate == null && "text-muted-foreground/50",
+                                                isBest && "bg-money-in-soft font-semibold text-money-in",
                                             )}
                                         >
-                                            {rate == null ? "—" : formatRate(rate)}
+                                            {rate == null ? (
+                                                "—"
+                                            ) : unit === "rate" ? (
+                                                formatRate(rate)
+                                            ) : (
+                                                <Money
+                                                    value={calcDepositInterest(scenario.amount, rate, term)}
+                                                    className={isBest ? "text-money-in" : undefined}
+                                                />
+                                            )}
+                                            {onlyIn ? (
+                                                <span className="block text-[10px] font-normal text-muted-foreground">
+                                                    chỉ {onlyIn}
+                                                </span>
+                                            ) : null}
                                         </TableCell>
                                     );
                                 })}

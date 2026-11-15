@@ -2,6 +2,7 @@ import {
     DEFAULT_DEPOSIT_AMOUNT,
     DEFAULT_DEPOSIT_TERM,
     DEPOSIT_TERMS,
+    DepositRateOrigin,
     type IDepositRateTableData,
     type IDepositRateTier,
 } from "@/libs/interfaces/depositRatesData";
@@ -19,6 +20,9 @@ export const DEFAULT_DEPOSIT_SCENARIO: IDepositScenario = {
 };
 
 export type RankResult = "best" | "worst";
+
+export const formatRate = (value: number) =>
+    `${value.toLocaleString("vi-VN", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
 
 /** Bậc áp dụng cho số tiền gửi: bậc có `minAmount` lớn nhất mà vẫn ≤ số tiền. */
 export function pickTier(tiers: IDepositRateTier[], amount: number): IDepositRateTier | null {
@@ -43,11 +47,94 @@ export function calcDepositInterest(amount: number, ratePercent: number, termMon
     return Math.round((amount * ratePercent * termMonths) / 100 / 12);
 }
 
+/**
+ * Một lựa chọn gửi trên trang: một bảng lãi suất, hoặc nhiều sản phẩm tự lấy của cùng ngân hàng
+ * có lãi suất bằng nhau ở mọi kỳ hạn cùng có (VD Vietcombank tại quầy và online) được gộp làm một.
+ */
+export interface IDepositOption {
+    id: string;
+    tables: IDepositRateTableData[];
+    bankCode: string;
+    bankName: string;
+    /** Tên sản phẩm; gộp nhiều sản phẩm thì nối bằng " · " */
+    product: string;
+    isManual: boolean;
+    /** %/năm theo kỳ hạn (tháng), áp dụng cho số tiền đang nhập */
+    rates: Map<number, number>;
+    /** Kỳ hạn chỉ có ở một phần sản phẩm đã gộp → tên các sản phẩm có kỳ hạn đó */
+    onlyIn: Map<number, string>;
+}
+
+function ratesForAmount(table: IDepositRateTableData, amount: number) {
+    const rates = new Map<number, number>();
+    for (const term of DEPOSIT_TERMS) {
+        const rate = getRate(table, amount, term);
+        if (rate != null) rates.set(term, rate);
+    }
+    return rates;
+}
+
+/** Gộp được khi có ít nhất một kỳ hạn chung và mọi kỳ hạn chung có cùng lãi suất. */
+function sameRates(a: Map<number, number>, b: Map<number, number>) {
+    let shared = 0;
+    for (const [term, rate] of a) {
+        if (!b.has(term)) continue;
+        if (b.get(term) !== rate) return false;
+        shared += 1;
+    }
+    return shared > 0;
+}
+
+/** Bảng → lựa chọn gửi, gộp sản phẩm tự lấy trùng lãi suất của cùng ngân hàng. Bảng tự nhập không gộp. */
+export function buildDepositOptions(tables: IDepositRateTableData[], amount: number): IDepositOption[] {
+    const groups: { tables: IDepositRateTableData[]; rates: Map<number, number>[] }[] = [];
+    for (const table of tables) {
+        const rates = ratesForAmount(table, amount);
+        const group =
+            table.origin === DepositRateOrigin.AUTO
+                ? groups.find(
+                      (item) =>
+                          item.tables[0].origin === DepositRateOrigin.AUTO &&
+                          item.tables[0].bankCode === table.bankCode &&
+                          item.rates.every((other) => sameRates(other, rates)),
+                  )
+                : undefined;
+        if (group) {
+            group.tables.push(table);
+            group.rates.push(rates);
+        } else {
+            groups.push({ tables: [table], rates: [rates] });
+        }
+    }
+
+    return groups.map(({ tables: members, rates: memberRates }) => {
+        const rates = new Map<number, number>();
+        const onlyIn = new Map<number, string>();
+        for (const term of DEPOSIT_TERMS) {
+            const having = members.filter((_, index) => memberRates[index].has(term));
+            if (having.length === 0) continue;
+            rates.set(term, memberRates[members.indexOf(having[0])].get(term)!);
+            if (having.length < members.length) {
+                onlyIn.set(term, having.map((table) => table.product).join(", "));
+            }
+        }
+        return {
+            id: members.map((table) => table._id).join("+"),
+            tables: members,
+            bankCode: members[0].bankCode,
+            bankName: members[0].bankName,
+            product: members.map((table) => table.product).filter(Boolean).join(" · "),
+            isManual: members[0].origin === DepositRateOrigin.MANUAL,
+            rates,
+            onlyIn,
+        };
+    });
+}
+
 export interface IDepositRow {
-    table: IDepositRateTableData;
+    option: IDepositOption;
     rate: number | null;
     interest: number | null;
-    rank?: RankResult;
 }
 
 /** Cao nhất là tốt; cần ≥ 2 giá trị khác nhau mới xếp hạng (giống so sánh thẻ). */
@@ -65,23 +152,21 @@ export function rankValues<T extends { id: string; value: number | null }>(items
     return result;
 }
 
-/** Bảng xếp hạng theo kỳ hạn đang chọn: lãi cao trước, ngân hàng không có kỳ hạn này xuống cuối. */
-export function buildDepositRows(tables: IDepositRateTableData[], scenario: IDepositScenario): IDepositRow[] {
-    const rows = tables.map((table) => {
-        const rate = getRate(table, scenario.amount, scenario.termMonths);
-        return {
-            table,
-            rate,
-            interest: rate == null ? null : calcDepositInterest(scenario.amount, rate, scenario.termMonths),
-        };
-    });
-    const ranks = rankValues(rows.map((row) => ({ id: row.table._id, value: row.rate })));
-    return rows
-        .map((row) => ({ ...row, rank: ranks.get(row.table._id) }))
+/** Xếp hạng theo kỳ hạn đang chọn: lãi cao trước, lựa chọn không có kỳ hạn này xuống cuối. */
+export function buildDepositRows(options: IDepositOption[], scenario: IDepositScenario): IDepositRow[] {
+    return options
+        .map((option) => {
+            const rate = option.rates.get(scenario.termMonths) ?? null;
+            return {
+                option,
+                rate,
+                interest: rate == null ? null : calcDepositInterest(scenario.amount, rate, scenario.termMonths),
+            };
+        })
         .sort((a, b) => (b.rate ?? -1) - (a.rate ?? -1));
 }
 
-/** Kỳ hạn hiện trong bảng tổng hợp: kỳ hạn chuẩn có ít nhất một ngân hàng có số liệu. */
+/** Kỳ hạn hiện trên trang: kỳ hạn chuẩn có ít nhất một ngân hàng có số liệu. */
 export function getAvailableTerms(tables: IDepositRateTableData[]) {
     return DEPOSIT_TERMS.filter((term) =>
         tables.some((table) => table.tiers.some((tier) => tier.rates[String(term)] != null)),

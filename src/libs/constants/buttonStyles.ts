@@ -1,5 +1,5 @@
 /**
- * Nút phụ của dashboard (Đáo hạn, Phân tích, So sánh thẻ...): viền + chữ cam trên nền cam nhạt,
+ * Nút phụ (VD dashboard: Đáo hạn, Phân tích, So sánh thẻ; Lãi suất: Lấy lại): viền + chữ cam trên nền cam nhạt,
  * nổi hơn `variant="outline"` nhưng vẫn nhường nút chính (nền cam đặc). Dùng kèm `variant="outline"`.
  */
 export const ACCENT_BUTTON_CLASS =

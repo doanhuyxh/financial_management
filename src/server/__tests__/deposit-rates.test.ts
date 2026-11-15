@@ -8,6 +8,7 @@ import { parseVietcombank } from "@/server/utils/depositRates/providers/vietcomb
 import { parseVietinbank } from "@/server/utils/depositRates/providers/vietinbank";
 import { parseVpbank } from "@/server/utils/depositRates/providers/vpbank";
 import {
+    buildDepositOptions,
     buildDepositRows,
     calcDepositInterest,
     getRate,
@@ -182,17 +183,34 @@ describe("Lãi suất — tính tiền lãi", () => {
         expect(getRate(acb, 100_000_000, 24)).toBeNull();
     });
 
-    test("xếp hạng: lãi cao trước, tô tốt/kém, ngân hàng thiếu kỳ hạn xuống cuối", () => {
-        const rows = buildDepositRows([acb, vcb], { amount: 100_000_000, termMonths: 12 });
-        expect(rows.map((row) => [row.table._id, row.interest, row.rank])).toEqual([
-            ["VCB", 5_400_000, "best"],
-            ["ACB", 5_200_000, "worst"],
+    test("xếp hạng: lãi cao trước, ngân hàng thiếu kỳ hạn xuống cuối", () => {
+        const scenario = { amount: 100_000_000, termMonths: 12 };
+        const rows = buildDepositRows(buildDepositOptions([acb, vcb], scenario.amount), scenario);
+        expect(rows.map((row) => [row.option.id, row.interest])).toEqual([
+            ["VCB", 5_400_000],
+            ["ACB", 5_200_000],
         ]);
-        const long = buildDepositRows([acb, vcb], { amount: 100_000_000, termMonths: 24 });
-        expect(long.map((row) => [row.table._id, row.rate, row.rank])).toEqual([
-            ["VCB", 5.5, undefined],
-            ["ACB", null, undefined],
+        const long = buildDepositRows(buildDepositOptions([acb, vcb], scenario.amount), {
+            ...scenario,
+            termMonths: 24,
+        });
+        expect(long.map((row) => [row.option.id, row.rate])).toEqual([
+            ["VCB", 5.5],
+            ["ACB", null],
         ]);
+    });
+
+    test("gộp sản phẩm tự lấy cùng ngân hàng khi lãi suất các kỳ hạn chung bằng nhau", () => {
+        const counter = { ...table("VCB", [{ minAmount: 0, rates: { "12": 5.4, "36": 4.8 } }]), _id: "vcb-counter", product: "Tại quầy" };
+        const online = { ...table("VCB", [{ minAmount: 0, rates: { "12": 5.4 } }]), _id: "vcb-online", product: "Online" };
+        const other = { ...table("VCB", [{ minAmount: 0, rates: { "12": 5.5 } }]), _id: "vcb-promo", product: "Ưu đãi" };
+        const manual = { ...table("VCB", [{ minAmount: 0, rates: { "12": 5.4 } }]), _id: "vcb-manual", origin: DepositRateOrigin.MANUAL };
+        const options = buildDepositOptions([counter, online, other, manual], 100_000_000);
+        expect(options.map((option) => option.id)).toEqual(["vcb-counter+vcb-online", "vcb-promo", "vcb-manual"]);
+        expect(options[0].product).toBe("Tại quầy · Online");
+        expect(options[0].rates.get(36)).toBe(4.8);
+        expect(options[0].onlyIn.get(36)).toBe("Tại quầy");
+        expect(options[0].onlyIn.has(12)).toBe(false);
     });
 });
 
