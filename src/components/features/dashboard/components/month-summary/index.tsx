@@ -85,7 +85,7 @@ export default function MonthSummary() {
                         format="MM/YYYY"
                         allowClear={false}
                         aria-label="Chọn tháng"
-                        className="flex-1 sm:w-32 sm:flex-none"
+                        className="flex-1 border-primary/50 font-medium sm:w-32 sm:flex-none"
                     />
                 </div>
             </div>

@@ -68,5 +68,7 @@ export interface IDashboardCashflowSummary {
     } | null;
     /** 6 tháng gần nhất, tăng dần, phần tử cuối là tháng đang chọn */
     trend: ICashflowMonthItem[];
+    /** Thu nhập từng ngày của tháng đang chọn (giờ VN), đủ mọi ngày, ngày không có thu = 0 */
+    incomeByDay: IExpenseByDayItem[];
     incomeByCategory: IExpenseByCategoryItem[];
 }

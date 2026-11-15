@@ -6,6 +6,7 @@ import { ArrowLeftRight, ArrowRight, ChevronDown, RefreshCw } from "lucide-react
 import Money from "@/components/common/money";
 import VisibilitySettings from "@/components/common/visibility-settings";
 import { Button } from "@/components/shadcn/ui/button";
+import { ACCENT_BUTTON_CLASS } from "@/components/features/dashboard/constants";
 import { Progress } from "@/components/shadcn/ui/progress";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import ParagraphSkeleton from "@/components/common/paragraph-skeleton";
@@ -139,7 +140,6 @@ function CardRow({
                         <>
                             <Button
                                 type="button"
-                                variant="outline"
                                 size="sm"
                                 onClick={() => handlePayCard(card._id, card.currentDebt)}
                             >
@@ -150,6 +150,7 @@ function CardRow({
                                 type="button"
                                 variant="outline"
                                 size="sm"
+                                className={ACCENT_BUTTON_CLASS}
                                 title="Ghi lần dùng dịch vụ đáo hạn thẻ"
                                 onClick={() => openRollover(card._id)}
                             >
@@ -219,7 +220,7 @@ export default function CreditCardsPanel() {
                         buttonLabel="Mục phí"
                         title="Chọn mục phí hiển thị khi mở rộng"
                     />
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="sm" className={ACCENT_BUTTON_CLASS} asChild>
                         <Link href={MENU_KEY.CREDIT_CARD_COMPARE}>
                             So sánh thẻ
                             <ArrowRight data-icon="inline-end" />
