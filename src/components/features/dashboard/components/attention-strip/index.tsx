@@ -5,7 +5,7 @@ import { ArrowLeftRight, ChartLine, RefreshCw } from "lucide-react";
 import { Button } from "@/components/shadcn/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/shadcn/ui/tooltip";
 import { MENU_KEY } from "@/libs/constants/menuKey";
-import { ACCENT_BUTTON_CLASS } from "@/components/features/dashboard/constants";
+import { ACCENT_BUTTON_CLASS } from "@/libs/constants/buttonStyles";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import type { IAttentionItem } from "@/components/features/dashboard/utils";
 import { cn } from "@/libs/shadcn/utils";

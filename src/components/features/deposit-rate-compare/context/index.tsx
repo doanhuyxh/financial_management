@@ -14,6 +14,7 @@ import {
 import { configLocalStorageKey } from "@/libs/constants/configKey";
 import type { IDepositRateTableData, IFromDepositRateData } from "@/libs/interfaces/depositRatesData";
 import {
+    buildDepositOptions,
     buildDepositRows,
     DEFAULT_DEPOSIT_SCENARIO,
     getAvailableTerms,
@@ -52,7 +53,11 @@ export default function DepositRateCompareContextProvider({ children }: { childr
 
     const tables = useMemo(() => data?.data?.tables ?? [], [data]);
     const ratedTables = useMemo(() => tables.filter(hasRates), [tables]);
-    const rows = useMemo(() => buildDepositRows(ratedTables, scenario), [ratedTables, scenario]);
+    const options = useMemo(
+        () => buildDepositOptions(ratedTables, scenario.amount),
+        [ratedTables, scenario.amount],
+    );
+    const rows = useMemo(() => buildDepositRows(options, scenario), [options, scenario]);
     const availableTerms = useMemo(() => getAvailableTerms(ratedTables), [ratedTables]);
 
     const logoByCode = useMemo(() => new Map(banks.map((bank) => [bank.code, bank.logo])), [banks]);
@@ -111,6 +116,7 @@ export default function DepositRateCompareContextProvider({ children }: { childr
     const value: IDepositRateCompareContextProps = {
         scenario,
         tables,
+        options,
         rows,
         availableTerms,
         banks,

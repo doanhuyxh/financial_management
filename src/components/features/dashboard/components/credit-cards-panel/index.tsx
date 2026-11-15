@@ -6,7 +6,7 @@ import { ArrowLeftRight, ArrowRight, ChevronDown, RefreshCw } from "lucide-react
 import Money from "@/components/common/money";
 import VisibilitySettings from "@/components/common/visibility-settings";
 import { Button } from "@/components/shadcn/ui/button";
-import { ACCENT_BUTTON_CLASS } from "@/components/features/dashboard/constants";
+import { ACCENT_BUTTON_CLASS } from "@/libs/constants/buttonStyles";
 import { Progress } from "@/components/shadcn/ui/progress";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import ParagraphSkeleton from "@/components/common/paragraph-skeleton";
