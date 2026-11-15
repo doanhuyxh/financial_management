@@ -93,9 +93,24 @@ export class DashboardService {
         const { start: monthStart, end: monthEnd } = getMonthRange(year, month);
         const userObjectId = new mongoose.Types.ObjectId(user.userId);
 
-        const [expenseByMonth, incomeByMonth, incomeByCategoryAgg] = await Promise.all([
+        const [expenseByMonth, incomeByMonth, incomeByDayAgg, incomeByCategoryAgg] = await Promise.all([
             sumByMonth(ExpensesModel, "spentAt", userObjectId, rangeStart, monthEnd),
             sumByMonth(IncomesModel, "receivedAt", userObjectId, rangeStart, monthEnd),
+            // Thu nhập theo ngày (giờ VN) của tháng đang chọn, cho biểu đồ thu chi theo ngày
+            IncomesModel.aggregate<{ _id: number; total: number }>([
+                {
+                    $match: {
+                        userId: userObjectId,
+                        receivedAt: { $gte: monthStart, $lte: monthEnd },
+                    },
+                },
+                {
+                    $group: {
+                        _id: { $dayOfMonth: { date: "$receivedAt", timezone: TIMEZONE } },
+                        total: { $sum: "$amount" },
+                    },
+                },
+            ]),
             IncomesModel.aggregate([
                 {
                     $match: {
@@ -140,6 +155,8 @@ export class DashboardService {
                 net: income - expense,
             };
         });
+
+        const incomeDayMap = new Map(incomeByDayAgg.map((item) => [item._id, item.total]));
 
         const current = trend[trend.length - 1];
         const previous = trend[trend.length - 2];
@@ -191,6 +208,11 @@ export class DashboardService {
                 period: { daysElapsed, daysInMonth, isCurrentMonth },
                 samePeriodPrevious,
                 trend,
+                incomeByDay: Array.from({ length: daysInMonth }, (_, index) => ({
+                    day: index + 1,
+                    label: String(index + 1),
+                    total: incomeDayMap.get(index + 1) ?? 0,
+                })),
                 incomeByCategory: incomeByCategoryAgg.map(
                     (item: { categoryId: string; categoryName: string; total: number }) => ({
                         categoryId: item.categoryId,
