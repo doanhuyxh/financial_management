@@ -24,7 +24,7 @@ src/
     hooks/customHooks/        # React Query hook dùng chung (gọi networkApi)
     hooks/                    # Hook chung khác (useDebounce, useLocalStorage, useLogout...)
     interfaces/               # Kiểu dữ liệu API dùng chung client + server
-    constants/                # configKey.ts (env, query key, storage key), menuKey.ts, themeColors.ts (màu hex cho biểu đồ)
+    constants/                # configKey.ts (env, query key, storage key), menuKey.ts, themeColors.ts (màu hex cho biểu đồ), buttonStyles.ts (class nút phụ `ACCENT_BUTTON_CLASS`)
     redux/                    # authSlice, navigationSlice
     utils/                    # Util thuần, dùng được cả client và server
   components/
