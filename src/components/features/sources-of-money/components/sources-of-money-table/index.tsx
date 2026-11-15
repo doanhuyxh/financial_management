@@ -21,6 +21,7 @@ import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { cn } from "@/libs/shadcn/utils";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import { maskAccountNumber } from "@/libs/utils/maskAccountNumber";
+import { buildSourceHistoryUrl } from "@/libs/utils/sourceHistoryUrl";
 
 const isCredit = (record: ISourcesOfMoneyData) => record.type === SourcesOfMoneyType.CREDIT_CARD;
 
@@ -87,7 +88,6 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
         handleReorder,
         handleHideEmpty,
         openEditModal,
-        openHistory,
         openQr,
         handleDelete,
         openRollover,
@@ -121,7 +121,7 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
         ];
 
         const onMenuClick = (record: ISourcesOfMoneyData, key: string) => {
-            if (key === "history") openHistory(record);
+            if (key === "history") router.push(buildSourceHistoryUrl(record._id));
             else if (key === "qr") openQr(record);
             else if (key === "rollover") openRollover(record._id);
             else if (key === "journey")
@@ -150,7 +150,7 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => openHistory(record)}
+                        onClick={() => router.push(buildSourceHistoryUrl(record._id))}
                     >
                         <History data-icon="inline-start" className="size-3.5" />
                         Lịch sử
@@ -195,7 +195,7 @@ function SourceGroup({ title, items, hiddenCount = 0 }: IGroupProps) {
             },
             { title: "", key: "actions", width: 200, render: (_value, record) => actions(record) },
         ];
-    }, [isMobile, openEditModal, openHistory, openQr, handleDelete, openRollover, router]);
+    }, [isMobile, openEditModal, openQr, handleDelete, openRollover, router]);
 
     if (!isLoading && items.length === 0 && hiddenCount === 0) return null;
 

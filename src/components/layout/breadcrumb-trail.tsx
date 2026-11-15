@@ -38,6 +38,14 @@ function getNavBreadcrumb(pathname: string): BreadcrumbItemData[] {
                 },
             ]
         }
+        // Trang con (VD: lịch sử của một nguồn tiền): "Nguồn tiền / Lịch sử giao dịch"
+        const activeChildPage = item.childPages?.find((page) => isPathMatch(pathname, page.url))
+        if (activeChildPage) {
+            return [
+                { href: item.url, label: item.title, isCurrentPage: false },
+                { label: activeChildPage.title, isCurrentPage: true },
+            ]
+        }
         const activeSubItem = item.items?.find((subItem) => isPathMatch(pathname, subItem.url))
         if (activeSubItem) {
             return [

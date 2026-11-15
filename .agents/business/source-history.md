@@ -4,7 +4,7 @@
 
 ## Lịch sử giao dịch (nội bộ)
 
-`GET /api/sources-of-money/[id]/transactions?page=&limit=&kind=&from=&to=` (mặc định 20 dòng/trang). UI: nút "Lịch sử giao dịch" trên bảng nguồn tiền, mở `source-history-modal`. Nguồn đã lưu trữ vẫn xem được.
+`GET /api/sources-of-money/[id]/transactions?page=&limit=&kind=&from=&to=` (mặc định 20 dòng/trang). UI: nút "Lịch sử" trên bảng nguồn tiền mở trang riêng `/source-history/<id>` (feature `source-history`, URL tạo bằng `buildSourceHistoryUrl`); không còn modal. API vẫn trả lịch sử của nguồn đã lưu trữ, nhưng trang lấy thông tin nguồn từ danh sách nguồn đang dùng nên nguồn đã xóa hiện "Không tìm thấy".
 
 **Không lưu riêng:** mỗi lần gọi, `querySourceTransactions` gộp bằng `$unionWith` từ dữ liệu hiện tại. Sửa/xóa giao dịch thì lịch sử đổi theo, và thời gian là ngày người dùng nhập.
 
@@ -19,15 +19,17 @@
 
 - Phí chuyển tiền và phí đáo hạn (expense `skipBalanceAdjust`) **không** thành dòng riêng vì đã nằm trong transfer / đáo hạn gốc; hiện thành "Phí X" trên dòng chuyển, "Đáo X · dịch vụ" trên dòng đáo hạn. Phí quốc tế và phí thẻ ghi tay là expense thường nên vẫn là dòng `EXPENSE`.
 - `kind` lọc theo `EXPENSE` / `INCOME` / `TRANSFER` (gồm cả đi và đến) / `ADJUSTMENT` / `ROLLOVER` (UI chỉ hiện nút lọc này với thẻ). `from`/`to` là `YYYY-MM-DD` theo giờ +07:00 (`server/utils/dayRange.ts`).
-- Response: `{ items, pagination, summary: { increase, decrease } }` (tổng delta dương / âm trong bộ lọc). UI ghi nhãn "Tiền vào/Tiền ra" cho nguồn thường, "Phát sinh nợ/Giảm nợ" cho thẻ.
+- Response: `{ items, pagination, summary: { increase, decrease }, breakdown }` (tổng delta dương / âm trong bộ lọc). `breakdown: [{ id, name, icon, color, total, count }]` là khoản chi (`EXPENSE`) theo danh mục trên toàn bộ kết quả lọc, lớn nhất trước, `id` rỗng = không có danh mục; client hiện 8 dòng đầu, còn lại gộp "Khác". Chỉ API nội bộ trả `breakdown`. UI ghi nhãn "Tiền vào/Tiền ra" cho nguồn thường, "Phát sinh nợ/Giảm nợ" cho thẻ.
 - Sắp xếp `occurredAt desc, createdAt desc, _id desc`.
 - Query key `[SOURCES_OF_MONEY, "transactions", id, query]`: mọi mutation đã invalidate `SOURCES_OF_MONEY` nên tự làm mới.
-- **Biểu đồ theo ngày** (`source-daily-chart`, trong modal dưới ô tổng): `GET /api/sources-of-money/[id]/transactions/daily?month=YYYY-MM` → `{ month, days: [{ date, expense, income, transfer, adjustment, rollover }] }`, đủ mọi ngày của tháng (giờ +07:00), dùng chung các nhánh `$unionWith` với danh sách (`querySourceDailyTotals`). Giá trị là độ lớn không dấu: |delta| cho chi/thu/chuyển (đi + đến gộp)/điều chỉnh; đáo hạn lấy **số tiền đáo** (`rolloverAmount`), không phải phí. Không theo bộ lọc loại; tháng mặc định là tháng của "Từ ngày" (không có thì tháng hiện tại), đổi bằng ô chọn tháng riêng. Cột Đáo hạn chỉ hiện với thẻ. Vẽ bằng `@ant-design/plots` `Column` (group); mobile cuộn ngang.
+- **Biểu đồ theo ngày** (`source-history/components/source-daily-chart`, riêng một hàng ngay dưới tiêu đề trang): `GET /api/sources-of-money/[id]/transactions/daily?month=YYYY-MM` → `{ month, days: [{ date, expense, income, transfer, adjustment, rollover }] }`, đủ mọi ngày của tháng (giờ +07:00), dùng chung các nhánh `$unionWith` với danh sách (`querySourceDailyTotals`). Giá trị là độ lớn không dấu: |delta| cho chi/thu/chuyển (đi + đến gộp)/điều chỉnh; đáo hạn lấy **số tiền đáo** (`rolloverAmount`), không phải phí. Không theo bộ lọc loại; tháng mặc định là tháng của "Từ ngày" (không có thì tháng hiện tại), đổi bằng ô chọn tháng riêng. Cột Đáo hạn chỉ hiện với thẻ. Vẽ bằng `@ant-design/plots` `Column` (group); mobile cuộn ngang.
 - **Tổng delta bằng số dư hiện tại** khi nguồn có sổ cái đầy đủ (`ledgerCompleteAt`; nguồn cũ cần chạy `scripts/backfill-opening-balance.ts`). Nút "Đối soát" trong modal so hai số này ([balance-integrity.md](balance-integrity.md)). Chưa làm "số dư sau mỗi giao dịch".
+
+**Trang `/source-history/<id>`:** tiêu đề (quay lại, tên nguồn, ô đổi nguồn, đối soát, chia sẻ) → biểu đồ theo ngày → 4 ô số liệu (số dư/dư nợ, tăng, giảm, số giao dịch) → bộ lọc → danh sách + "Chi theo danh mục". Bộ lọc nằm trên query `?kind=&from=&to=&page=` (`router.replace`, giá trị lạ bị bỏ qua); đổi nguồn thì bỏ bộ lọc. Từ `lg` danh sách là bảng nhóm theo ngày (Giờ | Loại | Danh mục / Đối ứng | Nội dung | Số tiền; tổng ngày chỉ cộng các dòng trong trang đang xem); nhỏ hơn dùng `common/source-transaction-list`. Từ `xl` khối "Chi theo danh mục" nằm cột phải.
 
 ## Link chia sẻ public
 
-Mỗi link gắn với **đúng một** nguồn tiền; một nguồn có thể có nhiều link (mỗi người nhận một link). Quản lý trong modal "Chia sẻ" (`share-links-modal`) mở từ modal lịch sử.
+Mỗi link gắn với **đúng một** nguồn tiền; một nguồn có thể có nhiều link (mỗi người nhận một link). Quản lý trong modal "Chia sẻ" (`source-history/components/share-links-modal`) mở từ nút "Chia sẻ" trên trang lịch sử.
 
 **API nội bộ (cần JWT, lọc `userId`):**
 - `GET /api/sources-of-money/[id]/shares`: link chưa thu hồi (kèm `isExpired`).

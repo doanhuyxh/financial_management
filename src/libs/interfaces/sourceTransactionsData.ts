@@ -1,5 +1,5 @@
 import type { CardFeeType } from "@/libs/interfaces/expensesData";
-import type { PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
+import type { IListBreakdownItem, PaginatedResponse } from "@/libs/interfaces/ApiResponseData";
 import type { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
 
 /** Một dòng lịch sử của nguồn tiền, gộp từ chi tiêu, thu nhập, chuyển tiền và điều chỉnh tay. */
@@ -66,6 +66,11 @@ export interface ISourceTransactionSummary {
 
 export interface ISourceTransactionsResponse extends PaginatedResponse<ISourceTransactionData> {
     summary: ISourceTransactionSummary;
+    /**
+     * Khoản chi theo danh mục trên toàn bộ kết quả lọc, lớn nhất trước (`id` rỗng = không có danh mục).
+     * Chỉ có ở API nội bộ.
+     */
+    breakdown?: IListBreakdownItem[];
 }
 
 export interface ISourceTransactionQuery {
@@ -79,7 +84,7 @@ export interface ISourceTransactionQuery {
 }
 
 /**
- * Tổng tiền một ngày (giờ VN) theo loại, dùng cho biểu đồ cột trong modal lịch sử.
+ * Tổng tiền một ngày (giờ VN) theo loại, dùng cho biểu đồ cột trên trang lịch sử nguồn tiền.
  * Giá trị là độ lớn không dấu; đáo hạn là số tiền được đáo, không phải phí.
  */
 export interface ISourceDailyTotal {

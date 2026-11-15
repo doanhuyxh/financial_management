@@ -21,6 +21,11 @@ export type SidebarNavMainItem = {
     url: string
     icon: ReactNode
     isActive?: boolean
+    /** Trang con không nằm dưới `url` nhưng vẫn thuộc mục này (tô sáng menu, breadcrumb) */
+    childPages?: {
+        title: string
+        url: string
+    }[]
     items?: {
         title: string
         url: string
@@ -52,6 +57,7 @@ export const sidebarConfig: SidebarConfig = {
             title: "Nguồn tiền",
             url: MENU_KEY.SOURCES_OF_MONEY,
             icon: <LandmarkIcon />,
+            childPages: [{ title: "Lịch sử giao dịch", url: MENU_KEY.SOURCE_HISTORY }],
         },
         {
             title: "Thẻ tín dụng",

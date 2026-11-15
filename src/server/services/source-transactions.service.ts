@@ -15,6 +15,7 @@ import {
     type ISourceTransactionQuery,
     type ISourceTransactionSummary,
 } from "@/libs/interfaces/sourceTransactionsData";
+import type { IListBreakdownItem } from "@/libs/interfaces/ApiResponseData";
 import { SourcesOfMoneyType } from "@/libs/interfaces/sourcesOfMoneyData";
 import {
     errorResponseWithStatusCode,
@@ -238,7 +239,7 @@ export async function querySourceTransactions(options: ISourceTransactionsOption
 
     const emptySummary: ISourceTransactionSummary = { increase: 0, decrease: 0 };
     if (branches.length === 0) {
-        return { items: [], total: 0, summary: emptySummary };
+        return { items: [], total: 0, summary: emptySummary, breakdown: [] };
     }
 
     const itemStages: PipelineStage.FacetPipelineStage[] = internal
@@ -278,11 +279,48 @@ export async function querySourceTransactions(options: ISourceTransactionsOption
           ]
         : [{ $project: { _id: 0, occurredAt: 1, delta: 1, note: 1 } }];
 
+    // Phân bổ khoản chi theo danh mục trên toàn bộ kết quả lọc. Chỉ nội bộ: link public không lộ danh mục.
+    const breakdownStages: PipelineStage.FacetPipelineStage[] = internal
+        ? [
+              { $match: { kind: SourceTransactionKind.EXPENSE } },
+              {
+                  $group: {
+                      _id: { $ifNull: ["$categoryId", null] },
+                      total: { $sum: { $abs: "$delta" } },
+                      count: { $sum: 1 },
+                  },
+              },
+              { $sort: { total: -1, _id: 1 } },
+              {
+                  $lookup: {
+                      from: CategoriesModel.collection.name,
+                      localField: "_id",
+                      foreignField: "_id",
+                      as: "category",
+                  },
+              },
+              {
+                  $project: {
+                      _id: 0,
+                      id: { $ifNull: [{ $toString: "$_id" }, ""] },
+                      name: {
+                          $ifNull: [{ $arrayElemAt: ["$category.name", 0] }, "Không có danh mục"],
+                      },
+                      icon: { $arrayElemAt: ["$category.icon", 0] },
+                      color: { $arrayElemAt: ["$category.color", 0] },
+                      total: 1,
+                      count: 1,
+                  },
+              },
+          ]
+        : [{ $match: { kind: "__NONE__" } }];
+
     const union = unionBranches(branches);
     const [result] = await union.model.aggregate<{
         items: unknown[];
         total: { count: number }[];
         summary: ISourceTransactionSummary[];
+        breakdown: IListBreakdownItem[];
     }>([
         ...union.stages,
         { $sort: { occurredAt: -1, createdAt: -1, _id: -1 } },
@@ -304,6 +342,7 @@ export async function querySourceTransactions(options: ISourceTransactionsOption
                     },
                     { $project: { _id: 0 } },
                 ],
+                breakdown: breakdownStages,
             },
         },
     ]);
@@ -312,6 +351,7 @@ export async function querySourceTransactions(options: ISourceTransactionsOption
         items: result?.items ?? [],
         total: result?.total[0]?.count ?? 0,
         summary: result?.summary[0] ?? emptySummary,
+        breakdown: result?.breakdown ?? [],
     };
 }
 
@@ -428,7 +468,7 @@ export class SourceTransactionsService {
         }
 
         const normalized = normalizeTransactionQuery(query);
-        const { items, total, summary } = await querySourceTransactions({
+        const { items, total, summary, breakdown } = await querySourceTransactions({
             ...normalized,
             userId: user.userId,
             sourceId,
@@ -440,6 +480,7 @@ export class SourceTransactionsService {
             items,
             pagination: buildPagination(total, normalized.page, normalized.limit),
             summary,
+            breakdown,
         });
     }
 
