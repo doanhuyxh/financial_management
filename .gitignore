@@ -17,6 +17,7 @@
 /.next/
 /.next-build/
 /.next-prev/
+/.next-smoke/
 /out/
 
 # production

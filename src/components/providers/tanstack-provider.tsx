@@ -14,7 +14,8 @@ export default function TanStackProvider({ children }: { children: ReactNode }) 
                         refetchOnReconnect: true,
                         retry: 1,
                         retryDelay: 1000,
-                        staleTime: 1000 * 30,
+                        // Giữ dữ liệu 5 phút trong RAM (không ghi xuống máy) để chuyển trang không gọi lại API
+                        staleTime: 1000 * 60 * 5,
                         gcTime: 1000 * 60 * 5,
                     },
                 },

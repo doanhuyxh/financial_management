@@ -2,7 +2,7 @@
 
 Ứng dụng quản lý tài chính cá nhân (tiếng Việt, VND). Frontend và API chung **một app Next.js 16**. Mỗi user chỉ thấy dữ liệu của chính mình: mọi query đều lọc theo `userId` lấy từ JWT.
 
-**Stack:** Next.js 16 (App Router) + React 19 (React Compiler), MongoDB/Mongoose, React Query, Redux Toolkit (chỉ cho auth/navigation), shadcn (radix-nova) + Animate UI (`@animate-ui/react`, `motion`) + sonner (không còn antd); `@ant-design/plots` cho biểu đồ (không phụ thuộc antd), `qrcode.react` cho mã VietQR, react-hook-form + zod, `@dnd-kit` cho kéo-thả.
+**Stack:** Next.js 16 (App Router) + React 19 (React Compiler), MongoDB/Mongoose, React Query, Redux Toolkit (chỉ cho auth/navigation), shadcn (radix-nova, Radix `radix-ui` + hiệu ứng CSS `tw-animate-css`; drawer dùng `vaul`) + sonner (không còn antd, không còn `motion`/Animate UI); biểu đồ cột tự vẽ bằng div (`common/bar-chart`, không thư viện biểu đồ), font hệ thống (không web font), `qrcode.react` cho mã VietQR, react-hook-form + zod, `@dnd-kit` cho kéo-thả.
 
 ## Cây thư mục
 
@@ -43,8 +43,8 @@ App chỉ có một người dùng nên render như SPA React: server không SSR
 
 - `app/layout.tsx` không đọc cookie/headers → mọi trang là **static** (`○` khi `bun run build`), HTML build sẵn chỉ chứa màn loading.
 - Toàn bộ providers (React Query, Redux) và page nằm trong `ClientApp` (`components/providers/client-app`, `next/dynamic` với `ssr: false`) → chỉ render trên trình duyệt.
-- Theme: inline script trong `<head>` đọc cookie `theme`, gắn class `dark` và tạo thẻ meta `theme-color` trước lần paint đầu (`ThemeToggle` cập nhật cả hai); `useIsDarkMode` theo dõi class đó (biểu đồ, sonner).
-- Màu: token CSS ở `src/app/globals.css` (họ slate, `--primary` xanh dương + màu nghĩa `--money-in/out`, `--debt`, `--warn`, `--credit` tím). Đây là nguồn duy nhất: biểu đồ (`@ant-design/plots`) đọc giá trị token lúc chạy bằng `useThemeColors` (`libs/hooks`); chỉ `brandColors.ts` chép hex `--card`, có test giữ khớp.
+- Theme: inline script trong `<head>` đọc cookie `theme`, gắn class `dark` và tạo thẻ meta `theme-color` trước lần paint đầu (`ThemeToggle` cập nhật cả hai); `useIsDarkMode` theo dõi class đó (sonner).
+- Màu: token CSS ở `src/app/globals.css` (họ slate, `--primary` xanh dương + màu nghĩa `--money-in/out`, `--debt`, `--warn`, `--credit` tím). Đây là nguồn duy nhất: mọi chỗ (cả biểu đồ `common/bar-chart`) dùng class Tailwind theo token; chỉ `brandColors.ts` chép hex `--card`, có test giữ khớp.
 - Server chỉ làm 3 việc: trả file tĩnh, `proxy.ts` kiểm tra JWT, và `/api/*` (gồm `POST /api/mcp` cho agent ngoài, xác thực bằng token cá nhân thay cookie: [business/mcp.md](business/mcp.md)).
 - **Không** thêm `cookies()`/`headers()`/`await` dữ liệu vào layout/page: trang sẽ quay lại SSR động. Dữ liệu luôn lấy qua React Query.
 
@@ -80,7 +80,7 @@ Agent MCP ──POST /api/mcp (Bearer mm_pat_…)──▶ server/mcp/handleMcpR
 
 ### Cache React Query
 
-Key ở `configQueryKey`. Mặc định (`tanstack-provider.tsx`): staleTime 30 giây, gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần, không giữ dữ liệu query trước ở mức global (chỉ list phân trang dùng `keepPreviousData`). Danh mục và nguồn tiền stale 5 phút (`QUERY_STALE_TIME`). Dữ liệu đổi chủ yếu qua mutation của chính app, nên dựa vào invalidate (ngoại lệ: agent MCP có scope write tạo giao dịch từ ngoài → `useGetSourcesOfMoney` bật `refetchOnWindowFocus`):
+Key ở `configQueryKey`. Mặc định (`tanstack-provider.tsx`): staleTime 5 phút (plan 20, tiết kiệm 4G; chỉ trong RAM, không persister), gcTime 5 phút, không refetch khi focus lại tab, retry 1 lần, không giữ dữ liệu query trước ở mức global (chỉ list phân trang dùng `keepPreviousData`). `QUERY_STALE_TIME.REFERENCE` và `.TRANSACTION` đều 5 phút; nút **Làm mới** trên header (`layout/refresh-button`) gọi `invalidateQueries({ refetchType: "active" })`. Client gọi API mặc định `cache: "no-store"` (`fetchFromBackEnd`); riêng `GET /api/deposit-rates` dùng `cache: "no-cache"` + ETag/304 (`withEtag` ở `responseServer.ts`) — ngoại lệ duy nhất được cache HTTP. Dữ liệu đổi chủ yếu qua mutation của chính app, nên dựa vào invalidate (ngoại lệ: agent MCP có scope write tạo giao dịch từ ngoài → `useGetSourcesOfMoney` bật `refetchOnWindowFocus`):
 
 | Mutation | Invalidate |
 |---|---|

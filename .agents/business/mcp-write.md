@@ -33,7 +33,7 @@ Quyết định của user (06/11/2026): MCP chỉ đọc, ghi **chỉ** chi ti�
 
 ## Dữ liệu đổi từ ngoài app
 
-App không biết khi agent ghi. `useGetSourcesOfMoney` bật `refetchOnWindowFocus` (vẫn theo staleTime 5 phút); các list khác stale 30 giây nên mở lại trang là thấy.
+App không biết khi agent ghi. `useGetSourcesOfMoney` bật `refetchOnWindowFocus` (vẫn theo staleTime 5 phút); các list khác cũng stale 5 phút (plan 20, tiết kiệm 4G): muộn nhất 5 phút, hoặc bấm nút **Làm mới** trên header để thấy ngay.
 
 ## Chưa làm / không làm
 

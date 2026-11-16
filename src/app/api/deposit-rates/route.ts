@@ -1,10 +1,11 @@
 import type { NextRequest } from "next/server";
-import { errorResponseWithStatusCode } from "@/server/utils/responseServer";
+import { errorResponseWithStatusCode, withEtag } from "@/server/utils/responseServer";
 import { DepositRatesService } from "@/server/services/deposit-rates.service";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        return await DepositRatesService.getComparison();
+        // Ngoại lệ duy nhất được cache HTTP (ETag + 304): lãi suất ít đổi, mở lại trang Lãi suất gần như 0 byte
+        return await withEtag(req, await DepositRatesService.getComparison());
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Something went wrong";
         return errorResponseWithStatusCode(message);

@@ -42,6 +42,9 @@ export function NavUser() {
     ? "..."
     : user?.email ?? (auth.status === "loading" ? "Đang tải..." : "Chưa đăng nhập")
 
+  // Ảnh mặc định cũ (i.pravatar.cc) là ảnh ngẫu nhiên, `no-store`: tải lại mỗi lần chuyển trang trên 4G → dùng chữ cái đầu
+  const avatarUrl = user?.avatarUrl && !user.avatarUrl.includes("pravatar.cc") ? user.avatarUrl : null
+
   const initials = useMemo(() => {
     return displayName
       .split(" ")
@@ -62,8 +65,8 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                {user?.avatarUrl ? (
-                  <AvatarImage src={user.avatarUrl} alt={displayName} />
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt={displayName} />
                 ) : null}
                 <AvatarFallback className="rounded-lg" suppressHydrationWarning>
                   {initials || "U"}

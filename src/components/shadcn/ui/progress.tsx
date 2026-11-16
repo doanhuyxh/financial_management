@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/libs/shadcn/utils"
-import { Progress as ProgressPrimitive } from "@animate-ui/react/primitives/radix-ui"
+import { Progress as ProgressPrimitive } from "radix-ui"
 
 function Progress({
   className,
@@ -20,7 +20,7 @@ function Progress({
     >
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
-        className="size-full flex-1 bg-primary"
+        className="size-full flex-1 bg-primary transition-transform duration-500 ease-out"
         style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
       />
     </ProgressPrimitive.Root>

@@ -149,8 +149,9 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
-    --font-sans: var(--font-be-vietnam-pro);
-    --font-mono: var(--font-be-vietnam-pro);
+    /* Font có sẵn trong máy (plan 20): không tải web font. iPhone SF Pro, Android Roboto, Windows Segoe UI. */
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 /*
@@ -192,7 +193,7 @@ html:not(.dark) [data-sidebar="menu-sub-button"][data-active="true"] {
 
     body {
         @apply bg-background text-foreground;
-        font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+        font-family: var(--font-sans);
         /* Tắt bôi đen văn bản và menu nhấn giữ (callout) trên mobile */
         -webkit-user-select: none;
         user-select: none;
@@ -273,6 +274,11 @@ html:not(.dark) [data-sidebar="menu-sub-button"][data-active="true"] {
  * Chế độ ẩn số dư (nút con mắt trên header, usePrivacyMode): làm mờ mọi số tiền có class `money-value`
  * (component Money, ô thống kê...). Rê chuột/nhấn giữ để xem tạm.
  */
+/* Font hệ thống có chữ số không đều độ rộng: số tiền dùng chữ số đều để thẳng cột */
+.money-value {
+    font-variant-numeric: tabular-nums;
+}
+
 html[data-privacy="on"] .money-value {
     filter: blur(7px);
     transition: filter 150ms ease;
@@ -402,5 +408,39 @@ html[data-privacy="on"] .money-value:active {
 @keyframes skeleton-shimmer {
     to {
         transform: translateX(100%);
+    }
+}
+
+/*
+ * Hiệu ứng nhỏ bằng CSS thuần (plan 20: không dùng thư viện animation JS).
+ * .bar-grow: cột biểu đồ (common/bar-chart) mọc từ dưới lên khi hiện.
+ */
+@layer components {
+    .bar-grow {
+        transform-origin: bottom;
+        animation: bar-grow 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .bar-grow {
+            animation: none;
+        }
+    }
+}
+
+@keyframes bar-grow {
+    from {
+        transform: scaleY(0);
+    }
+}
+
+/* Người dùng bật "giảm chuyển động" trên máy: tắt mọi hiệu ứng (modal, drawer, dropdown, cột biểu đồ…) */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }

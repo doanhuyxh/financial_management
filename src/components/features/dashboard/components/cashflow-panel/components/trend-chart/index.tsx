@@ -1,96 +1,30 @@
 "use client";
 
 import { useMemo } from "react";
-import dynamic from "next/dynamic";
+import BarChart, { type IBarGroup, type IBarSeries } from "@/components/common/bar-chart";
 import EmptyState from "@/components/common/empty-state";
-import { Skeleton } from "@/components/shadcn/ui/skeleton";
 import { Spinner } from "@/components/shadcn/ui/spinner";
 import { useDashboardContext } from "@/components/features/dashboard/context";
-import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
-import { useThemeColors } from "@/libs/hooks/useThemeColors";
-import { useIsMobile } from "@/libs/hooks/use-mobile";
-import { formatCompactMoney, formatMoney } from "@/libs/utils/formatMoney";
 
-// G2 is ~380KB gzipped: load it in a separate chunk, client-only.
-const Column = dynamic(() => import("@ant-design/plots").then((mod) => mod.Column), {
-    ssr: false,
-    loading: () => <Skeleton className="skeleton-shimmer h-60 w-full animate-none" />,
-});
-
-const INCOME_LABEL = "Thu nhập";
-const EXPENSE_LABEL = "Chi tiêu";
-
-const formatCurrency = (value: number) => formatMoney(value);
-const formatCompact = (value: number) => formatCompactMoney(value);
+const SERIES: IBarSeries[] = [
+    { key: "income", label: "Thu nhập", colorClassName: "bg-money-in", textClassName: "text-money-in" },
+    { key: "expense", label: "Chi tiêu", colorClassName: "bg-money-out", textClassName: "text-money-out" },
+];
 
 export default function TrendChart() {
     const { cashflow, isCashflowLoading } = useDashboardContext();
-    const isDark = useIsDarkMode();
-    const colors = useThemeColors();
-    const isMobile = useIsMobile();
-    const chartHeight = isMobile ? 220 : 280;
     // Bỏ các tháng trống ở đầu (trước khi bắt đầu ghi chép); tháng đang chạy gắn dấu "*"
-    const trend = useMemo(() => {
+    const groups = useMemo<IBarGroup[]>(() => {
         const items = cashflow?.trend ?? [];
         const firstWithData = items.findIndex((item) => item.income > 0 || item.expense > 0);
         if (firstWithData === -1) return [];
         const isCurrentMonth = cashflow?.period.isCurrentMonth;
-        return items.slice(firstWithData).map((item, index, list) =>
-            isCurrentMonth && index === list.length - 1 ? { ...item, label: `${item.label}*` } : item,
-        );
+        return items.slice(firstWithData).map((item, index, list) => {
+            const label = isCurrentMonth && index === list.length - 1 ? `${item.label}*` : item.label;
+            return { key: item.label, label, values: { income: item.income, expense: item.expense } };
+        });
     }, [cashflow]);
-    const hasData = trend.length > 0;
-
-    const config = useMemo(() => {
-        const tickFill = colors.muted;
-        const gridStroke = colors.border;
-        const data = trend.flatMap((item) => [
-            { label: item.label, type: INCOME_LABEL, value: item.income },
-            { label: item.label, type: EXPENSE_LABEL, value: item.expense },
-        ]);
-        return {
-            data,
-            theme: isDark ? "classicDark" : "classic",
-            xField: "label",
-            yField: "value",
-            colorField: "type",
-            group: true,
-            scale: {
-                color: { domain: [INCOME_LABEL, EXPENSE_LABEL], range: [colors.moneyIn, colors.moneyOut] },
-            },
-            axis: {
-                x: {
-                    title: false,
-                    labelFill: tickFill,
-                    labelFontSize: 11,
-                    tickStroke: tickFill,
-                    lineStroke: gridStroke,
-                },
-                y: {
-                    title: false,
-                    labelFill: tickFill,
-                    labelFontSize: 11,
-                    labelFormatter: formatCompact,
-                    gridStroke,
-                    gridStrokeOpacity: 1,
-                    tickStroke: tickFill,
-                    lineStroke: gridStroke,
-                },
-            },
-            legend: {
-                color: { position: "top", itemLabelFill: tickFill },
-            },
-            style: {
-                radiusTopLeft: 4,
-                radiusTopRight: 4,
-                // Ít tháng dữ liệu thì cột không bị giãn quá to
-                maxWidth: 28,
-            },
-            tooltip: {
-                items: [{ field: "value", valueFormatter: formatCurrency }],
-            },
-        };
-    }, [trend, isDark, colors]);
+    const hasData = groups.length > 0;
 
     if (isCashflowLoading) {
         return (
@@ -108,14 +42,5 @@ export default function TrendChart() {
         );
     }
 
-    return (
-        <div className="money-value" style={{ height: chartHeight }}>
-            <Column
-                key={`${isDark ? "dark" : "light"}-${chartHeight}`}
-                {...config}
-                height={chartHeight}
-                autoFit
-            />
-        </div>
-    );
+    return <BarChart series={SERIES} groups={groups} legend barClassName="max-w-7" heightClassName="h-56 md:h-64" />;
 }

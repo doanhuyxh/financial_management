@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import type ApiResponse from "@/libs/interfaces/ApiResponseData";
 import { AUTH_SESSION_MAX_AGE_SECONDS, configCookieKey } from "@/libs/constants/configKey";
@@ -5,6 +6,26 @@ import { AUTH_SESSION_MAX_AGE_SECONDS, configCookieKey } from "@/libs/constants/
 export function noStore<T extends NextResponse>(response: T): T {
     response.headers.set("Cache-Control", "no-store");
     return response;
+}
+
+/**
+ * Cho phép trình duyệt giữ response và hỏi lại bằng ETag: dữ liệu chưa đổi thì trả 304 không body.
+ * CHỈ dùng cho dữ liệu lãi suất tiết kiệm (plan 20: không cache HTTP dữ liệu tài chính khác).
+ * `private`: response có lãi suất người dùng tự nhập, không để proxy dùng chung lưu.
+ */
+export async function withEtag(request: Request, response: NextResponse): Promise<NextResponse> {
+    if (response.status !== 200) return response;
+    const body = await response.text();
+    const etag = `W/"${createHash("sha1").update(body).digest("base64url")}"`;
+    const headers = new Headers(response.headers);
+    headers.set("ETag", etag);
+    headers.set("Cache-Control", "private, no-cache");
+    const ifNoneMatch = request.headers.get("if-none-match");
+    if (ifNoneMatch?.split(",").some((tag) => tag.trim() === etag)) {
+        headers.delete("Content-Length");
+        return new NextResponse(null, { status: 304, headers });
+    }
+    return new NextResponse(body, { status: 200, headers });
 }
 
 export function successResponse<T>(data: T, message = "") {

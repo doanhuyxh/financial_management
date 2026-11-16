@@ -11,6 +11,7 @@ Các kế hoạch đã triển khai xong được xóa khỏi thư mục này. `
 | 17 | Báo cáo màu sắc và theme (trạng thái trước plan 18–19, giá trị màu đã lỗi thời; xóa được) của toàn dự án (token sáng/tối, màu theo nghĩa, hex ngoài CSS, điểm lệch cần dọn). Chỉ khảo sát, chưa sửa code (16/11/2026) | Thấp | [17-bao-cao-mau-sac-va-theme-hien-tai.md](17-bao-cao-mau-sac-va-theme-hien-tai.md) |
 | 18 | Đồng bộ màu về một nơi: phần code đã xong 16/11/2026 (commit `3f91f32`). Còn: kiểm meta theme-color trên điện thoại thật, quyết quy tắc CSS link sidebar | Thấp | [18-dong-bo-mau-o-mot-noi.md](18-dong-bo-mau-o-mot-noi.md) |
 | 19 | Bảng màu tài chính: đã chọn và code phương án A "Xanh ngân hàng" (slate + xanh `#1d4ed8`, tín dụng tím, icon mới) 16/11/2026. Còn: kiểm icon/thanh trình duyệt trên điện thoại thật, xem với dữ liệu thật | Trung bình | [19-de-xuat-bang-mau-tai-chinh.md](19-de-xuat-bang-mau-tai-chinh.md) · [mockup](19-de-xuat-bang-mau-tai-chinh-mockup.html) |
+| 20 | Tiết kiệm dữ liệu 4G: đã code 16/11/2026 (bỏ G2, font hệ thống, bỏ `motion` → hiệu ứng CSS, staleTime 5 phút + nút Làm mới, ETag chỉ cho lãi suất, bỏ pravatar, cache favicon). Lần đầu 753 → 537 KB, trang biểu đồ 486 → 68 KB. Còn: bật gzip nginx trên server, kiểm điện thoại thật | Trung bình | [20-tiet-kiem-du-lieu-4g.md](20-tiet-kiem-du-lieu-4g.md) |
 
 ## Định nghĩa "xong"
 

@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Be_Vietnam_Pro } from "next/font/google";
 import { type ReactNode } from "react";
 import "./globals.css";
 
@@ -7,12 +6,6 @@ import NextTopLoader from "nextjs-toploader";
 import ClientApp from "@/components/providers/client-app";
 import { THEME_SURFACE } from "@/libs/constants/brandColors";
 import { configCookieKey } from "@/libs/constants/configKey";
-
-const beVietnamPro = Be_Vietnam_Pro({
-  variable: "--font-be-vietnam-pro",
-  subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700"],
-});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -58,7 +51,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="vi"
-      className={`${beVietnamPro.variable} h-full antialiased`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
       <head>

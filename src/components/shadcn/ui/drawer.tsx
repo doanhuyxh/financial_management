@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Drawer as DrawerPrimitive } from "@animate-ui/react/primitives/radix-ui/drawer"
+// vaul tự có hiệu ứng trượt + kéo để đóng (không cần class animation)
+import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/libs/shadcn/utils"
 

@@ -54,6 +54,7 @@ export const AUTH_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 export const QUERY_STALE_TIME = {
 	REFERENCE: 1000 * 60 * 5,
-	TRANSACTION: 1000 * 30,
+	/** 5 phút (plan 20, tiết kiệm 4G): chỉ giữ trong RAM; thao tác ghi trong app đã invalidate, nút Làm mới cho thay đổi từ ngoài */
+	TRANSACTION: 1000 * 60 * 5,
 }
 

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/libs/shadcn/utils"
-import { Checkbox as CheckboxPrimitive } from "@animate-ui/react/primitives/radix-ui"
+import { Checkbox as CheckboxPrimitive } from "radix-ui"
 import { CheckIcon } from "lucide-react"
 
 function Checkbox({
@@ -20,7 +20,7 @@ function Checkbox({
     >
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
-        className="grid place-content-center text-current transition-none [&>svg]:size-3.5"
+        className="grid place-content-center text-current animate-in fade-in-0 zoom-in-50 duration-150 [&>svg]:size-3.5"
       >
         <CheckIcon
         />
