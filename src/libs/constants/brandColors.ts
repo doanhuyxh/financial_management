@@ -4,5 +4,5 @@
  */
 export const THEME_SURFACE = {
     light: "#ffffff",
-    dark: "#171412",
+    dark: "#131b2c",
 } as const;

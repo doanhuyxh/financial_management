@@ -34,7 +34,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           success: "[&_[data-icon]]:text-money-in",
           error: "[&_[data-icon]]:text-debt",
           warning: "[&_[data-icon]]:text-warn",
-          info: "[&_[data-icon]]:text-credit",
+          info: "[&_[data-icon]]:text-accent-text",
         },
       }}
       {...props}

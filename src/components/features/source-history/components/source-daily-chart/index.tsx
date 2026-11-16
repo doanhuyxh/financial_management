@@ -25,7 +25,7 @@ type SeriesField = keyof Omit<ISourceDailyTotal, "date">;
 const SERIES: { field: SeriesField; label: string; color: (c: ThemeColors) => string }[] = [
     { field: "expense", label: "Chi", color: (c) => c.moneyOut },
     { field: "income", label: "Thu", color: (c) => c.moneyIn },
-    { field: "transfer", label: "Chuyển", color: (c) => c.credit },
+    { field: "transfer", label: "Chuyển", color: (c) => c.primary },
     { field: "adjustment", label: "Điều chỉnh", color: (c) => c.muted },
     { field: "rollover", label: "Đáo hạn", color: (c) => c.warn },
 ];

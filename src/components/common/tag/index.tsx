@@ -21,8 +21,9 @@ const SOFT_CLASS: Record<TagColor, string> = {
     error: "border-debt/30 bg-debt-soft text-debt",
     orange: "border-warn/30 bg-warn-soft text-warn",
     warning: "border-warn/30 bg-warn-soft text-warn",
-    blue: "border-credit/30 bg-credit-soft text-credit",
-    purple: "border-violet/30 bg-violet-soft text-violet",
+    blue: "border-primary/30 bg-primary-soft text-accent-text",
+    // Thẻ tín dụng (đáo hạn, loại phí thẻ): cùng màu tím với hạn mức tín dụng
+    purple: "border-credit/30 bg-credit-soft text-credit",
 };
 
 const SOLID_CLASS: Record<TagColor, string> = {
@@ -33,8 +34,8 @@ const SOLID_CLASS: Record<TagColor, string> = {
     error: "border-transparent bg-debt text-white",
     orange: "border-transparent bg-warn text-white",
     warning: "border-transparent bg-warn text-white",
-    blue: "border-transparent bg-credit text-white",
-    purple: "border-transparent bg-violet text-white",
+    blue: "border-transparent bg-primary text-primary-foreground",
+    purple: "border-transparent bg-credit text-white",
 };
 
 interface ITagProps {

@@ -44,7 +44,7 @@ App chỉ có một người dùng nên render như SPA React: server không SSR
 - `app/layout.tsx` không đọc cookie/headers → mọi trang là **static** (`○` khi `bun run build`), HTML build sẵn chỉ chứa màn loading.
 - Toàn bộ providers (React Query, Redux) và page nằm trong `ClientApp` (`components/providers/client-app`, `next/dynamic` với `ssr: false`) → chỉ render trên trình duyệt.
 - Theme: inline script trong `<head>` đọc cookie `theme`, gắn class `dark` và tạo thẻ meta `theme-color` trước lần paint đầu (`ThemeToggle` cập nhật cả hai); `useIsDarkMode` theo dõi class đó (biểu đồ, sonner).
-- Màu: token CSS ở `src/app/globals.css` (họ stone + màu nghĩa `--money-in/out`, `--debt`, `--warn`, `--credit`). Đây là nguồn duy nhất: biểu đồ (`@ant-design/plots`) đọc giá trị token lúc chạy bằng `useThemeColors` (`libs/hooks`); chỉ `brandColors.ts` chép hex `--card`, có test giữ khớp.
+- Màu: token CSS ở `src/app/globals.css` (họ slate, `--primary` xanh dương + màu nghĩa `--money-in/out`, `--debt`, `--warn`, `--credit` tím). Đây là nguồn duy nhất: biểu đồ (`@ant-design/plots`) đọc giá trị token lúc chạy bằng `useThemeColors` (`libs/hooks`); chỉ `brandColors.ts` chép hex `--card`, có test giữ khớp.
 - Server chỉ làm 3 việc: trả file tĩnh, `proxy.ts` kiểm tra JWT, và `/api/*` (gồm `POST /api/mcp` cho agent ngoài, xác thực bằng token cá nhân thay cookie: [business/mcp.md](business/mcp.md)).
 - **Không** thêm `cookies()`/`headers()`/`await` dữ liệu vào layout/page: trang sẽ quay lại SSR động. Dữ liệu luôn lấy qua React Query.
 
