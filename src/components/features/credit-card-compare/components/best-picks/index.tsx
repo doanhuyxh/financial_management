@@ -29,7 +29,7 @@ export default function BestPicks() {
                     {item.card ? (
                         <>
                             <span className="text-lg font-semibold">{item.card.name}</span>
-                            <span className="text-sm text-green-600 dark:text-green-400">
+                            <span className="text-sm text-money-in">
                                 {item.value ? `~${formatMoney(item.value)}` : "Miễn phí"}
                             </span>
                         </>

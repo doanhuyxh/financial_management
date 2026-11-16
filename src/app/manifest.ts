@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { THEME_SURFACE } from "@/libs/constants/brandColors";
 import { buildTransactionsUrl } from "@/libs/utils/transactionsUrl";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -11,8 +12,9 @@ export default function manifest(): MetadataRoute.Manifest {
         scope: "/",
         display: "standalone",
         orientation: "portrait",
-        background_color: "#171412",
-        theme_color: "#171412",
+        // Manifest chỉ nhận một màu (không theo theme): splash PWA luôn nền tối
+        background_color: THEME_SURFACE.dark,
+        theme_color: THEME_SURFACE.dark,
         lang: "vi",
         icons: [
             { src: "/icon-192.png?v=2", sizes: "192x192", type: "image/png", purpose: "any" },

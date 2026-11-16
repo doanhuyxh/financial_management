@@ -69,7 +69,7 @@ features/<feature>/
 - Màu cam (`primary`) chỉ dành cho hành động (nút chính, mục đang chọn, focus). Chữ cam trên nền tối dùng `text-accent-text`.
 - Nút: hành động chính của một dòng/khối (Thanh toán, Trả nợ, Thêm) dùng `Button` mặc định (nền cam đặc); hành động phụ cần nổi (Đáo hạn, Lấy lại, So sánh thẻ…) dùng `variant="outline"` + `ACCENT_BUTTON_CLASS` (`libs/constants/buttonStyles.ts`); còn lại `outline`/`ghost`.
 - Khối nội dung dạng thẻ dùng `bg-card`, không dùng `bg-background`.
-- Thêm/sửa màu: sửa token trong `src/app/globals.css` **và** hex tương ứng trong `src/libs/constants/themeColors.ts`.
+- Màu chỉ khai báo ở `src/app/globals.css` (`:root` + `.dark` + `--color-*` trong `@theme inline`; test `theme-tokens.test.ts` bắt thiếu). Biểu đồ đọc qua `useThemeColors()`. Nhãn tím dùng `violet`/`violet-soft`. Không dùng palette Tailwind thô (`green-600`, `violet-700`…) cho nghĩa đã có token.
 - Kéo-thả trên danh sách đã lọc phía client (tab, ẩn mục trống): ghép thứ tự bằng `mergeSubsetOrder` (`src/libs/utils/reorder.ts`) vì API reorder cần đủ toàn bộ ID.
 - Modal/Drawer qua `ResponsiveModal` (Dialog trên desktop, Drawer vaul trên mobile): đặt `className={MODAL_AUTOFOCUS_CLASS}` lên `FormField` cần focus khi mở (mặc định Dialog focus nút đóng). Chỉ áp dụng desktop: trên mobile (Drawer) không tự focus để bàn phím không che form; Drawer tự đẩy lên trên bàn phím hệ thống (`useKeyboardInset`). Footer mobile luôn 1 hàng.
 - Ô số tiền của form giao dịch dùng `AmountInput` (`common/amount-input`): desktop là ô nhập số, mobile là ô hiển thị + bàn phím số riêng portal vào footer Drawer (`ModalFooterSlotContext`). Phần tử bấm vào mà không muốn ẩn bàn phím số thì gắn `KEEP_AMOUNT_KEYPAD_ATTR`.

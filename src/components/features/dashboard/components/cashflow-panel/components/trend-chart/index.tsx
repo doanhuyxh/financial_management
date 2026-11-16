@@ -7,9 +7,9 @@ import { Skeleton } from "@/components/shadcn/ui/skeleton";
 import { Spinner } from "@/components/shadcn/ui/spinner";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
+import { useThemeColors } from "@/libs/hooks/useThemeColors";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { formatCompactMoney, formatMoney } from "@/libs/utils/formatMoney";
-import { THEME_COLORS } from "@/libs/constants/themeColors";
 
 // G2 is ~380KB gzipped: load it in a separate chunk, client-only.
 const Column = dynamic(() => import("@ant-design/plots").then((mod) => mod.Column), {
@@ -26,6 +26,7 @@ const formatCompact = (value: number) => formatCompactMoney(value);
 export default function TrendChart() {
     const { cashflow, isCashflowLoading } = useDashboardContext();
     const isDark = useIsDarkMode();
+    const colors = useThemeColors();
     const isMobile = useIsMobile();
     const chartHeight = isMobile ? 220 : 280;
     // Bỏ các tháng trống ở đầu (trước khi bắt đầu ghi chép); tháng đang chạy gắn dấu "*"
@@ -41,7 +42,6 @@ export default function TrendChart() {
     const hasData = trend.length > 0;
 
     const config = useMemo(() => {
-        const colors = THEME_COLORS[isDark ? "dark" : "light"];
         const tickFill = colors.muted;
         const gridStroke = colors.border;
         const data = trend.flatMap((item) => [
@@ -90,7 +90,7 @@ export default function TrendChart() {
                 items: [{ field: "value", valueFormatter: formatCurrency }],
             },
         };
-    }, [trend, isDark]);
+    }, [trend, isDark, colors]);
 
     if (isCashflowLoading) {
         return (

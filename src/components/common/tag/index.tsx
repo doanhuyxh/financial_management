@@ -22,7 +22,7 @@ const SOFT_CLASS: Record<TagColor, string> = {
     orange: "border-warn/30 bg-warn-soft text-warn",
     warning: "border-warn/30 bg-warn-soft text-warn",
     blue: "border-credit/30 bg-credit-soft text-credit",
-    purple: "border-violet-600/30 bg-violet-600/10 text-violet-700 dark:text-violet-300",
+    purple: "border-violet/30 bg-violet-soft text-violet",
 };
 
 const SOLID_CLASS: Record<TagColor, string> = {
@@ -34,7 +34,7 @@ const SOLID_CLASS: Record<TagColor, string> = {
     orange: "border-transparent bg-warn text-white",
     warning: "border-transparent bg-warn text-white",
     blue: "border-transparent bg-credit text-white",
-    purple: "border-transparent bg-violet-600 text-white",
+    purple: "border-transparent bg-violet text-white",
 };
 
 interface ITagProps {

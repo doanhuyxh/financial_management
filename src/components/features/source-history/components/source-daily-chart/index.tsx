@@ -7,9 +7,9 @@ import DatePicker from "@/components/common/date-picker";
 import EmptyState from "@/components/common/empty-state";
 import { Skeleton } from "@/components/shadcn/ui/skeleton";
 import { Spinner } from "@/components/shadcn/ui/spinner";
-import { THEME_COLORS } from "@/libs/constants/themeColors";
 import { useGetSourceDailyTotals } from "@/libs/hooks/customHooks/useSourcesOfMoney";
 import { useIsDarkMode } from "@/libs/hooks/useIsDarkMode";
+import { useThemeColors, type ThemeColors } from "@/libs/hooks/useThemeColors";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import type { ISourceDailyTotal } from "@/libs/interfaces/sourceTransactionsData";
 import { formatCompactMoney, formatMoney } from "@/libs/utils/formatMoney";
@@ -21,7 +21,6 @@ const Column = dynamic(() => import("@ant-design/plots").then((mod) => mod.Colum
 });
 
 type SeriesField = keyof Omit<ISourceDailyTotal, "date">;
-type ThemeColors = (typeof THEME_COLORS)[keyof typeof THEME_COLORS];
 
 const SERIES: { field: SeriesField; label: string; color: (c: ThemeColors) => string }[] = [
     { field: "expense", label: "Chi", color: (c) => c.moneyOut },
@@ -49,6 +48,7 @@ export default function SourceDailyChart({ sourceId, isCreditCard, initialDay }:
     const monthKey = month.format("YYYY-MM");
     const { data, isLoading, isFetching } = useGetSourceDailyTotals(sourceId, monthKey);
     const isDark = useIsDarkMode();
+    const colors = useThemeColors();
     const isMobile = useIsMobile();
     const chartHeight = isMobile ? 220 : 260;
 
@@ -61,7 +61,6 @@ export default function SourceDailyChart({ sourceId, isCreditCard, initialDay }:
     const hasData = days.some((day) => series.some((item) => day[item.field] > 0));
 
     const config = useMemo(() => {
-        const colors = THEME_COLORS[isDark ? "dark" : "light"];
         const tickFill = colors.muted;
         const gridStroke = colors.border;
         return {
@@ -112,7 +111,7 @@ export default function SourceDailyChart({ sourceId, isCreditCard, initialDay }:
                 items: [{ field: "value", valueFormatter: formatCurrency }],
             },
         };
-    }, [days, series, isDark, month]);
+    }, [days, series, isDark, colors, month]);
 
     return (
         <section className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">

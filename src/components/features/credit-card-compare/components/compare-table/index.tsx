@@ -17,8 +17,8 @@ import VisibilitySettings from "@/components/common/visibility-settings";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
 const RANK_CLASS: Record<NonNullable<RankResult>, string> = {
-    best: "bg-green-500/10 text-green-700 dark:text-green-400",
-    worst: "bg-red-500/10 text-red-700 dark:text-red-400",
+    best: "bg-money-in-soft text-money-in",
+    worst: "bg-money-out-soft text-money-out",
 };
 
 function Missing() {
@@ -159,8 +159,8 @@ export default function CompareTable() {
                 <div>
                     <h2 className="text-base font-semibold">Bảng so sánh</h2>
                     <p className="text-xs text-muted-foreground">
-                        <span className="text-green-600 dark:text-green-400">Xanh</span>: tốt nhất
-                        · <span className="text-red-600 dark:text-red-400">Đỏ</span>: tệ nhất. Ô
+                        <span className="text-money-in">Xanh</span>: tốt nhất
+                        · <span className="text-money-out">Đỏ</span>: tệ nhất. Ô
                         &quot;Chưa nhập&quot; không được xếp hạng. Phí thường niên/quản lý/thanh
                         toán bỏ trống được coi là không có phí.
                     </p>

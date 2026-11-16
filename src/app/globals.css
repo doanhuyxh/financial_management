@@ -7,7 +7,9 @@
 /*
  * Design tokens (mockup re-design UI 06). Một họ trung tính (stone) cho cả sáng và tối.
  * Cam chỉ dùng cho hành động; số tiền dùng màu theo nghĩa (--money-in/out, --debt...).
- * Giá trị hex phải khớp src/libs/constants/themeColors.ts (biểu đồ @ant-design/plots không đọc được CSS var).
+ * Đây là nơi DUY NHẤT khai báo màu theme: component dùng class Tailwind (text-money-in...),
+ * biểu đồ đọc qua hook useThemeColors. Riêng --card được chép sang src/libs/constants/brandColors.ts
+ * (meta theme-color, manifest); src/server/__tests__/theme-tokens.test.ts chặn khi lệch.
  */
 :root {
     --background: #f6f5f3;
@@ -43,6 +45,9 @@
     --warn-soft: #fdf3e2;
     --credit: #1d4ed8;
     --credit-soft: #e8eefc;
+    /* Nhãn tím (đáo hạn, loại phí thẻ) */
+    --violet: #6d28d9;
+    --violet-soft: #f1ebfc;
 
     --sidebar: #ffffff;
     --sidebar-foreground: #1c1917;
@@ -89,6 +94,8 @@
     --warn-soft: rgba(251, 191, 36, 0.12);
     --credit: #60a5fa;
     --credit-soft: rgba(96, 165, 250, 0.12);
+    --violet: #a78bfa;
+    --violet-soft: rgba(167, 139, 250, 0.12);
 
     --sidebar: #171412;
     --sidebar-foreground: #e7e5e4;
@@ -123,6 +130,8 @@
     --color-warn-soft: var(--warn-soft);
     --color-credit: var(--credit);
     --color-credit-soft: var(--credit-soft);
+    --color-violet: var(--violet);
+    --color-violet-soft: var(--violet-soft);
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
     --color-muted: var(--muted);
@@ -147,8 +156,8 @@
 }
 
 /*
- * Ant Design sets every anchor to colorLink (#BC4800). On the dark sidebar that
- * paints inactive links the same orange as the selected item.
+ * Link trong sidebar: giữ màu chữ sidebar và chỉ đổi sang cam khi rê chuột,
+ * để mục chưa chọn không trùng màu với mục đang chọn.
  */
 [data-sidebar="sidebar"] :is(a[data-sidebar="menu-button"], a[data-sidebar="menu-sub-button"]) {
     color: var(--sidebar-foreground);
