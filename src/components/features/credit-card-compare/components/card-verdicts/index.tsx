@@ -40,12 +40,12 @@ export default function CardVerdicts() {
                             <VerdictList
                                 items={verdict?.strengths ?? []}
                                 icon={<ThumbsUp className="size-4" />}
-                                className="text-green-600 dark:text-green-400"
+                                className="text-money-in"
                             />
                             <VerdictList
                                 items={verdict?.weaknesses ?? []}
                                 icon={<ThumbsDown className="size-4" />}
-                                className="text-red-600 dark:text-red-400"
+                                className="text-money-out"
                             />
                             {isEmpty ? (
                                 <li className="text-muted-foreground">

@@ -4,15 +4,23 @@ import { useEffect, useState } from "react"
 import { MoonStar, SunMedium } from "lucide-react"
 
 import { Button } from "@/components/shadcn/ui/button"
+import { THEME_SURFACE } from "@/libs/constants/brandColors"
+import { configCookieKey } from "@/libs/constants/configKey"
 
 type Theme = "light" | "dark"
 
-const themeCookieName = "theme"
+const themeCookieName = configCookieKey.THEME_KEY
 const themeCookieMaxAge = 60 * 60 * 24 * 365
 
 function applyTheme(theme: Theme) {
     document.documentElement.classList.toggle("dark", theme === "dark")
     document.cookie = `${themeCookieName}=${theme}; path=/; max-age=${themeCookieMaxAge}; samesite=lax`
+    // Thẻ meta do themeScript trong layout tạo; đổi theo để thanh trình duyệt mobile khớp header
+    document
+        .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+        .forEach((meta) => {
+            meta.content = THEME_SURFACE[theme]
+        })
 }
 
 export function ThemeToggle() {

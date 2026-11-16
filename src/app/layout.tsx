@@ -5,6 +5,7 @@ import "./globals.css";
 
 import NextTopLoader from "nextjs-toploader";
 import ClientApp from "@/components/providers/client-app";
+import { THEME_SURFACE } from "@/libs/constants/brandColors";
 import { configCookieKey } from "@/libs/constants/configKey";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -19,10 +20,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   // Android Chrome: co layout khi bàn phím ảo mở để Drawer/footer không bị bàn phím che
   interactiveWidget: "resizes-content",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#171412" },
-  ],
+  // Không khai `themeColor` ở đây: nó chỉ theo theme hệ điều hành. Thẻ meta do themeScript tạo theo cookie.
 };
 
 export const metadata: Metadata = {
@@ -37,8 +35,8 @@ export const metadata: Metadata = {
   },
   formatDetection: { telephone: false },
   icons: {
-    icon: "/favicon.ico?v=2",
-    apple: "/apple-touch-icon.png?v=2",
+    icon: "/favicon.ico?v=3",
+    apple: "/apple-touch-icon.png?v=3",
   },
   robots: {
     index: false,
@@ -53,7 +51,8 @@ export const metadata: Metadata = {
 };
 
 // Đọc theme từ cookie ngay khi parse HTML (trước lần paint đầu) để trang vẫn build tĩnh mà không nháy màu.
-const themeScript = `try{if(document.cookie.split("; ").indexOf("${configCookieKey.THEME_KEY}=dark")!==-1)document.documentElement.classList.add("dark")}catch(e){}`;
+// Tạo luôn thẻ meta theme-color (thanh trình duyệt mobile) cùng màu header; ThemeToggle cập nhật khi đổi.
+const themeScript = `try{var d=document.cookie.split("; ").indexOf("${configCookieKey.THEME_KEY}=dark")!==-1;if(d)document.documentElement.classList.add("dark");var m=document.createElement("meta");m.name="theme-color";m.content=d?"${THEME_SURFACE.dark}":"${THEME_SURFACE.light}";document.head.appendChild(m)}catch(e){}`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

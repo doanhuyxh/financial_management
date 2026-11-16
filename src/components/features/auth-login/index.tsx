@@ -58,7 +58,7 @@ export default function AuthLoginComponent() {
     return (
         <div className="grid min-h-dvh w-full bg-background text-foreground lg:grid-cols-2">
             {/* Panel thương hiệu (desktop) */}
-            <aside className="relative hidden flex-col justify-center gap-6 overflow-hidden bg-linear-to-br from-[#bc4800] to-[#7c2d00] p-12 text-white lg:flex">
+            <aside className="relative hidden flex-col justify-center gap-6 overflow-hidden bg-linear-to-br from-primary to-brand-deep p-12 text-white lg:flex">
                 <div
                     aria-hidden
                     className="pointer-events-none absolute -top-24 -right-24 size-96 rounded-full bg-white/10 blur-3xl"
