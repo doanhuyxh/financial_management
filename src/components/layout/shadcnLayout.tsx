@@ -14,6 +14,7 @@ import { TooltipProvider } from "@/components/shadcn/ui/tooltip"
 import { cn } from "@/libs/shadcn/utils"
 import MobileBottomNav from "@/components/layout/mobile-bottom-nav"
 import PrivacyToggle from "@/components/layout/privacy-toggle"
+import RefreshButton from "@/components/layout/refresh-button"
 import QuickAddButton from "@/components/common/quick-add-button"
 import { Suspense } from "react"
 
@@ -49,6 +50,7 @@ export default function ShadcnLayout({
               <Suspense fallback={null}>
                 <QuickAddButton />
               </Suspense>
+              <RefreshButton />
               <PrivacyToggle />
               <ThemeToggle />
             </div>

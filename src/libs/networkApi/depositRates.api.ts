@@ -10,7 +10,8 @@ import type {
 const BASE_PATH = "/deposit-rates";
 
 export const getDepositRates = async () => {
-    return fetcherBackEnd<ApiResponse<IDepositRateComparisonData>>(BASE_PATH, { method: "GET" });
+    // Ngoại lệ duy nhất được cache (plan 20): "no-cache" = luôn hỏi lại server bằng ETag, dữ liệu chưa đổi thì 304 không body
+    return fetcherBackEnd<ApiResponse<IDepositRateComparisonData>>(BASE_PATH, { method: "GET", cache: "no-cache" });
 };
 
 export const refreshDepositRates = async () => {

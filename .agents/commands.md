@@ -48,7 +48,17 @@ Chạy bằng `bun scripts/<file>.ts` từ thư mục gốc (alias `@/` hoạt �
 - `bun install --frozen-lockfile`: đổi dependency thì phải commit cả `bun.lock`, không thì deploy fail (bản cũ vẫn chạy).
 - PM2 (`ecosystem.config.js`): app `finance-management-web`, chế độ fork 1 instance, port **3004**, `TZ=Asia/Ho_Chi_Minh`, tự restart khi vượt 1G RAM, restart giãn dần khi crash liên tục.
 - Production chỉ giữ `console.error`/`console.warn` (`removeConsole`) và không log từng request.
-- Nhánh làm việc là `developer`; chỉ merge vào `main` khi muốn deploy.
+- Nhánh làm việc là `developer`; chỉ merge vào `main` khi muốn deploy. Mỗi lần deploy các chunk JS đổi nội dung bị tải lại trên điện thoại → gom thay đổi rồi deploy một lần (tiết kiệm 4G).
+- **nginx (đứng trước PM2 :3004) phải bật nén JSON** — `next start` không nén response của route API. Trong block `server`/`location` đang `proxy_pass`:
+  ```nginx
+  gzip on;
+  gzip_comp_level 5;
+  gzip_min_length 512;
+  gzip_proxied any;   # mặc định nginx KHÔNG nén response đi qua proxy
+  gzip_vary on;
+  gzip_types application/json text/plain text/css application/javascript image/svg+xml application/manifest+json;
+  ```
+  `nginx -t && systemctl reload nginx`. Kiểm: `curl -s -D - -o /dev/null -H "Accept-Encoding: gzip" -b "access_token=…" https://<domain>/api/expenses?page=1` phải có `Content-Encoding: gzip`.
 
 ## MCP (agent ngoài đọc dữ liệu)
 
@@ -57,10 +67,10 @@ Chạy bằng `bun scripts/<file>.ts` từ thư mục gốc (alias `@/` hoạt �
 - Kiểm tra tay: `bun dev` → Cài đặt tạo token → `bunx @modelcontextprotocol/inspector`, chọn Streamable HTTP, URL `http://localhost:3000/api/mcp`, header `Authorization: Bearer mm_pat_…`.
 - Thêm vào agent (Claude Code, Codex, Copilot VS Code, Antigravity): UI Cài đặt copy sẵn snippet cho từng client; định dạng từng client ghi ở [business/mcp.md](business/mcp.md#kết-nối).
 
-## shadcn + Animate UI
+## shadcn
 
 CLI `shadcn` nằm trong devDependencies (chạy local, cần Node ≥ 22.12; bun không có `node`, dùng nvm: `export PATH="$HOME/.nvm/versions/node/v26.1.0/bin:$PATH"`).
 
 1. Thêm component: `yes n | ./node_modules/.bin/shadcn add --yes <tên>` (`yes n` trả lời "không ghi đè" cho component đã có, nếu không CLI treo ở prompt).
 2. CLI resolve sai alias utils: file mới có thể `import { cn } from "cn"` và tự thêm package `cn` → sửa thành `@/libs/shadcn/utils` và `bun remove cn`. Không dùng `next-themes` (theme đọc từ class `dark`, xem `sonner.tsx`).
-3. Nối hiệu ứng: `./node_modules/.bin/animate-ui animate <tên>` (hoặc `animate all`; thêm `--dry-run` để xem trước). Lệnh đổi import `radix-ui` → `@animate-ui/react/primitives/radix-ui` và bỏ class animation CSS. `animate-ui audit` liệt kê trạng thái.
+3. Component sinh ra dùng `radix-ui` + class `tw-animate-css` là đúng; **không** nối sang Animate UI/`motion` (đã gỡ ở plan 20 để tiết kiệm dữ liệu).

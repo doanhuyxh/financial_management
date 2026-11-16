@@ -5,7 +5,8 @@ const userSchema = new Schema({
 	avatarUrl: {
 		type: String,
 		required: false,
-		default: "https://i.pravatar.cc/300",
+		// Không đặt ảnh mặc định: giao diện hiện chữ cái đầu (tiết kiệm dữ liệu, không gọi dịch vụ ngoài)
+		default: null,
 	},
 	fullName: {
 		type: String,

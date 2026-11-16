@@ -3,7 +3,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/libs/shadcn/utils"
-import { Tabs as TabsPrimitive } from "@animate-ui/react/primitives/radix-ui"
+import { Tabs as TabsPrimitive } from "radix-ui"
 
 function Tabs({
   className,
@@ -80,7 +80,7 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("flex-1 text-sm outline-none", className)}
+      className={cn("flex-1 text-sm outline-none animate-in fade-in-0 duration-200", className)}
       {...props}
     />
   )
