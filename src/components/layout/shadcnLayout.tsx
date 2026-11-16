@@ -32,7 +32,8 @@ export default function ShadcnLayout({
           <header
             className={cn(
               "flex h-14 shrink-0 items-center justify-between gap-2 md:h-16",
-              "sticky top-0 z-10 bg-card",
+              // z-20: trên cột dính của bảng (sticky left-0 z-10), không thì cột đè lên header khi cuộn
+              "sticky top-0 z-20 bg-card",
               "border-b",
               "transition-[width,height] ease-linear",
               "group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",

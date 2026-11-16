@@ -73,17 +73,20 @@ export default function RateSources() {
     return (
         <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-                <span
-                    aria-hidden
-                    className={cn("size-2 shrink-0 rounded-full", hasProblem ? "bg-warn" : "bg-money-in")}
-                />
-                <span className="min-w-0 flex-1">
-                    {latest ? (
-                        <>
-                            Cập nhật <b>{formatDate(latest, "DD/MM/YYYY HH:mm")}</b> ·{" "}
-                        </>
-                    ) : null}
-                    {status} · tự làm mới sau 12 giờ
+                {/* basis 16rem: mobile không đủ chỗ thì các nút xuống dòng, chữ không bị bóp mỗi từ một dòng */}
+                <span className="flex min-w-0 flex-[1_1_16rem] items-start gap-2">
+                    <span
+                        aria-hidden
+                        className={cn("mt-1.5 size-2 shrink-0 rounded-full", hasProblem ? "bg-warn" : "bg-money-in")}
+                    />
+                    <span className="min-w-0">
+                        {latest ? (
+                            <>
+                                Cập nhật <b>{formatDate(latest, "DD/MM/YYYY HH:mm")}</b> ·{" "}
+                            </>
+                        ) : null}
+                        {status} · tự làm mới sau 12 giờ
+                    </span>
                 </span>
                 <span className="flex flex-wrap items-center gap-2">
                     <Button
