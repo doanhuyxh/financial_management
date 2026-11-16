@@ -1,14 +1,19 @@
 "use client";
 
 import { useMemo } from "react";
-import BarChart, { type IBarGroup, type IBarSeries } from "@/components/common/bar-chart";
+import BarChart, {
+    ChartTooltipRow,
+    netTextClassName,
+    type IBarGroup,
+    type IBarSeries,
+} from "@/components/common/bar-chart";
 import EmptyState from "@/components/common/empty-state";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
 const SERIES: IBarSeries[] = [
-    { key: "income", label: "Thu", colorClassName: "bg-money-in" },
-    { key: "expense", label: "Chi", colorClassName: "bg-money-out" },
+    { key: "income", label: "Thu", colorClassName: "bg-money-in", textClassName: "text-money-in" },
+    { key: "expense", label: "Chi", colorClassName: "bg-money-out", textClassName: "text-money-out" },
 ];
 
 /**
@@ -41,14 +46,23 @@ export default function DailyChart() {
                 labelClassName:
                     item.day === today ? "font-semibold text-accent-text" : past ? undefined : "text-muted-foreground/50",
                 tooltip: past ? (
-                    <div className="money-value flex flex-col gap-0.5 tabular-nums">
+                    <div className="money-value flex min-w-48 flex-col gap-1 tabular-nums">
                         <span className="font-semibold">
                             Ngày {item.day}/{month}
                         </span>
-                        <span>Thu: {formatMoney(income)}</span>
-                        <span>Chi: {formatMoney(expense)}</span>
-                        <span>Ròng ngày: {formatMoney(income - expense)}</span>
-                        <span>Ròng lũy kế: {formatMoney(cumulative)}</span>
+                        <ChartTooltipRow label="Thu" value={income} dotClassName="bg-money-in" valueClassName="text-money-in" />
+                        <ChartTooltipRow label="Chi" value={expense} dotClassName="bg-money-out" valueClassName="text-money-out" />
+                        <span aria-hidden className="my-0.5 border-t border-border" />
+                        <ChartTooltipRow
+                            label="Ròng ngày"
+                            value={income - expense}
+                            valueClassName={netTextClassName(income - expense)}
+                        />
+                        <ChartTooltipRow
+                            label="Ròng lũy kế"
+                            value={cumulative}
+                            valueClassName={netTextClassName(cumulative)}
+                        />
                     </div>
                 ) : (
                     `Ngày ${item.day}/${month} · chưa tới`

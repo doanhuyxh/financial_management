@@ -28,6 +28,43 @@ export interface IBarSeries {
     label: string;
     /** Class nền theo token, VD "bg-money-in" */
     colorClassName: string;
+    /** Class màu chữ số tiền trong tooltip, VD "text-money-in"; không có thì màu chữ thường */
+    textClassName?: string;
+}
+
+/** Màu chữ cho số tiền ròng: dương xanh, âm đỏ, 0 xám */
+export function netTextClassName(value: number) {
+    if (value > 0) return "text-money-in";
+    if (value < 0) return "text-money-out";
+    return "text-muted-foreground";
+}
+
+/** Tooltip biểu đồ nền thẻ (không đảo màu) để màu theo nghĩa đọc rõ ở cả sáng và tối */
+export const CHART_TOOLTIP_CLASS = "flex-col items-stretch gap-1 bg-popover px-3 py-2 text-popover-foreground shadow-md ring-1 ring-foreground/10";
+export const CHART_TOOLTIP_ARROW_CLASS = "bg-popover fill-popover";
+
+/** Một dòng tooltip: chấm màu · nhãn · số tiền canh phải */
+export function ChartTooltipRow({
+    label,
+    value,
+    dotClassName,
+    valueClassName,
+}: {
+    label: ReactNode;
+    value: number;
+    dotClassName?: string;
+    valueClassName?: string;
+}) {
+    return (
+        <span className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2">
+            <span aria-hidden className={cn("size-2 rounded-xs", dotClassName ?? "bg-transparent")} />
+            <span className="text-muted-foreground">{label}</span>
+            {/* Số 0 để xám: không tô màu nghĩa cho dòng không có giao dịch */}
+            <span className={cn("text-right font-semibold", value === 0 ? "text-muted-foreground" : valueClassName)}>
+                {formatMoney(value)}
+            </span>
+        </span>
+    );
 }
 
 export interface IBarGroup {
@@ -166,18 +203,21 @@ export default function BarChart({
                                                     </div>
                                                 )}
                                             </TooltipTrigger>
-                                            <TooltipContent>
+                                            <TooltipContent
+                                                className={CHART_TOOLTIP_CLASS}
+                                                arrowClassName={CHART_TOOLTIP_ARROW_CLASS}
+                                            >
                                                 {group.tooltip ?? (
-                                                    <div className="money-value flex flex-col gap-0.5 tabular-nums">
+                                                    <div className="money-value flex min-w-44 flex-col gap-1 tabular-nums">
                                                         <span className="font-semibold">{group.title ?? group.label}</span>
                                                         {series.map((item) => (
-                                                            <span key={item.key} className="inline-flex items-center gap-1.5">
-                                                                <span
-                                                                    aria-hidden
-                                                                    className={cn("size-2 rounded-xs", item.colorClassName)}
-                                                                />
-                                                                {item.label}: {formatMoney(group.values[item.key] ?? 0)}
-                                                            </span>
+                                                            <ChartTooltipRow
+                                                                key={item.key}
+                                                                label={item.label}
+                                                                value={group.values[item.key] ?? 0}
+                                                                dotClassName={item.colorClassName}
+                                                                valueClassName={item.textClassName}
+                                                            />
                                                         ))}
                                                     </div>
                                                 )}

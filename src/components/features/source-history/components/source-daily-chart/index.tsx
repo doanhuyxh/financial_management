@@ -13,11 +13,11 @@ import type { ISourceDailyTotal } from "@/libs/interfaces/sourceTransactionsData
 type SeriesField = keyof Omit<ISourceDailyTotal, "date">;
 
 const SERIES: (IBarSeries & { key: SeriesField })[] = [
-    { key: "expense", label: "Chi", colorClassName: "bg-money-out" },
-    { key: "income", label: "Thu", colorClassName: "bg-money-in" },
-    { key: "transfer", label: "Chuyển", colorClassName: "bg-primary" },
+    { key: "expense", label: "Chi", colorClassName: "bg-money-out", textClassName: "text-money-out" },
+    { key: "income", label: "Thu", colorClassName: "bg-money-in", textClassName: "text-money-in" },
+    { key: "transfer", label: "Chuyển", colorClassName: "bg-primary", textClassName: "text-accent-text" },
     { key: "adjustment", label: "Điều chỉnh", colorClassName: "bg-muted-foreground" },
-    { key: "rollover", label: "Đáo hạn", colorClassName: "bg-warn" },
+    { key: "rollover", label: "Đáo hạn", colorClassName: "bg-warn", textClassName: "text-warn" },
 ];
 
 interface ISourceDailyChartProps {
