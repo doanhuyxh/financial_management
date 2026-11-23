@@ -130,6 +130,8 @@ export interface ISourcesOfMoneyData {
     bankAccount?: IBankAccount;
     metadata?: Record<string, unknown>;
     availableCreditLimit?: number | null;
+    /** Đang giữ chỗ cho chi dự kiến (chưa trừ vào số dư/dư nợ) */
+    reservedAmount?: number;
     createdAt?: string;
     updatedAt?: string;
 }

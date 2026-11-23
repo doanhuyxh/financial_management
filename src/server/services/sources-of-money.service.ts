@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import dayjs from "dayjs";
 import dbConnect from "@/server/connectDb";
 import SourcesOfMoneyModel from "@/server/models/sources-of-money.model";
+import PlannedExpensesModel from "@/server/models/planned-expenses.model";
+import { PlannedExpenseStatus } from "@/libs/interfaces/plannedExpensesData";
 import ExpensesModel from "@/server/models/expenses.model";
 import IncomesModel from "@/server/models/incomes.model";
 import TransfersModel from "@/server/models/transfers.model";
@@ -832,6 +834,20 @@ export class SourcesOfMoneyService {
         }
 
         const filter = { _id: id, userId: user.userId, ...NOT_ARCHIVED };
+
+        // Còn chi dự kiến đang giữ chỗ thì phải hủy/xác nhận trước (không để giữ chỗ treo)
+        if (
+            await PlannedExpensesModel.exists({
+                userId: user.userId,
+                sourceOfMoneyId: id,
+                status: PlannedExpenseStatus.PENDING,
+            })
+        ) {
+            return errorResponseWithStatusCode(
+                "Nguồn tiền đang có khoản chi dự kiến. Hãy hủy hoặc xác nhận trước khi xóa",
+                400,
+            );
+        }
 
         // Đã có giao dịch thì chỉ lưu trữ để lịch sử vẫn hiển thị tên nguồn tiền
         if (await hasTransactions(user.userId, id)) {

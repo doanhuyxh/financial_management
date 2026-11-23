@@ -10,6 +10,7 @@ import ChoiceChips from "@/components/common/choice-chips";
 import Combobox from "@/components/common/combobox";
 import FormField from "@/components/common/form-field";
 import QuickDateField from "@/components/common/quick-date-field";
+import DatePicker from "@/components/common/date-picker";
 import TransactionTypeSwitch from "@/components/common/transaction-type-switch";
 import { Switch } from "@/components/shadcn/ui/switch";
 import { Textarea } from "@/components/shadcn/ui/textarea";
@@ -41,6 +42,7 @@ import {
 } from "@/libs/interfaces/sourcesOfMoneyData";
 import { groupSuggestedOptions } from "@/libs/utils/suggestionOptions";
 import { calcPercentFee, getForeignFeeConfig } from "@/libs/utils/cardFee";
+import { getAvailableAmount } from "@/libs/utils/trackedAmount";
 
 type FormValues = {
     categoryId: string;
@@ -65,24 +67,22 @@ function createEmptyValues(): FormValues {
     };
 }
 
+/** Phần còn chi được: đã trừ khoản đang giữ chỗ cho chi dự kiến. */
 function getSourceRemaining(source?: ISourcesOfMoneyData | null) {
     if (!source) return null;
-    if (source.type === SourcesOfMoneyType.CREDIT_CARD) {
-        const limit = source.creditDetails?.creditLimit ?? 0;
-        const debt = source.creditDetails?.currentDebt ?? 0;
-        return Math.max(0, limit - debt);
-    }
-    return source.balance ?? 0;
+    return getAvailableAmount(source);
 }
 
 export default function ExpensesFormModal() {
     const {
         modalOpen,
         editingItem,
+        editingPlanned,
         createDefaults,
         isSubmitting,
         closeModal,
         handleSubmit: submitExpense,
+        handleSubmitPlanned,
     } = useExpensesContext();
 
     const {
@@ -96,13 +96,19 @@ export default function ExpensesFormModal() {
         formState: { errors },
     } = useForm<FormValues>({ mode: "onChange", defaultValues: createEmptyValues() });
     const [keepCreating, setKeepCreating] = useState(false);
+    // Chi trong tương lai: giữ chỗ tiền, tới ngày mới xác nhận thành chi tiêu
+    const [isFuture, setIsFuture] = useState(false);
     const noteId = useId();
     const selectedSourceId = useWatch({ control, name: "sourceOfMoneyId" });
     const selectedCategoryId = useWatch({ control, name: "categoryId" });
     const amountWatch = useWatch({ control, name: "amount" });
     const foreignFeeTypeWatch = useWatch({ control, name: "foreignFeeType" });
     const spentAtWatch = useWatch({ control, name: "spentAt" });
-    const isEdit = Boolean(editingItem?._id);
+    const isEditPlanned = Boolean(editingPlanned?._id);
+    const isEdit = Boolean(editingItem?._id) || isEditPlanned;
+    const futureMode = isEditPlanned || (!isEdit && isFuture);
+    // Bản ghi đang sửa (chi tiêu hoặc chi dự kiến): cùng dạng ref danh mục / nguồn / số tiền
+    const editingRecord = editingItem ?? editingPlanned;
 
     const { data: categoriesData, isLoading: categoriesLoading } = useGetCategories({
         page: 1,
@@ -124,20 +130,21 @@ export default function ExpensesFormModal() {
     const remaining = useMemo(() => {
         const base = getSourceRemaining(selectedSource);
         if (base == null) return null;
-        // When editing same source, current expense amount is already deducted — add it back for display
+        // Sửa trên cùng nguồn: số tiền của bản ghi đang sửa đã bị trừ / giữ chỗ — cộng lại để hiển thị
         if (
-            editingItem &&
-            getRefId(editingItem.sourceOfMoneyId) === selectedSourceId
+            editingRecord &&
+            getRefId(editingRecord.sourceOfMoneyId) === selectedSourceId
         ) {
-            return base + editingItem.amount;
+            return Math.max(0, base + editingRecord.amount);
         }
-        return base;
-    }, [selectedSource, editingItem, selectedSourceId]);
+        return Math.max(0, base);
+    }, [selectedSource, editingRecord, selectedSourceId]);
+    const reservedOnSource = selectedSource?.reservedAmount ?? 0;
 
 
     // Phí giao dịch quốc tế: chỉ khi tạo, trên thẻ có cấu hình phí loại đó
     const foreignFeeOptions = useMemo(() => {
-        if (isEdit || selectedSource?.type !== SourcesOfMoneyType.CREDIT_CARD) return [];
+        if (isEdit || futureMode || selectedSource?.type !== SourcesOfMoneyType.CREDIT_CARD) return [];
         return Object.values(ForeignFeeType).flatMap((type) => {
             const config = getForeignFeeConfig(selectedSource.creditDetails, type);
             if (!config) return [];
@@ -147,7 +154,7 @@ export default function ExpensesFormModal() {
             ].filter(Boolean);
             return [{ value: type, label: `${FOREIGN_FEE_TYPE_LABELS[type]} (${parts.join(", ")})` }];
         });
-    }, [isEdit, selectedSource]);
+    }, [isEdit, futureMode, selectedSource]);
     const foreignFeeConfig =
         foreignFeeTypeWatch && selectedSource
             ? getForeignFeeConfig(selectedSource.creditDetails, foreignFeeTypeWatch)
@@ -171,9 +178,9 @@ export default function ExpensesFormModal() {
             filterCategoriesByKind(
                 categoriesData?.data?.items ?? [],
                 CategoryKind.EXPENSE,
-                editingItem ? getRefId(editingItem.categoryId) : undefined,
+                editingRecord ? getRefId(editingRecord.categoryId) : undefined,
             ),
-        [categoriesData, editingItem],
+        [categoriesData, editingRecord],
     );
 
     const categoryOptions = groupSuggestedOptions(
@@ -182,7 +189,7 @@ export default function ExpensesFormModal() {
                 value: item._id,
                 label: item.name,
             })),
-            editingItem ? getExpenseCategory(editingItem) : null,
+            editingRecord ? getExpenseCategory(editingRecord) : null,
         ),
         suggestions?.categoryIds,
     );
@@ -193,7 +200,7 @@ export default function ExpensesFormModal() {
                 value: item._id,
                 label: `${item.name} (${SOURCES_OF_MONEY_TYPE_LABELS[item.type]})`,
             })),
-            editingItem ? getExpenseSource(editingItem) : null,
+            editingRecord ? getExpenseSource(editingRecord) : null,
         ),
         suggestions?.sourceIds,
     );
@@ -259,10 +266,20 @@ export default function ExpensesFormModal() {
     useEffect(() => {
         if (!modalOpen) {
             setKeepCreating(false);
+            setIsFuture(false);
             return;
         }
 
-        if (editingItem) {
+        if (editingPlanned) {
+            reset({
+                categoryId: getRefId(editingPlanned.categoryId),
+                sourceOfMoneyId: getRefId(editingPlanned.sourceOfMoneyId),
+                amount: editingPlanned.amount,
+                note: editingPlanned.note ?? "",
+                spentAt: dayjs(editingPlanned.plannedAt),
+                foreignFeeType: null,
+            });
+        } else if (editingItem) {
             reset({
                 categoryId: getRefId(editingItem.categoryId),
                 sourceOfMoneyId: getRefId(editingItem.sourceOfMoneyId),
@@ -279,12 +296,49 @@ export default function ExpensesFormModal() {
                 note: createDefaults?.note ?? "",
             });
         }
-    }, [modalOpen, editingItem, createDefaults, reset]);
+    }, [modalOpen, editingItem, editingPlanned, createDefaults, reset]);
+
+    const toggleFuture = (checked: boolean) => {
+        setIsFuture(checked);
+        const current = getValues("spentAt");
+        if (checked && (!current || !current.isAfter(dayjs(), "day"))) {
+            setValue("spentAt", dayjs().add(1, "day"));
+        } else if (!checked && current?.isAfter(dayjs(), "day")) {
+            setValue("spentAt", dayjs());
+        }
+        setValue("foreignFeeType", null);
+    };
+
+    // Chi dự kiến: chỉ ngày sau hôm nay (giữ nguyên ngày cũ khi sửa dù đã tới hạn)
+    const isDisabledFutureDate = (date: dayjs.Dayjs) => {
+        if (editingPlanned && date.isSame(dayjs(editingPlanned.plannedAt), "day")) return false;
+        return !date.isAfter(dayjs(), "day") || date.isAfter(dayjs().add(5, "year"), "day");
+    };
 
     const onValid = async (values: FormValues) => {
         const amount = Number(values.amount);
         if (!Number.isFinite(amount) || amount <= 0) {
             setError("amount", { message: "Số tiền phải lớn hơn 0" });
+            return;
+        }
+
+        const shouldKeepOpen = !isEdit && keepCreating;
+
+        if (futureMode) {
+            const success = await handleSubmitPlanned(
+                {
+                    categoryId: values.categoryId,
+                    sourceOfMoneyId: values.sourceOfMoneyId,
+                    amount,
+                    note: values.note.trim() || "",
+                    plannedDate: values.spentAt.format("YYYY-MM-DD"),
+                },
+                { keepOpen: shouldKeepOpen },
+            );
+            if (success && shouldKeepOpen) {
+                reset({ ...createEmptyValues(), spentAt: values.spentAt });
+                focusModalField();
+            }
             return;
         }
 
@@ -306,7 +360,6 @@ export default function ExpensesFormModal() {
             payload.foreignFeeType = values.foreignFeeType;
         }
 
-        const shouldKeepOpen = !isEdit && keepCreating;
         const success = await submitExpense(payload, { keepOpen: shouldKeepOpen });
         if (success && shouldKeepOpen) {
             // Giữ lại ngày đã chọn để nhập nhanh nhiều khoản trong cùng ngày
@@ -323,13 +376,21 @@ export default function ExpensesFormModal() {
 
     return (
         <ResponsiveModal
-            title={isEdit ? "Sửa chi tiêu" : <TransactionTypeSwitch value="expense" />}
+            title={
+                isEditPlanned ? (
+                    "Sửa chi dự kiến"
+                ) : isEdit ? (
+                    "Sửa chi tiêu"
+                ) : (
+                    <TransactionTypeSwitch value="expense" />
+                )
+            }
             open={modalOpen}
             onCancel={closeModal}
             onOk={handleOk}
             confirmLoading={isSubmitting}
             destroyOnHidden
-            okText={isEdit ? "Cập nhật" : "Tạo mới"}
+            okText={isEdit ? "Cập nhật" : futureMode ? "Tạo chi dự kiến" : "Tạo mới"}
             cancelText="Hủy"
             width={520}
             footer={(_, { OkBtn, CancelBtn }) => (
@@ -417,8 +478,11 @@ export default function ExpensesFormModal() {
                         selectedSource ? (
                             <span className="money-value">
                                 {selectedSource.type === SourcesOfMoneyType.CREDIT_CARD
-                                    ? `Hạn mức còn lại: ${formatMoney(remaining)}`
-                                    : `Số dư hiện có: ${formatMoney(remaining)}`}
+                                    ? `Hạn mức khả dụng: ${formatMoney(remaining)}`
+                                    : `Số dư khả dụng: ${formatMoney(remaining)}`}
+                                {reservedOnSource > 0
+                                    ? ` · đang giữ ${formatMoney(reservedOnSource)} cho chi dự kiến`
+                                    : null}
                             </span>
                         ) : undefined
                     }
@@ -448,11 +512,11 @@ export default function ExpensesFormModal() {
                 </FormField>
 
                 {/* Ghi chính khoản phí thẻ thì không tính là chi tiêu của kỳ */}
-                {!isEdit && !createDefaults?.cardFeeType ? (
+                {!isEdit && !futureMode && !createDefaults?.cardFeeType ? (
                     <CardUsageFeeAlert source={selectedSource} date={spentAtWatch} />
                 ) : null}
 
-                {foreignFeeOptions.length > 0 && !createDefaults?.cardFeeType ? (
+                {foreignFeeOptions.length > 0 && !futureMode && !createDefaults?.cardFeeType ? (
                     <Controller
                         name="foreignFeeType"
                         control={control}
@@ -478,13 +542,46 @@ export default function ExpensesFormModal() {
                     />
                 ) : null}
 
+                {!isEdit && !createDefaults?.cardFeeType ? (
+                    <label className="flex items-start gap-2 text-sm">
+                        <Switch
+                            size="sm"
+                            checked={isFuture}
+                            onCheckedChange={toggleFuture}
+                            className="mt-0.5"
+                        />
+                        <span className="flex flex-col">
+                            <span>Chi trong tương lai</span>
+                            <span className="text-xs text-muted-foreground">
+                                Giữ chỗ số tiền trong nguồn; tới ngày bấm Xác nhận để ghi thành chi tiêu, hoặc Hủy
+                            </span>
+                        </span>
+                    </label>
+                ) : null}
+
                 <Controller
                     name="spentAt"
                     control={control}
                     rules={{ required: "Ngày chi là bắt buộc" }}
                     render={({ field, fieldState }) => (
-                        <FormField label="Ngày chi" error={fieldState.error?.message}>
-                            <QuickDateField value={field.value} onChange={field.onChange} />
+                        <FormField
+                            label={futureMode ? "Ngày dự kiến chi" : "Ngày chi"}
+                            error={fieldState.error?.message}
+                        >
+                            {futureMode ? (
+                                <DatePicker
+                                    allowClear={false}
+                                    format="DD/MM/YYYY"
+                                    value={field.value}
+                                    onChange={(next) => {
+                                        if (next) field.onChange(next);
+                                    }}
+                                    disabledDate={isDisabledFutureDate}
+                                    className="w-full"
+                                />
+                            ) : (
+                                <QuickDateField value={field.value} onChange={field.onChange} />
+                            )}
                         </FormField>
                     )}
                 />

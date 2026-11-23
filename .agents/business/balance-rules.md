@@ -2,6 +2,7 @@
 
 > Nguồn sự thật là code; nếu code khác tài liệu, tin code và sửa tài liệu. Nguyên tắc chung: [README.md](README.md).
 > Đáo hạn thẻ (dư nợ chỉ tăng đúng phí, fee expense bị khóa): [card-rollover.md](card-rollover.md).
+> Chi tiêu và chuyển tiền đi chỉ trừ trong **phần khả dụng** (trừ cả `reservedAmount` của chi dự kiến): [planned-expenses.md](planned-expenses.md).
 
 Mọi giao dịch đều cập nhật số dư bằng `$inc` atomic với điều kiện trong filter (ví dụ `balance: {$gte: amount}`) để tránh âm. **Không dùng Mongo transaction.** Thay vào đó, mỗi bước có rollback thủ công bằng try/catch (bù trừ ngược), mỗi bước bù trừ bọc `safeRollback` (lỗi thì ghi IntegrityIssue, vẫn ném lỗi gốc). Khi sửa code, phải giữ nguyên thứ tự rollback này. Số tiền là số nguyên (`parseMoney`), ngày qua `parseTransactionDate`, POST tạo có Idempotency-Key: xem [balance-integrity.md](balance-integrity.md).
 

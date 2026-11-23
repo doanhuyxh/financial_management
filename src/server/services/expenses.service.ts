@@ -31,6 +31,11 @@ import { parseMoney } from "../utils/money";
 import { parseTransactionDate } from "../utils/transactionDate";
 import { safeRollback } from "../utils/safeRollback";
 import { assertLedgerUnlocked } from "../utils/ledgerLock";
+import {
+    availableBalanceFilter,
+    availableCreditFilter,
+    insufficientMessage,
+} from "../utils/reservation";
 import { recordAgentCreateAudit, recordTransactionAudit } from "../utils/transactionAudit";
 import {
     TransactionAuditAction,
@@ -157,15 +162,15 @@ async function adjustSourceBalance(
             throw new Error("Vượt hạn mức tín dụng còn lại");
         }
 
+        // Apply: tính cả phần đang giữ chỗ cho chi dự kiến (reservation.ts)
         const updated = await SourcesOfMoneyModel.findOneAndUpdate(
             {
                 _id: sourceId,
                 userId,
                 type: SourcesOfMoneyType.CREDIT_CARD,
-                "creditDetails.currentDebt":
-                    direction === "apply"
-                        ? { $lte: limit - amount + 0.0001 }
-                        : { $gte: amount - 0.0001 },
+                ...(direction === "apply"
+                    ? availableCreditFilter(amount)
+                    : { "creditDetails.currentDebt": { $gte: amount - 0.0001 } }),
             },
             { $inc: { "creditDetails.currentDebt": debtDelta } },
             { returnDocument: "after" },
@@ -173,7 +178,7 @@ async function adjustSourceBalance(
         if (!updated) {
             throw new Error(
                 direction === "apply"
-                    ? "Vượt hạn mức tín dụng còn lại"
+                    ? insufficientMessage(source, amount)
                     : "Không thể hoàn dư nợ dưới 0",
             );
         }
@@ -187,7 +192,7 @@ async function adjustSourceBalance(
         type: { $ne: SourcesOfMoneyType.CREDIT_CARD },
     };
     if (direction === "apply") {
-        filter.balance = { $gte: amount };
+        Object.assign(filter, availableBalanceFilter(amount));
     }
 
     const updated = await SourcesOfMoneyModel.findOneAndUpdate(
@@ -199,7 +204,7 @@ async function adjustSourceBalance(
     if (!updated) {
         throw new Error(
             direction === "apply"
-                ? "Số dư nguồn tiền không đủ"
+                ? insufficientMessage(source, amount)
                 : "Hoàn tiền vào nguồn thất bại",
         );
     }

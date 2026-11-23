@@ -27,6 +27,11 @@ import { parseMoney } from "../utils/money";
 import { parseTransactionDate } from "../utils/transactionDate";
 import { safeRollback } from "../utils/safeRollback";
 import { assertLedgerUnlocked } from "../utils/ledgerLock";
+import {
+    availableBalanceFilter,
+    availableCreditFilter,
+    insufficientMessage,
+} from "../utils/reservation";
 import { recordTransactionAudit } from "../utils/transactionAudit";
 import {
     TransactionAuditAction,
@@ -37,6 +42,8 @@ type SourceDoc = {
     _id: mongoose.Types.ObjectId;
     type: SourcesOfMoneyType;
     balance: number;
+    /** Đang giữ chỗ cho chi dự kiến */
+    reservedAmount?: number;
     creditDetails?: {
         creditLimit?: number;
         currentDebt?: number;
@@ -100,18 +107,19 @@ async function debitSource(userId: string, source: SourceDoc, amount: number) {
             throw new Error("Vượt hạn mức tín dụng còn lại");
         }
 
+        // Tính cả phần đang giữ chỗ cho chi dự kiến (reservation.ts)
         const updated = await SourcesOfMoneyModel.findOneAndUpdate(
             {
                 _id: source._id,
                 userId,
                 type: SourcesOfMoneyType.CREDIT_CARD,
-                "creditDetails.currentDebt": { $lte: limit - amount + 0.0001 },
+                ...availableCreditFilter(amount),
             },
             { $inc: { "creditDetails.currentDebt": amount } },
             { returnDocument: "after" },
         );
         if (!updated) {
-            throw new Error("Vượt hạn mức tín dụng còn lại");
+            throw new Error(insufficientMessage(source, amount));
         }
         return updated;
     }
@@ -121,13 +129,13 @@ async function debitSource(userId: string, source: SourceDoc, amount: number) {
             _id: source._id,
             userId,
             type: { $ne: SourcesOfMoneyType.CREDIT_CARD },
-            balance: { $gte: amount },
+            ...availableBalanceFilter(amount),
         },
         { $inc: { balance: -amount } },
         { returnDocument: "after" },
     );
     if (!updated) {
-        throw new Error("Số dư nguồn tiền không đủ");
+        throw new Error(insufficientMessage(source, amount));
     }
     return updated;
 }
