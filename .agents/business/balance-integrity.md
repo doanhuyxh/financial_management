@@ -13,6 +13,8 @@
 
 BalanceAdjustment `kind`: `OPENING` (số dư ban đầu) hoặc `MANUAL` (sửa tay trên form; dữ liệu cũ thiếu `kind` coi là MANUAL).
 
+`reservedAmount` (giữ chỗ chi dự kiến) **không thuộc sổ cái**, đối soát không đụng tới: [planned-expenses.md](planned-expenses.md).
+
 ## Đối soát
 
 - **API:** `GET /api/sources-of-money/[id]/reconcile` → `{ stored, ledger, diff = stored − ledger, ledgerComplete, canApply, blockReason?, openIssues }`. `POST` cùng URL `{ expectedStored, expectedLedger }`: chỉ ghi khi cả hai số vẫn bằng số người dùng đã xem (khác → 409), filter `[trackedPath] = stored` nên giao dịch chen giữa cũng 409.

@@ -36,9 +36,25 @@ function describeSource(record: ISourcesOfMoneyData) {
     return parts.join(" · ");
 }
 
+/** Phần đang giữ chỗ cho chi dự kiến (chưa trừ vào số dư/dư nợ). */
+function ReservedNote({ record }: { record: ISourcesOfMoneyData }) {
+    const reserved = record.reservedAmount ?? 0;
+    if (reserved <= 0) return null;
+    return (
+        <div className="money-value text-xs text-muted-foreground">
+            Giữ chỗ chi dự kiến {formatMoney(reserved)}
+        </div>
+    );
+}
+
 function BalanceCell({ record }: { record: ISourcesOfMoneyData }) {
     if (!isCredit(record)) {
-        return <Money value={record.balance} mutedZero className="font-semibold" />;
+        return (
+            <div className="leading-5">
+                <Money value={record.balance} mutedZero className="font-semibold" />
+                <ReservedNote record={record} />
+            </div>
+        );
     }
     const limit = record.creditDetails?.creditLimit ?? 0;
     const debt = record.creditDetails?.currentDebt ?? 0;
@@ -68,6 +84,7 @@ function BalanceCell({ record }: { record: ISourcesOfMoneyData }) {
                         : "[&>[data-slot=progress-indicator]]:bg-credit",
                 )}
             />
+            <ReservedNote record={record} />
             <CardFeeDetails record={record} />
         </div>
     );

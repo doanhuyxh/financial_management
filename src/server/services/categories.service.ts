@@ -1,6 +1,7 @@
 import dbConnect from "@/server/connectDb";
 import CategoriesModel from "@/server/models/categories.model";
 import ExpensesModel from "@/server/models/expenses.model";
+import PlannedExpensesModel from "@/server/models/planned-expenses.model";
 import IncomesModel from "@/server/models/incomes.model";
 import TransfersModel from "@/server/models/transfers.model";
 import {
@@ -197,12 +198,13 @@ export class CategoriesService {
         if (appearance.color !== undefined) update.color = appearance.color;
         if (category.kind && category.kind !== existing.kind) {
             // Đổi loại sẽ làm giao dịch cũ nằm sai loại danh mục
-            const [expense, income, feeTransfer] = await Promise.all([
+            const [expense, income, feeTransfer, planned] = await Promise.all([
                 ExpensesModel.exists({ userId: user.userId, categoryId: id }),
                 IncomesModel.exists({ userId: user.userId, categoryId: id }),
                 TransfersModel.exists({ userId: user.userId, feeCategoryId: id }),
+                PlannedExpensesModel.exists({ userId: user.userId, categoryId: id }),
             ]);
-            if (expense || income || feeTransfer) {
+            if (expense || income || feeTransfer || planned) {
                 return errorResponseWithStatusCode(
                     "Danh mục đã có giao dịch, không thể đổi loại",
                     400,
@@ -278,14 +280,16 @@ export class CategoriesService {
         }
 
         const filter = { _id: id, userId: user.userId, ...NOT_ARCHIVED };
-        const [expense, income, transfer] = await Promise.all([
+        const [expense, income, transfer, planned] = await Promise.all([
             ExpensesModel.exists({ userId: user.userId, categoryId: id }),
             IncomesModel.exists({ userId: user.userId, categoryId: id }),
             TransfersModel.exists({ userId: user.userId, feeCategoryId: id }),
+            // Chi dự kiến (mọi trạng thái) cũng cần giữ tên danh mục
+            PlannedExpensesModel.exists({ userId: user.userId, categoryId: id }),
         ]);
 
         // Đã có giao dịch thì chỉ lưu trữ để lịch sử vẫn hiển thị tên danh mục
-        if (expense || income || transfer) {
+        if (expense || income || transfer || planned) {
             const archived = await CategoriesModel.findOneAndUpdate(filter, {
                 $set: { archivedAt: new Date() },
             });

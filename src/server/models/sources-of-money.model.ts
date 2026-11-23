@@ -52,6 +52,11 @@ export interface ISourcesOfMoney extends Document {
    * hoặc khi script backfill-opening-balance bổ sung số dư ban đầu. Thiếu thì không cho đối soát sửa số.
    */
   ledgerCompleteAt?: Date | null;
+  /**
+   * Tổng tiền đang giữ chỗ cho chi dự kiến (PENDING). Không thuộc sổ cái: số dư/dư nợ chưa đổi,
+   * chỉ làm giảm phần khả dụng (nguồn thường: balance − reserved; thẻ: limit − debt − reserved).
+   */
+  reservedAmount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -140,6 +145,12 @@ const sourcesOfMoneySchema = new Schema<ISourcesOfMoney>(
     ledgerCompleteAt: {
       type: Date,
       default: null,
+    },
+    reservedAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      validate: INTEGER_MONEY_VALIDATOR,
     },
   },
   { 

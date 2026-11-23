@@ -18,6 +18,18 @@ import {
     type IFromExpensesData,
 } from "@/libs/interfaces/expensesData";
 import { formatMoney } from "@/libs/utils/formatMoney";
+import { formatDate } from "@/libs/utils/formatDate";
+import {
+    useCancelPlannedExpense,
+    useConfirmPlannedExpense,
+    useCreatePlannedExpense,
+    useGetPlannedExpenses,
+    useUpdatePlannedExpense,
+} from "@/libs/hooks/customHooks/usePlannedExpenses";
+import type {
+    IFromPlannedExpensesData,
+    IPlannedExpensesData,
+} from "@/libs/interfaces/plannedExpensesData";
 import type { IExpensesContextProps } from "./type";
 import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 
@@ -25,6 +37,7 @@ import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 const DEFAULT_PAGE_SIZE = 20;
 const EMPTY_ITEMS: IExpensesData[] = [];
 const EMPTY_DAY_TOTALS: IDayTotal[] = [];
+const EMPTY_PLANNED: IPlannedExpensesData[] = [];
 
 interface IExpensesContextProviderProps {
     children: React.ReactNode;
@@ -66,6 +79,7 @@ export default function ExpensesContextProvider({
         () => searchParams.get("action") === "create",
     );
     const [editingItem, setEditingItem] = useState<IExpensesData | null>(null);
+    const [editingPlanned, setEditingPlanned] = useState<IPlannedExpensesData | null>(null);
     // `?action=create&sourceOfMoneyId=&amount=&note=&cardFeeType=` điền sẵn form (VD: ghi nhận phí thẻ)
     const [createDefaults, setCreateDefaults] = useState<IExpenseCreateDefaults | null>(() => {
         if (searchParams.get("action") !== "create") return null;
@@ -98,6 +112,12 @@ export default function ExpensesContextProvider({
     const { mutateAsync: createExpense, isPending: isCreating } = useCreateExpense();
     const { mutateAsync: updateExpense, isPending: isUpdating } = useUpdateExpense();
     const { mutateAsync: deleteExpense } = useDeleteExpense();
+    const { data: plannedData, isLoading: plannedLoading } = useGetPlannedExpenses();
+    const { mutateAsync: createPlanned, isPending: isCreatingPlanned } = useCreatePlannedExpense();
+    const { mutateAsync: updatePlanned, isPending: isUpdatingPlanned } = useUpdatePlannedExpense();
+    const { mutateAsync: confirmPlanned } = useConfirmPlannedExpense();
+    const { mutateAsync: cancelPlanned } = useCancelPlannedExpense();
+    const plannedItems = plannedData?.data?.items ?? EMPTY_PLANNED;
 
     const items = data?.data?.items ?? EMPTY_ITEMS;
     const pagination = data?.data?.pagination;
@@ -138,12 +158,20 @@ export default function ExpensesContextProvider({
 
     const openCreateModal = useCallback(() => {
         setEditingItem(null);
+        setEditingPlanned(null);
         setCreateDefaults(null);
         setModalOpen(true);
     }, []);
 
     const openEditModal = useCallback((record: IExpensesData) => {
+        setEditingPlanned(null);
         setEditingItem(record);
+        setModalOpen(true);
+    }, []);
+
+    const openEditPlanned = useCallback((record: IPlannedExpensesData) => {
+        setEditingItem(null);
+        setEditingPlanned(record);
         setModalOpen(true);
     }, []);
 
@@ -162,6 +190,7 @@ export default function ExpensesContextProvider({
     const closeModal = useCallback(() => {
         setModalOpen(false);
         setEditingItem(null);
+        setEditingPlanned(null);
         setCreateDefaults(null);
     }, []);
 
@@ -216,6 +245,73 @@ export default function ExpensesContextProvider({
         [modal, deleteExpense, notification],
     );
 
+    const handleSubmitPlanned = useCallback(
+        async (values: IFromPlannedExpensesData, options?: { keepOpen?: boolean }) => {
+            try {
+                if (editingPlanned?._id) {
+                    await updatePlanned({ id: editingPlanned._id, body: values });
+                    notification.success({ title: "Đã cập nhật khoản chi dự kiến" });
+                    closeModal();
+                } else {
+                    await createPlanned(values);
+                    notification.success({
+                        title: "Đã tạo khoản chi dự kiến",
+                        description: "Số tiền được giữ chỗ trong nguồn tới khi bạn xác nhận hoặc hủy",
+                    });
+                    if (!options?.keepOpen) closeModal();
+                }
+                return true;
+            } catch (error: unknown) {
+                notification.error({ title: getErrorMessage(error, "Thao tác thất bại") });
+                return false;
+            }
+        },
+        [editingPlanned, updatePlanned, createPlanned, notification, closeModal],
+    );
+
+    const handleConfirmPlanned = useCallback(
+        (record: IPlannedExpensesData) => {
+            modal.confirm({
+                title: "Xác nhận khoản chi dự kiến",
+                content: `Ghi ${formatMoney(record.amount)} thành chi tiêu (ngày ${formatDate(record.plannedAt)}) và trừ vào nguồn?`,
+                okText: "Xác nhận",
+                cancelText: "Để sau",
+                onOk: async () => {
+                    try {
+                        await confirmPlanned(record._id);
+                        notification.success({ title: "Đã ghi thành chi tiêu" });
+                    } catch (error: unknown) {
+                        notification.error({
+                            title: getErrorMessage(error, "Xác nhận thất bại"),
+                        });
+                    }
+                },
+            });
+        },
+        [modal, confirmPlanned, notification],
+    );
+
+    const handleCancelPlanned = useCallback(
+        (record: IPlannedExpensesData) => {
+            modal.confirm({
+                title: "Hủy khoản chi dự kiến",
+                content: `Hủy khoản ${formatMoney(record.amount)}? Không tạo giao dịch, số tiền giữ chỗ được trả lại nguồn.`,
+                okText: "Hủy khoản này",
+                okType: "danger",
+                cancelText: "Giữ lại",
+                onOk: async () => {
+                    try {
+                        await cancelPlanned(record._id);
+                        notification.success({ title: "Đã hủy khoản chi dự kiến" });
+                    } catch (error: unknown) {
+                        notification.error({ title: getErrorMessage(error, "Hủy thất bại") });
+                    }
+                },
+            });
+        },
+        [modal, cancelPlanned, notification],
+    );
+
     const value = useMemo<IExpensesContextProps>(
         () => ({
             search,
@@ -235,7 +331,14 @@ export default function ExpensesContextProvider({
             modalOpen,
             editingItem,
             createDefaults,
-            isSubmitting: isCreating || isUpdating,
+            isSubmitting: isCreating || isUpdating || isCreatingPlanned || isUpdatingPlanned,
+            plannedItems,
+            plannedLoading,
+            editingPlanned,
+            openEditPlanned,
+            handleSubmitPlanned,
+            handleConfirmPlanned,
+            handleCancelPlanned,
             handleSearch,
             handleCategoryFilter,
             handleSourceFilter,
@@ -268,6 +371,15 @@ export default function ExpensesContextProvider({
             createDefaults,
             isCreating,
             isUpdating,
+            isCreatingPlanned,
+            isUpdatingPlanned,
+            plannedItems,
+            plannedLoading,
+            editingPlanned,
+            openEditPlanned,
+            handleSubmitPlanned,
+            handleConfirmPlanned,
+            handleCancelPlanned,
             handleSearch,
             handleCategoryFilter,
             handleSourceFilter,
