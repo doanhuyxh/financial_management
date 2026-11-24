@@ -95,7 +95,6 @@ export default function MonthSummary() {
                     label="Thu nhập"
                     icon={<ArrowDownLeft className="size-4 text-money-in" />}
                     value={money(cashflow?.totalIncome)}
-                    valueClassName="text-money-in"
                     description={
                         cashflow ? (
                             <ChangeText
@@ -110,7 +109,6 @@ export default function MonthSummary() {
                     label="Chi tiêu"
                     icon={<ArrowUpRight className="size-4 text-money-out" />}
                     value={money(cashflow?.totalExpense)}
-                    valueClassName="text-money-out"
                     description={
                         cashflow ? (
                             <ChangeText
@@ -125,7 +123,8 @@ export default function MonthSummary() {
                     label="Dòng tiền ròng"
                     icon={<Scale className="size-4 text-muted-foreground" />}
                     value={money(cashflow?.net)}
-                    valueClassName={net < 0 ? "text-debt" : "text-money-in"}
+                    // Số lớn trung tính (plan 21); chỉ tô khi âm
+                    valueClassName={net < 0 ? "text-debt" : undefined}
                     description={
                         extra ? (
                             <>
@@ -152,7 +151,7 @@ export default function MonthSummary() {
                             formatPercent(savingsRate)
                         )
                     }
-                    valueClassName={(savingsRate ?? 0) < 0 ? "text-warn" : "text-money-in"}
+                    valueClassName={(savingsRate ?? 0) < 0 ? "text-warn" : undefined}
                     description={
                         savingsRate === null ? (
                             "Chưa có thu nhập trong tháng"

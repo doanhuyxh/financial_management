@@ -58,7 +58,6 @@ export default function NetWorthHero() {
                     {value(
                         <Money
                             value={totalCreditDebt}
-                            kind="debt"
                             mutedZero
                             className="block text-lg font-semibold sm:text-xl"
                         />,
@@ -74,7 +73,6 @@ export default function NetWorthHero() {
                     {value(
                         <Money
                             value={assets.availableCreditTotal}
-                            kind="credit"
                             className="block text-lg font-semibold sm:text-xl"
                         />,
                     )}

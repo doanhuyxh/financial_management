@@ -10,8 +10,8 @@ export default function SourcesSummary() {
 
     const cells = [
         { label: "Tiền mặt", node: <Money value={assets.cashTotal} /> },
-        { label: "Dư nợ thẻ", node: <Money value={totalDebt} kind="debt" mutedZero /> },
-        { label: "Tín dụng khả dụng", node: <Money value={assets.availableCreditTotal} kind="credit" /> },
+        { label: "Dư nợ thẻ", node: <Money value={totalDebt} mutedZero /> },
+        { label: "Tín dụng khả dụng", node: <Money value={assets.availableCreditTotal} /> },
     ];
 
     return (

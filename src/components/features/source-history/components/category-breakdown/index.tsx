@@ -3,7 +3,6 @@
 import BarList, { type IBarRow } from "@/components/common/bar-list";
 import EmptyState from "@/components/common/empty-state";
 import { useSourceHistoryContext } from "@/components/features/source-history/context";
-import { getCategoryColor, OTHER_COLOR } from "@/libs/utils/categoryColor";
 
 /** Số danh mục hiện riêng; phần còn lại gộp vào "Khác". */
 const TOP_ROWS = 8;
@@ -17,11 +16,10 @@ export default function CategoryBreakdown() {
         key: item.id || "none",
         name: item.icon ? `${item.icon} ${item.name}` : item.name,
         total: item.total,
-        color: getCategoryColor(item.id, item.color),
     }));
     const otherTotal = breakdown.slice(TOP_ROWS).reduce((sum, item) => sum + item.total, 0);
     if (otherTotal > 0) {
-        rows.push({ key: "other", name: "Khác", total: otherTotal, color: OTHER_COLOR });
+        rows.push({ key: "other", name: "Khác", total: otherTotal });
     }
 
     return (

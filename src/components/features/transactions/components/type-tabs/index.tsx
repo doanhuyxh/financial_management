@@ -10,7 +10,7 @@ const TABS: {
     value: TransactionType;
     label: string;
     icon: LucideIcon;
-    /** Class khi đang chọn: màu theo nghĩa (chi đỏ, thu xanh, chuyển tiền dùng màu nhấn) */
+    /** Class khi đang chọn: chi trung tính (plan 21, chi tiêu không tô đỏ), thu xanh, chuyển tiền màu nhấn */
     activeClass: string;
     iconClass: string;
 }[] = [
@@ -18,8 +18,8 @@ const TABS: {
         value: "expense",
         label: "Chi tiêu",
         icon: ArrowUpRight,
-        activeClass: "border-money-out/50 bg-money-out-soft text-money-out",
-        iconClass: "bg-money-out text-white",
+        activeClass: "border-foreground/25 bg-secondary text-foreground",
+        iconClass: "bg-foreground text-background",
     },
     {
         value: "income",

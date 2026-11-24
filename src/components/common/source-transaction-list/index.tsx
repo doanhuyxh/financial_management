@@ -49,7 +49,7 @@ export default function SourceTransactionList<T extends SourceTransactionRow>({
                                 className={
                                     isGood
                                         ? "money-value shrink-0 font-semibold tabular-nums text-money-in"
-                                        : "money-value shrink-0 font-semibold tabular-nums text-money-out"
+                                        : "money-value shrink-0 font-semibold tabular-nums"
                                 }
                             >
                                 {item.delta >= 0 ? "+" : "−"}

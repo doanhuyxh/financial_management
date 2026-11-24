@@ -6,7 +6,6 @@ import EmptyState from "@/components/common/empty-state";
 import Money, { type MoneyKind } from "@/components/common/money";
 import { Skeleton } from "@/components/shadcn/ui/skeleton";
 import type { IListBreakdownItem, IListSummary } from "@/libs/interfaces/ApiResponseData";
-import { getCategoryColor, OTHER_COLOR } from "@/libs/utils/categoryColor";
 import { formatMoney } from "@/libs/utils/formatMoney";
 import { cn } from "@/libs/shadcn/utils";
 
@@ -47,7 +46,6 @@ export default function TransactionInsights({
         key: item.id,
         name: item.icon ? `${item.icon} ${item.name}` : item.name,
         total: item.total,
-        color: getCategoryColor(item.id, item.color),
     }));
     const stats = [
         {
@@ -62,7 +60,7 @@ export default function TransactionInsights({
 
     const shown = rows.reduce((sum, row) => sum + row.total, 0);
     if (total - shown > 0) {
-        rows.push({ key: "__other__", name: "Khác", total: total - shown, color: OTHER_COLOR });
+        rows.push({ key: "__other__", name: "Khác", total: total - shown });
     }
 
     return (

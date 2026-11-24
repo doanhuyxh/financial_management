@@ -17,8 +17,8 @@ export default function JourneySidePanels() {
                     <p className="mb-2 font-semibold">Nếu giữ nhịp hiện tại</p>
                     <div className="grid grid-cols-3 gap-2 text-sm">
                         <div className="rounded-lg border border-border px-3 py-2"><p className="text-xs text-muted-foreground">Còn</p><p className="font-bold">{c.projection?.debtFreePeriod ? `${c.projection.debtFreePeriod} kỳ` : "∞"}</p></div>
-                        <div className="rounded-lg border border-border px-3 py-2"><p className="text-xs text-muted-foreground">Phí sẽ mất thêm</p><p className="font-bold"><Money value={c.projection?.debtFreePeriod ? c.projection.totalFee - c.totalFee : null} kind="out" /></p></div>
-                        <div className="rounded-lg border border-border px-3 py-2"><p className="text-xs text-muted-foreground">Tổng phí cả hành trình</p><p className="font-bold"><Money value={c.projection?.debtFreePeriod ? c.projection.totalFee : null} kind="out" /></p>{c.projection?.debtFreePeriod ? <p className="text-xs text-muted-foreground">{Math.round((c.projection.totalFee / c.base) * 100)}% gốc</p> : null}</div>
+                        <div className="rounded-lg border border-border px-3 py-2"><p className="text-xs text-muted-foreground">Phí sẽ mất thêm</p><p className="font-bold"><Money value={c.projection?.debtFreePeriod ? c.projection.totalFee - c.totalFee : null} kind="fee" /></p></div>
+                        <div className="rounded-lg border border-border px-3 py-2"><p className="text-xs text-muted-foreground">Tổng phí cả hành trình</p><p className="font-bold"><Money value={c.projection?.debtFreePeriod ? c.projection.totalFee : null} kind="fee" /></p>{c.projection?.debtFreePeriod ? <p className="text-xs text-muted-foreground">{Math.round((c.projection.totalFee / c.base) * 100)}% gốc</p> : null}</div>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
                         Nhịp = trung bình tự trả 3 kỳ gần nhất ({formatMoney(c.avgPayment)}), phí {c.feePercent.toFixed(2)}%/lần, chu kỳ {c.cycleDays} ngày. Bấm &quot;Mô phỏng&quot; để đổi giả định.

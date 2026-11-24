@@ -95,13 +95,14 @@ function TransactionDetail({ item }: { item: ISourceTransactionData }) {
 }
 
 function SignedAmount({ delta, isCreditCard, className }: { delta: number; isCreditCard: boolean; className?: string }) {
-    // Thẻ tín dụng: delta là biến động dư nợ, tăng là xấu (đỏ), giảm là tốt (xanh)
+    // Thẻ tín dụng: delta là biến động dư nợ, giảm là tốt (xanh). Tiền ra / phát sinh nợ là chi tiêu
+    // bình thường → màu chữ thường (plan 21), không tô đỏ
     const isGood = isCreditCard ? delta < 0 : delta > 0;
     return (
         <span
             className={cn(
                 "money-value font-semibold tabular-nums",
-                delta === 0 ? "text-muted-foreground" : isGood ? "text-money-in" : "text-money-out",
+                delta === 0 ? "text-muted-foreground" : isGood ? "text-money-in" : undefined,
                 className,
             )}
         >
