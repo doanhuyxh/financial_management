@@ -23,10 +23,11 @@ const WEEKDAYS = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ n
 const ROW_GRID =
     "grid grid-cols-[64px_minmax(120px,auto)_minmax(0,1fr)_minmax(0,1.5fr)_140px] items-center gap-4 px-4";
 
+// Plan 21: chi tiêu / chuyển đi là việc bình thường → xám (không đỏ/cam như cảnh báo)
 const KIND_TAG_COLORS: Record<SourceTransactionKind, TagColor> = {
-    [SourceTransactionKind.EXPENSE]: "red",
+    [SourceTransactionKind.EXPENSE]: "default",
     [SourceTransactionKind.INCOME]: "green",
-    [SourceTransactionKind.TRANSFER_OUT]: "orange",
+    [SourceTransactionKind.TRANSFER_OUT]: "default",
     [SourceTransactionKind.TRANSFER_IN]: "blue",
     [SourceTransactionKind.ADJUSTMENT]: "default",
     [SourceTransactionKind.ROLLOVER]: "purple",

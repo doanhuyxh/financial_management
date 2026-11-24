@@ -41,6 +41,14 @@ const HEADLINE_CLASS: Record<HeadlineTone, string> = {
 const ROW_GRID =
     "md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,1.7fr)_10rem] md:items-center md:gap-4";
 
+/**
+ * Dư nợ chỉ tô đỏ khi cần chú ý (plan 21 D): dùng ≥ 90% hạn mức hoặc hạn trả hôm nay / rất gần.
+ * Còn lại là màu chữ thường — có nợ thẻ là chuyện bình thường.
+ */
+function isDebtAlert(card: ICreditCardOverviewItem, usedPercent: number) {
+    return usedPercent >= 90 || card.status === "today" || card.status === "urgent";
+}
+
 function DueCell({ card }: { card: ICreditCardOverviewItem }) {
     if (card.currentDebt <= 0) return <span className="text-sm text-muted-foreground">—</span>;
     if (!card.nextDueDate) {
@@ -77,6 +85,9 @@ function CardRow({
         ? Math.round((card.currentDebt / card.creditLimit) * 100)
         : 0;
     const hasDebt = card.currentDebt > 0;
+    const debtKind = isDebtAlert(card, usedPercent) ? "debt" : "neutral";
+    // Plan 21 G: "Trả nợ" chỉ là nút đặc khi sắp tới hạn; còn lại nút viền
+    const payUrgent = card.status === "today" || card.status === "urgent" || card.status === "soon";
 
     return (
         <li className="border-t border-border py-3 first:border-t-0">
@@ -88,7 +99,7 @@ function CardRow({
                         <p className="text-xs text-muted-foreground md:hidden">
                             {hasDebt ? (
                                 <>
-                                    <Money value={card.currentDebt} kind="debt" />
+                                    <Money value={card.currentDebt} kind={debtKind} />
                                     {card.nextDueDate
                                         ? ` · hạn ${card.nextDueDate.format("DD/MM")}${
                                               card.daysLeft != null && card.daysLeft <= 7
@@ -108,7 +119,7 @@ function CardRow({
                 <div className="hidden md:block">
                     <Money
                         value={card.currentDebt}
-                        kind="debt"
+                        kind={debtKind}
                         mutedZero
                         className="text-sm font-semibold"
                     />
@@ -141,6 +152,7 @@ function CardRow({
                             <Button
                                 type="button"
                                 size="sm"
+                                variant={payUrgent ? "default" : "outline"}
                                 onClick={() => handlePayCard(card._id, card.currentDebt)}
                             >
                                 <ArrowLeftRight data-icon="inline-start" />
