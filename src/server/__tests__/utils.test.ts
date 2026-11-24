@@ -4,6 +4,9 @@ import { parseTransactionDate } from "@/server/utils/transactionDate";
 import { buildListDateRange } from "@/server/utils/dayRange";
 import { ExpensesService } from "@/server/services/expenses.service";
 import { call, makeCategory, makeSource } from "./helpers";
+import dayjs from "dayjs";
+import { getAnnualWaiverPace } from "@/components/features/dashboard/utils";
+import { AnnualFeeWaiverPeriod } from "@/libs/interfaces/sourcesOfMoneyData";
 
 describe("parseMoney", () => {
     test("nhận số nguyên trong khoảng", () => {
@@ -53,5 +56,51 @@ describe("buildListDateRange", () => {
         );
         const res = await call(ExpensesService.getExpenses({ from: "2025-03-10", to: "2025-03-10" }));
         expect(res.data.items).toHaveLength(1);
+    });
+});
+
+describe("getAnnualWaiverPace (nhịp chi để miễn phí thường niên)", () => {
+    const waiver = (current: number, target: number) => ({ current, target, achieved: current >= target });
+    const today = dayjs("2026-11-24T10:00:00+07:00");
+
+    test("chia phần còn thiếu cho số tháng còn lại tới ngày thu (làm tròn lên)", () => {
+        const pace = getAnnualWaiverPace(
+            AnnualFeeWaiverPeriod.YEAR,
+            waiver(14_200_000, 30_000_000),
+            dayjs("2027-01-05"),
+            today,
+        );
+        // 24/11 → 05/01 ≈ 1,4 tháng → 2 tháng
+        expect(pace?.months).toBe(2);
+        expect(pace?.remaining).toBe(15_800_000);
+        expect(pace?.perMonth).toBe(7_900_000);
+    });
+
+    test("thẻ chưa đặt ngày thu: tính tới hết năm dương lịch", () => {
+        const pace = getAnnualWaiverPace(AnnualFeeWaiverPeriod.YEAR, waiver(0, 3_000_000), null, today);
+        expect(pace?.deadline.format("YYYY-MM-DD")).toBe("2027-01-01");
+        expect(pace?.months).toBe(2);
+        expect(pace?.perMonth).toBe(1_500_000);
+    });
+
+    test("còn dưới 1 tháng thì 1 tháng; xa thì chia đều", () => {
+        expect(
+            getAnnualWaiverPace(AnnualFeeWaiverPeriod.YEAR, waiver(0, 1_000_000), dayjs("2026-12-01"), today)
+                ?.months,
+        ).toBe(1);
+        const far = getAnnualWaiverPace(
+            AnnualFeeWaiverPeriod.YEAR,
+            waiver(0, 12_000_001),
+            dayjs("2027-11-24"),
+            today,
+        );
+        expect(far?.months).toBe(12);
+        expect(far?.perMonth).toBe(1_000_001);
+    });
+
+    test("đã đạt, theo kỳ sao kê hoặc không có điều kiện thì null", () => {
+        expect(getAnnualWaiverPace(AnnualFeeWaiverPeriod.YEAR, waiver(5, 5), null, today)).toBeNull();
+        expect(getAnnualWaiverPace(AnnualFeeWaiverPeriod.MONTH, waiver(0, 5), null, today)).toBeNull();
+        expect(getAnnualWaiverPace(null, null, null, today)).toBeNull();
     });
 });

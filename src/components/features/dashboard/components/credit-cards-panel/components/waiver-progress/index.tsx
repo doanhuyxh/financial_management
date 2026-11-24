@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Progress } from "@/components/shadcn/ui/progress";
 import type { IFeeWaiverProgress } from "@/components/features/dashboard/utils";
 import { cn } from "@/libs/shadcn/utils";
@@ -15,10 +16,13 @@ export default function WaiverProgress({
     waiver,
     label,
     format,
+    footer,
 }: {
     waiver: IFeeWaiverProgress | null;
     label: string;
     format: (value: number) => string;
+    /** Thêm cặp `<dt>`/`<dd>` dưới "Còn thiếu" (VD nhịp chi mỗi tháng); chỉ hiện khi chưa đạt */
+    footer?: ReactNode;
 }) {
     if (!waiver) return <span className="text-muted-foreground">—</span>;
     const percent = Math.min(100, Math.round((waiver.current / waiver.target) * 100));
@@ -40,14 +44,13 @@ export default function WaiverProgress({
                 {format(waiver.current)} / {format(waiver.target)}
             </span>
             {!waiver.achieved ? (
-                <span
-                    className={cn(
-                        "block text-xs font-medium",
-                        level === "low" ? "text-debt" : "text-warn",
-                    )}
-                >
-                    Còn thiếu {format(waiver.target - waiver.current)}
-                </span>
+                <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                    <dt className="text-muted-foreground">Còn thiếu</dt>
+                    <dd className="money-value text-right font-semibold tabular-nums text-warn">
+                        {format(waiver.target - waiver.current)}
+                    </dd>
+                    {footer}
+                </dl>
             ) : null}
         </div>
     );
