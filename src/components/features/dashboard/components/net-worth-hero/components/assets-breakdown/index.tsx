@@ -133,7 +133,8 @@ export default function AssetsBreakdown() {
     );
 
     return (
-        <Collapsible className="group/breakdown rounded-xl border border-border bg-card">
+        // Mở sẵn: tiền chia theo từng nguồn là thông tin chính ngay dưới Tài sản ròng (user yêu cầu 24/11/2026)
+        <Collapsible defaultOpen className="group/breakdown rounded-xl border border-border bg-card">
             <CollapsibleTrigger asChild>
                 <button
                     type="button"

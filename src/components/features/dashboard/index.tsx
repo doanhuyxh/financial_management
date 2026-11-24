@@ -8,16 +8,19 @@ import CashflowPanel from "@/components/features/dashboard/components/cashflow-p
 import CreditCardsPanel from "@/components/features/dashboard/components/credit-cards-panel";
 import CardRolloverModal from "@/components/features/dashboard/components/card-rollover-modal";
 
-/** Bố cục: Cần chú ý (chip) → Tháng này → Khối biểu đồ (tab Ngày / Danh mục / Nguồn / Tháng) → Tài sản ròng → Thẻ tín dụng. */
+/**
+ * Bố cục: Cần chú ý (chip, ẩn khi trống) → Tháng này → Tài sản ròng (+ chi tiết theo nguồn, mở sẵn)
+ * → Thẻ tín dụng → Khối biểu đồ (tab Ngày / Danh mục / Nguồn / Tháng) cuối cùng.
+ */
 export default function DashboardComponent() {
     return (
         <DashboardContextProvider>
             <div className="flex flex-col gap-4">
                 <AttentionStrip />
                 <MonthSummary />
-                <CashflowPanel />
                 <NetWorthHero />
                 <CreditCardsPanel />
+                <CashflowPanel />
             </div>
             <CardRolloverModal />
         </DashboardContextProvider>

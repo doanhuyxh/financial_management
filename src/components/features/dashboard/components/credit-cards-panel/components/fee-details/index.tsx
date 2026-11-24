@@ -71,6 +71,20 @@ export default function FeeDetails({
                                     : "Chi tiêu năm thẻ"
                             }
                             format={formatMoney}
+                            footer={
+                                item.annualWaiverPace ? (
+                                    <>
+                                        <dt className="text-muted-foreground">Mỗi tháng</dt>
+                                        <dd className="money-value text-right font-semibold tabular-nums">
+                                            ≈{formatMoney(item.annualWaiverPace.perMonth)}
+                                        </dd>
+                                        <dd className="col-span-2 text-muted-foreground">
+                                            {item.annualWaiverPace.months} tháng, trước{" "}
+                                            {item.annualWaiverPace.deadline.format("DD/MM/YYYY")}
+                                        </dd>
+                                    </>
+                                ) : null
+                            }
                         />
                     </Section>
                 ) : null}

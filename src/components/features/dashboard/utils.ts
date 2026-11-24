@@ -37,6 +37,38 @@ export interface IFeeWaiverProgress {
     achieved: boolean;
 }
 
+/** Nhịp chi để kịp miễn phí thường niên (chỉ kiểu năm thẻ, chưa đạt). */
+export interface IAnnualWaiverPace {
+    /** Còn thiếu */
+    remaining: number;
+    /** Số tháng còn lại tới hết năm thẻ, làm tròn lên, tối thiểu 1 */
+    months: number;
+    /** Cần chi trung bình mỗi tháng (làm tròn lên) */
+    perMonth: number;
+    /** Hết năm thẻ: ngày thu phí kế tiếp (mốc mở), thẻ chưa đặt ngày thu thì 01/01 năm sau */
+    deadline: Dayjs;
+}
+
+/**
+ * Trung bình mỗi tháng cần chi từ hôm nay tới hết năm thẻ để đạt mức miễn phí thường niên.
+ * Năm thẻ = [ngày thu kế tiếp − 1 năm, ngày thu kế tiếp) (credit-card-fees.md), nên mốc là ngày thu phí.
+ * VD còn thiếu 15,8 tr, hôm nay 24/11, thu 05/01 → 1,4 tháng → 2 tháng → 7,9 tr/tháng.
+ * Kiểu theo kỳ sao kê (MONTH) hoặc đã đạt thì null.
+ */
+export function getAnnualWaiverPace(
+    period: AnnualFeeWaiverPeriod | null,
+    waiver: IFeeWaiverProgress | null,
+    nextAnnualFeeDate: Dayjs | null,
+    today: Dayjs = dayjs(),
+): IAnnualWaiverPace | null {
+    if (period !== AnnualFeeWaiverPeriod.YEAR || !waiver || waiver.achieved) return null;
+    const remaining = Math.max(0, waiver.target - waiver.current);
+    if (remaining <= 0) return null;
+    const deadline = nextAnnualFeeDate ?? today.add(1, "year").startOf("year");
+    const months = Math.max(1, Math.ceil(deadline.diff(today.startOf("day"), "month", true)));
+    return { remaining, months, perMonth: Math.ceil(remaining / months), deadline };
+}
+
 /** Miễn phí quản lý khi đạt một trong hai điều kiện trong kỳ sao kê. */
 export interface IManagementFeeWaiver {
     transactions: IFeeWaiverProgress | null;
@@ -114,6 +146,8 @@ export interface ICreditCardFeeItem {
     annualFeeWaiverPeriod: AnnualFeeWaiverPeriod | null;
     /** Chi tiêu trong kỳ (năm thẻ hoặc kỳ sao kê) so với mức tối thiểu */
     annualFeeWaiver: IFeeWaiverProgress | null;
+    /** Cần chi bao nhiêu mỗi tháng tới hết năm thẻ để miễn (chỉ kiểu năm, chưa đạt) */
+    annualWaiverPace: IAnnualWaiverPace | null;
     /** Phí quản lý ước tính mỗi kỳ */
     managementFee: number | null;
     managementFeeDay: number | null;
@@ -275,6 +309,9 @@ export function buildCreditCardFees(
                 ? cardProgress?.cycleSpend
                 : cardProgress?.yearSpend;
         const cycle = getStatementCycle(details.statementDate, today);
+        const annualFeeWaiver = details.annualFeeWaiverPeriod
+            ? toWaiver(waiverSpend, details.annualFeeWaiverMinSpend)
+            : null;
 
         items.push({
             _id: source._id,
@@ -289,9 +326,13 @@ export function buildCreditCardFees(
                     ? (getDueStatus(daysLeft) as ICreditCardFeeItem["status"])
                     : null,
             annualFeeWaiverPeriod: details.annualFeeWaiverPeriod ?? null,
-            annualFeeWaiver: details.annualFeeWaiverPeriod
-                ? toWaiver(waiverSpend, details.annualFeeWaiverMinSpend)
-                : null,
+            annualFeeWaiver,
+            annualWaiverPace: getAnnualWaiverPace(
+                details.annualFeeWaiverPeriod ?? null,
+                annualFeeWaiver,
+                nextAnnualFeeDate,
+                today,
+            ),
             managementFee: details.managementFee ?? null,
             managementFeeDay: details.managementFeeDay ?? null,
             managementFeeWaiver: buildManagementWaiver(details, cardProgress),
@@ -318,7 +359,10 @@ export function buildCreditCardFees(
 export type HeadlineTone = "warn" | "in" | "neutral";
 
 export interface ICardFeeHeadline {
+    /** Dòng chính, ngắn: khoản phí và mốc */
     text: string;
+    /** Dòng phụ (chữ nhỏ, xám): cần làm gì để miễn */
+    detail?: string;
     tone: HeadlineTone;
 }
 
@@ -373,7 +417,8 @@ export function getCardFeeHeadline(fee: ICreditCardFeeItem | null): ICardFeeHead
         (fee.managementFee ?? 0) > 0 && fee.managementFeeWaiver && !fee.managementFeeWaiver.achieved;
     if (managementPending && fee.managementFeeWaiver) {
         return {
-            text: `Phí quản lý ${formatVnd(fee.managementFee ?? 0)}/tháng · cần thêm ${describeManagementGap(fee.managementFeeWaiver)} trước ${lastCycleDay(fee)}`,
+            text: `Phí quản lý ${formatVnd(fee.managementFee ?? 0)}/tháng`,
+            detail: `Cần thêm ${describeManagementGap(fee.managementFeeWaiver)} trước ${lastCycleDay(fee)} để miễn`,
             tone: "warn",
         };
     }
@@ -393,11 +438,15 @@ export function getCardFeeHeadline(fee: ICreditCardFeeItem | null): ICardFeeHead
         if (fee.annualFeeWaiver?.achieved) {
             return { text: "Đã đủ điều kiện miễn phí thường niên", tone: "in" };
         }
-        const gap = fee.annualFeeWaiver
-            ? ` · cần chi thêm ${formatShortVnd(fee.annualFeeWaiver.target - fee.annualFeeWaiver.current)} để miễn`
-            : "";
+        const pace = fee.annualWaiverPace;
+        const detail = fee.annualFeeWaiver
+            ? `Còn thiếu ${formatShortVnd(fee.annualFeeWaiver.target - fee.annualFeeWaiver.current)} để miễn${
+                  pace && pace.months >= 2 ? ` · ≈${formatShortVnd(pace.perMonth)}/tháng` : ""
+              }`
+            : undefined;
         return {
-            text: `Phí thường niên ${formatVnd(fee.annualFee ?? 0)} vào ${fee.nextAnnualFeeDate.format("DD/MM/YYYY")}${gap}`,
+            text: `Phí thường niên ${formatVnd(fee.annualFee ?? 0)} · ${fee.nextAnnualFeeDate.format("DD/MM/YYYY")}`,
+            detail,
             tone: (fee.daysLeft ?? Infinity) <= 30 ? "warn" : "neutral",
         };
     }

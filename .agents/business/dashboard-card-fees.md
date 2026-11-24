@@ -10,6 +10,7 @@ Code: `src/components/features/dashboard/components/credit-cards-panel/` (danh s
 - Phí có ở mọi thẻ cấu hình phí thường niên, phí quản lý, phí thanh toán dư nợ, phí sử dụng, lãi suất hoặc phí chậm trả (kể cả thẻ không có dư nợ), kèm kỳ sao kê hiện tại. Thẻ không cấu hình phí vẫn có dòng trong khối "Thẻ tín dụng", cột phí hiện "Chưa cấu hình phí" và không có nút mở rộng.
 - Ngày thu phí thường niên: `getNextAnnualDate` (`src/libs/utils/annualFeeDate.ts`, dùng chung với server: hôm nay tính là kỳ này, đã qua thì sang năm sau). Trạng thái dùng chung ngưỡng với hạn trả (≤ 3 ngày đỏ, ≤ 7 ngày cam).
 - Điều kiện miễn phí: thanh tiến độ "đã đạt / mức tối thiểu", % đã đạt (hoặc "Đạt") và dòng "Còn thiếu …". Miễn phí quản lý hiện hai thanh nối bằng "hoặc".
+- **Nhịp chi để miễn phí thường niên** (`getAnnualWaiverPace`, chỉ kiểu `YEAR` chưa đạt): còn thiếu ÷ số tháng từ hôm nay tới ngày thu phí kế tiếp (hết năm thẻ; thẻ chưa đặt ngày thu thì 01/01 năm sau), số tháng làm tròn lên, tối thiểu 1; số tiền làm tròn lên. Phần mở rộng (khối "Miễn phí thường niên") hiện bảng nhỏ "Còn thiếu | Mỗi tháng ≈X" + "N tháng, trước DD/MM/YYYY". Kiểu `MONTH` không có (mức đã là của một kỳ).
 - Phí thanh toán dư nợ: số lần đã trả trong kỳ và phí ước tính = max(0, số lần − số lần miễn phí) × `paymentFee`.
 - "Lãi & chậm trả": lãi suất, lãi ước tính 30 ngày trên dư nợ hiện tại và quy tắc phí chậm trả.
 - "Đáo hạn" (`rollover-info`, có khi thẻ cấu hình `rolloverFeePercent`, kỳ này đã đáo hạn, hoặc có hành trình đang mở): % phí, phí nếu đáo hết dư nợ so với lãi 30 ngày (xanh "rẻ hơn lãi" / đỏ "đắt hơn lãi"), số lần và phí kỳ này, dòng "Đã mất x% gốc sau N lần · hòa gốc sau ~M lần nữa" + link Hành trình. Nút "Đáo hạn" trên dòng thẻ: [card-rollover.md](card-rollover.md).
@@ -22,7 +23,7 @@ Mỗi thẻ hiện một câu, chọn theo thứ tự ưu tiên:
 2. Phí sử dụng > 0 đã phát sinh kỳ này → màu cảnh báo.
 3. Phí trả nợ ước tính kỳ này > 0 → màu cảnh báo.
 3b. Đã đáo hạn ≥ 1 lần kỳ này → "Đã đáo hạn N lần kỳ này · phí X", màu cảnh báo.
-4. Phí thường niên > 0: đã đạt miễn → "Đã đủ điều kiện miễn phí thường niên" (xanh); chưa → "Phí thường niên X vào DD/MM/YYYY · cần chi thêm …" (cảnh báo nếu còn ≤ 30 ngày, còn lại trung tính).
+4. Phí thường niên > 0: đã đạt miễn → "Đã đủ điều kiện miễn phí thường niên" (xanh); chưa → dòng chính "Phí thường niên X · DD/MM/YYYY" + dòng phụ xám "Còn thiếu … để miễn · ≈Y/tháng" (phần "/tháng" chỉ khi còn ≥ 2 tháng); cảnh báo nếu còn ≤ 30 ngày, còn lại trung tính. Phí quản lý chưa đạt miễn cũng tách: "Phí quản lý X/tháng" + "Cần thêm … trước DD/MM để miễn". Câu tóm tắt có `text` + `detail` (`ICardFeeHeadline`).
 5. Phí quản lý > 0 đã đạt miễn → "Đã miễn phí quản lý kỳ này" (xanh).
 6. Phí sử dụng > 0 chưa phát sinh → "Phí sử dụng X/kỳ nếu có chi tiêu" (trung tính).
 7. Còn lại → "Không có phí sắp tới" (xanh).

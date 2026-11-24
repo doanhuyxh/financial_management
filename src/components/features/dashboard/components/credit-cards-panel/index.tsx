@@ -38,8 +38,9 @@ const HEADLINE_CLASS: Record<HeadlineTone, string> = {
     neutral: "text-muted-foreground",
 };
 
+// Cột cuối đủ cho "Trả nợ" + "Đáo hạn" + nút mở rộng (10rem cũ làm nút đè lên cột phí)
 const ROW_GRID =
-    "md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,1.7fr)_10rem] md:items-center md:gap-4";
+    "md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,1.8fr)_13.5rem] md:items-center md:gap-4";
 
 /**
  * Dư nợ chỉ tô đỏ khi cần chú ý (plan 21 D): dùng ≥ 90% hạn mức hoặc hạn trả hôm nay / rất gần.
@@ -142,9 +143,16 @@ function CardRow({
                     <DueCell card={card} />
                 </div>
 
-                <p className={cn("text-xs md:text-sm", HEADLINE_CLASS[card.headline.tone])}>
-                    {card.headline.text}
-                </p>
+                <div className="min-w-0">
+                    <p className={cn("text-xs md:text-sm", HEADLINE_CLASS[card.headline.tone])}>
+                        {card.headline.text}
+                    </p>
+                    {card.headline.detail ? (
+                        <p className="money-value mt-0.5 text-xs text-muted-foreground">
+                            {card.headline.detail}
+                        </p>
+                    ) : null}
+                </div>
 
                 <div className="flex items-center gap-2 md:justify-end">
                     {hasDebt ? (
