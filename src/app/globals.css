@@ -48,6 +48,10 @@
     --warn-soft: #fdf3e2;
     --credit: #6d28d9;
     --credit-soft: #f1ebfc;
+    /* Biểu đồ (plan 21 F): cột chi trung tính, chỉ ngày chi bất thường đậm; cột thu xanh lá dịu */
+    --chart-out: #a3adbd;
+    --chart-out-strong: #475569;
+    --chart-in: #5fae8c;
 
     --sidebar: #ffffff;
     --sidebar-foreground: #0f172a;
@@ -95,6 +99,9 @@
     --warn-soft: rgba(251, 191, 36, 0.12);
     --credit: #b79cfb;
     --credit-soft: rgba(167, 139, 250, 0.14);
+    --chart-out: #3e4b61;
+    --chart-out-strong: #a3b1c6;
+    --chart-in: #3f9a77;
 
     --sidebar: #131b2c;
     --sidebar-foreground: #e2e8f0;
@@ -129,6 +136,9 @@
     --color-warn-soft: var(--warn-soft);
     --color-credit: var(--credit);
     --color-credit-soft: var(--credit-soft);
+    --color-chart-out: var(--chart-out);
+    --color-chart-out-strong: var(--chart-out-strong);
+    --color-chart-in: var(--chart-in);
     --color-brand-deep: var(--brand-deep);
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);

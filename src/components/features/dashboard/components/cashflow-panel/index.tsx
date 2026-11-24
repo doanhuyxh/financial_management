@@ -47,11 +47,11 @@ function Legend() {
     return (
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-sm bg-money-in" />
+                <span className="size-2.5 rounded-sm bg-chart-in" />
                 Thu
             </span>
             <span className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-sm bg-money-out" />
+                <span className="size-2.5 rounded-sm bg-chart-out" />
                 Chi
             </span>
         </div>

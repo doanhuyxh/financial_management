@@ -7,8 +7,9 @@ import { Spinner } from "@/components/shadcn/ui/spinner";
 import { useDashboardContext } from "@/components/features/dashboard/context";
 
 const SERIES: IBarSeries[] = [
-    { key: "income", label: "Thu nhập", colorClassName: "bg-money-in", textClassName: "text-money-in" },
-    { key: "expense", label: "Chi tiêu", colorClassName: "bg-money-out", textClassName: "text-money-out" },
+    // Plan 21 F: chi tiêu cột xám, thu nhập xanh lá dịu
+    { key: "income", label: "Thu nhập", colorClassName: "bg-chart-in", textClassName: "text-money-in" },
+    { key: "expense", label: "Chi tiêu", colorClassName: "bg-chart-out-strong" },
 ];
 
 export default function TrendChart() {
