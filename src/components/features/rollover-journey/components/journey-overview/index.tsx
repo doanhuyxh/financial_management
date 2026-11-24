@@ -50,7 +50,7 @@ export default function JourneyOverview() {
                     sub={`lần đáo đầu ${dayjs(selectedJourney.startedAt).format("DD/MM/YYYY")}`}
                 />
                 <Tile label="Nợ hiện tại" value={<Money value={c.debtNow} kind="debt" />} sub={c.base - c.debtNow > 0 ? <span className="text-money-in">đã giảm {formatMoney(c.base - c.debtNow)}</span> : c.base - c.debtNow < 0 ? <span className="text-debt">đã tăng {formatMoney(c.debtNow - c.base)}</span> : "bằng gốc"} />
-                <Tile label="Tổng phí đã mất" value={<Money value={c.totalFee} kind="out" />} sub={`${(c.feeRatio * 100).toFixed(1)}% gốc · ${c.count} lần`} />
+                <Tile label="Tổng phí đã mất" value={<Money value={c.totalFee} kind="fee" />} sub={`${(c.feeRatio * 100).toFixed(1)}% gốc · ${c.count} lần`} />
                 <Tile label="Tổng bạn đã tự trả" value={<Money value={c.totalPaid} kind="in" />} sub={c.totalPaid + c.totalFee > 0 ? `${Math.round((c.totalPaid / (c.totalPaid + c.totalFee)) * 100)}% vào gốc, còn lại là phí` : undefined} />
                 <Tile
                     label={c.isOpen ? "Dự kiến sạch nợ" : "Kết thúc"}

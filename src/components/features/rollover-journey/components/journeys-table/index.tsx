@@ -48,7 +48,7 @@ export default function JourneysTable() {
                                     <td className="py-1.5">{dayjs(journey.startedAt).format("DD/MM/YYYY")}</td>
                                     <td className="py-1.5 text-right">{journey.stats.rolloverCount}</td>
                                     <td className="py-1.5 text-right"><Money value={journey.baseAmount} /></td>
-                                    <td className="py-1.5 text-right"><Money value={journey.stats.totalFee} kind="out" /></td>
+                                    <td className="py-1.5 text-right"><Money value={journey.stats.totalFee} kind="fee" /></td>
                                     <td className="py-1.5 text-right">{journey.baseAmount > 0 ? `${((journey.stats.totalFee / journey.baseAmount) * 100).toFixed(1)}%` : "—"}</td>
                                     <td className="py-1.5 text-right">
                                         <span

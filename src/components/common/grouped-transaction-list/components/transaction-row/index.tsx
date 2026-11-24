@@ -66,7 +66,12 @@ export default function TransactionRow({
             <span
                 aria-hidden
                 className="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold"
-                style={{ backgroundColor: `${color}1f`, color }}
+                // Tông nhạt (plan 21): pha màu danh mục với màu chữ phụ để nhận ra nhưng không chói;
+                // áp dụng cả màu người dùng tự chọn
+                style={{
+                    backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
+                    color: `color-mix(in srgb, ${color} 55%, var(--muted-foreground))`,
+                }}
             >
                 {icon}
             </span>

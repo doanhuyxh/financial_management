@@ -17,7 +17,7 @@ interface ISegmentedProps<V extends string> {
     /** Giãn đủ chiều rộng, các mục chia đều */
     block?: boolean;
     size?: "small" | "default";
-    /** `primary`: mục đang chọn nền cam (tab chính của một khối); mặc định nổi nền `card` */
+    /** `primary`: mục đang chọn nền xanh nhạt + chữ xanh (tab chính của một khối; plan 21 G: không nền đặc); mặc định nổi nền `card` */
     variant?: "default" | "primary";
     className?: string;
     "aria-label"?: string;
@@ -59,7 +59,7 @@ export default function Segmented<V extends string>({
                     className={cn(
                         "rounded-md! text-muted-foreground hover:bg-transparent hover:text-foreground data-[state=on]:shadow-sm",
                         variant === "primary"
-                            ? "font-medium data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+                            ? "font-medium data-[state=on]:bg-primary-soft data-[state=on]:text-accent-text data-[state=on]:hover:bg-primary-soft data-[state=on]:hover:text-accent-text"
                             : "data-[state=on]:bg-card data-[state=on]:text-foreground",
                         size === "small" ? "h-6 px-2 text-xs" : "h-7 px-3 text-sm",
                         block && "flex-1",

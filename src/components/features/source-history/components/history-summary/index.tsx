@@ -20,12 +20,12 @@ export default function HistorySummary() {
         {
             label: isCreditCard ? "Phát sinh nợ" : "Tiền vào",
             value: summary ? formatMoney(summary.increase) : "—",
-            className: cn("money-value", isCreditCard ? "text-money-out" : "text-money-in"),
+            className: cn("money-value", isCreditCard ? undefined : "text-money-in"),
         },
         {
             label: isCreditCard ? "Giảm nợ" : "Tiền ra",
             value: summary ? formatMoney(summary.decrease) : "—",
-            className: cn("money-value", isCreditCard ? "text-money-in" : "text-money-out"),
+            className: cn("money-value", isCreditCard ? "text-money-in" : undefined),
         },
         {
             label: "Số giao dịch",

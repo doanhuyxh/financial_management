@@ -8,7 +8,6 @@ import Segmented from "@/components/common/segmented";
 import DailyChart from "@/components/features/dashboard/components/cashflow-panel/components/daily-chart";
 import TrendChart from "@/components/features/dashboard/components/cashflow-panel/components/trend-chart";
 import { useDashboardContext } from "@/components/features/dashboard/context";
-import { getCategoryColor, OTHER_COLOR } from "@/libs/utils/categoryColor";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
 type PanelTab = "day" | "category" | "source" | "month";
@@ -24,14 +23,13 @@ const TAB_OPTIONS: { label: string; value: PanelTab }[] = [
 const MAX_ROWS = 6;
 
 function toRows(
-    items: { id: string | null; name: string; total: number; color?: string | null }[],
+    items: { id: string | null; name: string; total: number }[],
 ): IBarRow[] {
     const sorted = [...items].sort((a, b) => b.total - a.total);
     const rows = sorted.map((item) => ({
         key: item.id ?? item.name,
         name: item.name,
         total: item.total,
-        color: getCategoryColor(item.id, item.color),
     }));
     if (rows.length <= MAX_ROWS) return rows;
     const rest = rows.slice(MAX_ROWS - 1);
@@ -41,7 +39,6 @@ function toRows(
             key: "__other__",
             name: `Khác (${rest.length})`,
             total: rest.reduce((sum, row) => sum + row.total, 0),
-            color: OTHER_COLOR,
         },
     ];
 }
@@ -50,11 +47,11 @@ function Legend() {
     return (
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-sm bg-money-in" />
+                <span className="size-2.5 rounded-sm bg-chart-in" />
                 Thu
             </span>
             <span className="flex items-center gap-1.5">
-                <span className="size-2.5 rounded-sm bg-money-out" />
+                <span className="size-2.5 rounded-sm bg-chart-out" />
                 Chi
             </span>
         </div>
@@ -76,7 +73,6 @@ export default function CashflowPanel() {
                     id: item.categoryId || null,
                     name: item.icon ? `${item.icon} ${item.categoryName}` : item.categoryName,
                     total: item.total,
-                    color: item.color,
                 })),
             ),
         [summary],

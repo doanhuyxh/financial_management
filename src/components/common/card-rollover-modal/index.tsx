@@ -96,7 +96,7 @@ function RecentRollovers({
                                 <Money value={item.amount + item.feeAmount} kind="debt" className="font-medium" />
                             </p>
                             <p className="truncate text-muted-foreground">
-                                Phí <Money value={item.feeAmount} kind="out" />
+                                Phí <Money value={item.feeAmount} kind="fee" />
                                 {item.feePercent ? ` (${item.feePercent}%)` : ""}
                                 {item.provider ? ` · ${item.provider}` : ""}
                                 {item.note ? ` · ${item.note}` : ""}
@@ -495,7 +495,7 @@ export default function CardRolloverModal({
                                     )}{" "}
                                     so với hôm nay (x − phí).
                                     {interest != null ? (
-                                        <> Lãi nếu không trả hết ≈ <Money value={interest} kind="out" />/30 ngày{feeAmount > interest ? ", phí đáo hạn đang cao hơn lãi." : "."}</>
+                                        <> Lãi nếu không trả hết ≈ <Money value={interest} kind="fee" />/30 ngày{feeAmount > interest ? ", phí đáo hạn đang cao hơn lãi." : "."}</>
                                     ) : null}
                                 </p>
                                 {mismatch ? (

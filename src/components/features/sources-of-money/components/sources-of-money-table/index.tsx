@@ -65,7 +65,8 @@ function BalanceCell({ record }: { record: ISourcesOfMoneyData }) {
             <div className="flex items-baseline justify-between gap-3">
                 {debt ? (
                     <span className="font-semibold">
-                        Nợ <Money value={debt} kind="debt" />
+                        {/* Plan 21 D: chỉ đỏ khi dùng ≥ 90% hạn mức */}
+                        Nợ <Money value={debt} kind={usedPercent >= 90 ? "debt" : "neutral"} />
                     </span>
                 ) : (
                     <span className="font-medium text-muted-foreground">Không dư nợ</span>

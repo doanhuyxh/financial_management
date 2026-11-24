@@ -15,7 +15,8 @@ export default function ChangeText({ ratio, higherIsBetter, compareLabel }: ICha
     if (ratio === 0) return <span>{`Bằng ${compareLabel}`}</span>;
     const isGood = ratio > 0 === higherIsBetter;
     return (
-        <span className={cn(isGood ? "text-money-in" : "text-money-out")}>
+        // Xấu đi là "cần chú ý" (warn), không phải lỗi (đỏ) — plan 21
+        <span className={cn(isGood ? "text-money-in" : "text-warn")}>
             {ratio > 0 ? "▲" : "▼"} {formatPercent(Math.abs(ratio))} so với {compareLabel}
         </span>
     );

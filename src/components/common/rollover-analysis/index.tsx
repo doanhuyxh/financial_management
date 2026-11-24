@@ -110,7 +110,7 @@ export default function RolloverAnalysis({ source }: IRolloverAnalysisProps) {
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                             <Tile label="Số tiền gốc" value={<Money value={journey.baseAmount} />} sub={`bắt đầu ${dayjs(journey.startedAt).format("DD/MM/YYYY")}`} />
                             <Tile label="Đã đáo" value={`${journey.stats.rolloverCount} lần`} sub={journey.endedAt ? "đã kết thúc" : "đang mở"} />
-                            <Tile label="Tổng phí đã mất" value={<Money value={journey.stats.totalFee} kind="out" />} sub={journey.baseAmount > 0 ? `${((journey.stats.totalFee / journey.baseAmount) * 100).toFixed(1)}% gốc` : undefined} />
+                            <Tile label="Tổng phí đã mất" value={<Money value={journey.stats.totalFee} kind="fee" />} sub={journey.baseAmount > 0 ? `${((journey.stats.totalFee / journey.baseAmount) * 100).toFixed(1)}% gốc` : undefined} />
                             <Tile label="Tổng tự trả" value={<Money value={journey.stats.totalPaid} kind="in" />} />
                         </div>
                         <p className="mt-2 text-xs text-muted-foreground">
@@ -172,10 +172,10 @@ export default function RolloverAnalysis({ source }: IRolloverAnalysisProps) {
                         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                             <Tile label="Hòa gốc (phí tích lũy = D)" value={result.breakEvenPeriod ? `lần ${result.breakEvenPeriod} · ${dateOf(result.breakEvenPeriod)}` : "Không chạm"} sub={result.breakEvenPeriod ? undefined : "nợ về 0 trước"} className={result.breakEvenPeriod ? "text-debt" : "text-money-in"} />
                             <Tile label="Sạch nợ nhờ tự trả x" value={result.debtFreePeriod ? `kỳ ${result.debtFreePeriod} · ${dateOf(result.debtFreePeriod)}` : "Không bao giờ"} sub={result.debtFreePeriod ? undefined : "x ≤ phí mỗi kỳ"} className={result.debtFreePeriod ? "text-money-in" : "text-debt"} />
-                            <Tile label="Tổng phí đến lúc đó" value={<Money value={result.totalFee} kind="out" />} sub={`${((result.totalFee / D) * 100).toFixed(0)}% gốc`} />
-                            <Tile label="Phí sau 6 kỳ" value={<Money value={at(6)?.cumulativeFee ?? result.totalFee} kind="out" />} />
-                            <Tile label="Phí sau 12 kỳ" value={<Money value={at(12)?.cumulativeFee ?? result.totalFee} kind="out" />} />
-                            <Tile label="Phí sau 24 kỳ" value={<Money value={at(24)?.cumulativeFee ?? result.totalFee} kind="out" />} />
+                            <Tile label="Tổng phí đến lúc đó" value={<Money value={result.totalFee} kind="fee" />} sub={`${((result.totalFee / D) * 100).toFixed(0)}% gốc`} />
+                            <Tile label="Phí sau 6 kỳ" value={<Money value={at(6)?.cumulativeFee ?? result.totalFee} kind="fee" />} />
+                            <Tile label="Phí sau 12 kỳ" value={<Money value={at(12)?.cumulativeFee ?? result.totalFee} kind="fee" />} />
+                            <Tile label="Phí sau 24 kỳ" value={<Money value={at(24)?.cumulativeFee ?? result.totalFee} kind="fee" />} />
                         </div>
                         <Alert className={cn("mt-3", x > result.firstFee ? "border-money-in text-money-in" : "border-debt text-debt")}>
                             <AlertDescription className="text-inherit">
@@ -237,7 +237,7 @@ export default function RolloverAnalysis({ source }: IRolloverAnalysisProps) {
                         <p className="mt-4 mb-1 text-sm font-semibold">So sánh phương án trong cùng thời gian</p>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                             {compare.map((c) => (
-                                <Tile key={c.key} label={c.title} value={c.value != null ? <Money value={c.value} kind="out" /> : "—"} sub={c.sub} className={c.value != null && c.value === bestValue ? "border-money-in bg-money-in-soft" : undefined} />
+                                <Tile key={c.key} label={c.title} value={c.value != null ? <Money value={c.value} kind="fee" /> : "—"} sub={c.sub} className={c.value != null && c.value === bestValue ? "border-money-in bg-money-in-soft" : undefined} />
                             ))}
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">Phương án rẻ nhất tô xanh. Đáo hạn còn kèm rủi ro bị khóa thẻ, không tính thành tiền ở đây.</p>

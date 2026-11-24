@@ -32,7 +32,7 @@ export interface IBarSeries {
     textClassName?: string;
 }
 
-/** Màu chữ cho số tiền ròng: dương xanh, âm đỏ, 0 xám */
+/** Màu chữ cho số tiền ròng: dương xanh, âm đỏ (cần chú ý), 0 xám */
 export function netTextClassName(value: number) {
     if (value > 0) return "text-money-in";
     if (value < 0) return "text-money-out";
@@ -82,6 +82,8 @@ export interface IBarGroup {
     disabled?: boolean;
     /** Vạch đứt đánh dấu (VD hôm nay) */
     highlight?: boolean;
+    /** Đổi màu cột của riêng nhóm này theo `IBarSeries.key` (VD ngày chi bất thường tô đậm) */
+    colorClassNames?: Partial<Record<string, string>>;
     labelClassName?: string;
 }
 
@@ -166,7 +168,7 @@ export default function BarChart({
                                                     className={cn(
                                                         "bar-grow w-full rounded-t-sm opacity-85 group-hover:opacity-100",
                                                         barClassName,
-                                                        item.colorClassName,
+                                                        group.colorClassNames?.[item.key] ?? item.colorClassName,
                                                     )}
                                                     style={{ height: height(group.values[item.key] ?? 0) }}
                                                 />

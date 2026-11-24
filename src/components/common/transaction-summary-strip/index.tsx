@@ -46,7 +46,7 @@ export default function TransactionSummaryStrip({
             />
             {summary.totalFee ? (
                 <span className="text-xs text-muted-foreground">
-                    Phí: <Money value={summary.totalFee} kind="out" />
+                    Phí: <Money value={summary.totalFee} kind="fee" />
                 </span>
             ) : null}
             {days ? (

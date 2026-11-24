@@ -12,13 +12,17 @@ import { useDashboardContext } from "@/components/features/dashboard/context";
 import { formatMoney } from "@/libs/utils/formatMoney";
 
 const SERIES: IBarSeries[] = [
-    { key: "income", label: "Thu", colorClassName: "bg-money-in", textClassName: "text-money-in" },
-    { key: "expense", label: "Chi", colorClassName: "bg-money-out", textClassName: "text-money-out" },
+    { key: "income", label: "Thu", colorClassName: "bg-chart-in", textClassName: "text-money-in" },
+    { key: "expense", label: "Chi", colorClassName: "bg-chart-out" },
 ];
 
+/** Ngày chi vượt mức này × trung bình các ngày có chi thì tô đậm (plan 21 F). */
+const SPIKE_RATIO = 1.8;
+
 /**
- * Thu và chi của mọi ngày trong tháng: mỗi ngày hai cột (thu xanh, chi đỏ), ngày chưa tới để trống.
- * Bấm một ngày để mở danh sách chi tiêu ngày đó.
+ * Thu và chi của mọi ngày trong tháng: mỗi ngày hai cột, ngày chưa tới để trống. Chi tiêu thường là
+ * cột xám (không đỏ — plan 21); chỉ ngày chi bất thường (> 1,8 × trung bình ngày có chi) tô đậm để mắt
+ * dừng đúng chỗ. Bấm một ngày để mở danh sách chi tiêu ngày đó.
  */
 export default function DailyChart() {
     const { summary, cashflow, monthValue, handleViewDay } = useDashboardContext();
@@ -28,6 +32,10 @@ export default function DailyChart() {
     const groups = useMemo<IBarGroup[]>(() => {
         const incomeByDay = new Map((cashflow?.incomeByDay ?? []).map((item) => [item.day, item.total]));
         const elapsed = cashflow?.period.daysElapsed ?? 0;
+        const spentDays = (summary?.byDay ?? []).filter((item) => item.day <= elapsed && item.total > 0);
+        const avgSpent = spentDays.length
+            ? spentDays.reduce((sum, item) => sum + item.total, 0) / spentDays.length
+            : 0;
         const list: IBarGroup[] = [];
         let cumulative = 0;
         for (const item of summary?.byDay ?? []) {
@@ -41,6 +49,10 @@ export default function DailyChart() {
                 values: { income, expense },
                 disabled: !past,
                 highlight: item.day === today,
+                colorClassNames:
+                    past && avgSpent > 0 && expense > avgSpent * SPIKE_RATIO
+                        ? { expense: "bg-chart-out-strong" }
+                        : undefined,
                 onClick: () => handleViewDay(item.day),
                 ariaLabel: `Ngày ${item.day}/${month}: thu ${formatMoney(income)}, chi ${formatMoney(expense)}`,
                 labelClassName:
@@ -50,8 +62,8 @@ export default function DailyChart() {
                         <span className="font-semibold">
                             Ngày {item.day}/{month}
                         </span>
-                        <ChartTooltipRow label="Thu" value={income} dotClassName="bg-money-in" valueClassName="text-money-in" />
-                        <ChartTooltipRow label="Chi" value={expense} dotClassName="bg-money-out" valueClassName="text-money-out" />
+                        <ChartTooltipRow label="Thu" value={income} dotClassName="bg-chart-in" valueClassName="text-money-in" />
+                        <ChartTooltipRow label="Chi" value={expense} dotClassName="bg-chart-out-strong" />
                         <span aria-hidden className="my-0.5 border-t border-border" />
                         <ChartTooltipRow
                             label="Ròng ngày"
