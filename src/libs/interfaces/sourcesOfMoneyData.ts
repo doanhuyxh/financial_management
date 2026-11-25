@@ -120,6 +120,19 @@ export interface IVietQrBank {
     logo: string;
 }
 
+/** App ngân hàng mở được qua deeplink của VietQR (`/v2/{ios|android}-app-deeplinks`). */
+export interface IVietQrBankApp {
+    /** Mã app dùng ở tham số `app=` (VD "mb", "vib-2") */
+    appId: string;
+    appName: string;
+    appLogo: string;
+    bankName: string;
+    /** Link chỉ mở app */
+    deeplink: string;
+    /** 1 = app nhận điền sẵn số TK, số tiền, nội dung */
+    autofill: number;
+}
+
 export interface ISourcesOfMoneyData {
     _id: string;
     name: string;

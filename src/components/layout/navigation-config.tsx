@@ -5,6 +5,7 @@ import {
     LayoutGridIcon,
     PiggyBankIcon,
     ReceiptIcon,
+    ScanQrCodeIcon,
     RefreshCwIcon,
     SettingsIcon,
     TagsIcon,
@@ -52,6 +53,11 @@ export const sidebarConfig: SidebarConfig = {
             title: "Giao dịch",
             url: MENU_KEY.TRANSACTIONS,
             icon: <ReceiptIcon />,
+        },
+        {
+            title: "Quét QR trả tiền",
+            url: MENU_KEY.SCAN_PAY,
+            icon: <ScanQrCodeIcon />,
         },
         {
             title: "Nguồn tiền",

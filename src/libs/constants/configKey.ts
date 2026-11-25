@@ -24,6 +24,7 @@ export const configQueryKey = {
 	DASHBOARD_EXPENSES_SUMMARY: "dashboard-expenses-summary",
 	DASHBOARD_CASHFLOW: "dashboard-cashflow",
 	VIETQR_BANKS: "vietqr-banks",
+	VIETQR_BANK_APPS: "vietqr-bank-apps",
 	PUBLIC_SHARE: "public-share",
 	SETTINGS: "settings",
 	TRANSACTION_AUDITS: "transaction-audits",
@@ -32,7 +33,8 @@ export const configQueryKey = {
 }
 
 export const configSessionKey = {
-
+	/** Quét QR trả tiền: kết quả vừa ghi, để quay lại từ app ngân hàng (trang bị tải lại) vẫn thấy màn copy thông tin */
+	SCAN_PAY_LAST_RESULT: "scan-pay-last-result",
 }
 
 export const configLocalStorageKey = {
@@ -43,6 +45,8 @@ export const configLocalStorageKey = {
 	DASHBOARD_CARD_FEE_HIDDEN_COLUMNS: "dashboard-card-fee-hidden-columns",
 	/** Chế độ ẩn số dư (làm mờ số tiền) */
 	PRIVACY_MODE: "privacy-mode",
+	/** Quét QR trả tiền: nguồn dùng lần trước, app ngân hàng chọn tay theo nguồn, danh mục/nguồn theo người nhận */
+	SCAN_PAY_MEMORY: "scan-pay-memory",
 }
 
 export const configCookieKey = {
