@@ -14,6 +14,7 @@
 | Lịch sử giao dịch nguồn tiền, link chia sẻ public | [source-history.md](source-history.md) |
 | Phí thẻ, kỳ sao kê, miễn phí, lãi, `credit-card-fees` API | [credit-card-fees.md](credit-card-fees.md) |
 | Đáo hạn thẻ (CardRollover, phí đáo hạn, modal dashboard) | [card-rollover.md](card-rollover.md) |
+| Quét VietQR → ghi chi tiêu → mở app ngân hàng (deeplink), `/scan-pay` | [scan-pay.md](scan-pay.md) |
 | Danh mục, `kind` | [categories.md](categories.md) |
 | Dashboard (chi tiêu, dòng tiền, tài sản, dư nợ) | [dashboard.md](dashboard.md) |
 | Bảng phí thẻ trên dashboard | [dashboard-card-fees.md](dashboard-card-fees.md) |

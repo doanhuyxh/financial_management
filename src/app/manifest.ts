@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { THEME_SURFACE } from "@/libs/constants/brandColors";
+import { MENU_KEY } from "@/libs/constants/menuKey";
 import { buildTransactionsUrl } from "@/libs/utils/transactionsUrl";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -26,6 +27,12 @@ export default function manifest(): MetadataRoute.Manifest {
         ],
         // Nhấn giữ icon app (Android/desktop) để ghi giao dịch ngay
         shortcuts: [
+            {
+                name: "Quét QR trả tiền",
+                short_name: "Quét QR",
+                url: MENU_KEY.SCAN_PAY,
+                icons: [{ src: "/icon-192.png?v=3", sizes: "192x192" }],
+            },
             {
                 name: "Ghi chi tiêu",
                 short_name: "Chi tiêu",
