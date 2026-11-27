@@ -3,7 +3,7 @@ import CategoriesComponent from "@/components/features/categories"
 import { Suspense } from "react"
 
 export const metadata = {
-  title: "Categories",
+  title: "Danh mục",
   description: "Categories page",
 }
 

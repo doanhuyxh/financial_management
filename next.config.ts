@@ -12,7 +12,7 @@ const loggingDev: NextConfig["logging"] = {
 }
 
 const nextConfig: NextConfig = {
-  // deploy.sh build vào thư mục tạm (NEXT_DIST_DIR) trong khi bản cũ vẫn chạy, xong mới đổi sang .next.
+  // Cho phép build ra thư mục khác (VD smoke test) mà không đè .next đang dùng
   distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   reactCompiler: false,

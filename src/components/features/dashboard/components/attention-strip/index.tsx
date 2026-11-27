@@ -37,14 +37,15 @@ export default function AttentionStrip() {
                     <div
                         key={item.key}
                         className={cn(
-                            "flex shrink-0 items-center gap-2 rounded-full border py-1 pl-3 text-xs",
+                            // Chip không rộng quá màn hình: tiêu đề dài thì xuống dòng, nút luôn thấy đủ
+                            "flex max-w-full shrink-0 items-center gap-2 rounded-full border py-1 pl-3 text-xs",
                             CHIP_CLASS[item.tone],
                             hasAction ? "pr-1" : "pr-3",
                         )}
                     >
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <span className="font-medium whitespace-nowrap">{item.title}</span>
+                                <span className="min-w-0 font-medium md:whitespace-nowrap">{item.title}</span>
                             </TooltipTrigger>
                             <TooltipContent className="money-value">{item.description}</TooltipContent>
                         </Tooltip>

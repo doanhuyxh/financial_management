@@ -28,6 +28,8 @@ iPhone 17, iOS 27.2, Safari, bản build local với dữ liệu giả. Không t
 | 20 | Drawer kéo đóng, không thấy lỗi font | Đã sửa 27/11: chạm cột hiện tooltip, chạm lần nữa mới chuyển trang |
 | 21 | Chi tiêu không đỏ, dư nợ đỏ đúng khi sắp hạn hoặc gần hết hạn mức. Đã xử lý 27/11: cắt cột đột biến, có vạch đứt | — |
 
+Quét thêm mọi trang ở bề ngang 360px (khung trình duyệt giả lập, 27/11/2026), đã sửa: khoản chi dự kiến đến hạn bị số tiền đè tên; bộ lọc loại ở lịch sử thẻ đè chữ; số tổng trang Nguồn tiền sát/tràn ô; chip "Cần chú ý" bị cắt nút; dòng chuyển tiền mất tên nguồn nhận; tiêu đề tab còn tiếng Anh.
+
 Chưa kiểm: máy thật, Android Chrome, hiệu ứng chuyển động của modal/dropdown, gzip nginx, production.
 
 ## Định nghĩa "xong"

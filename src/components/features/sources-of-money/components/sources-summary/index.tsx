@@ -2,6 +2,7 @@
 
 import Money from "@/components/common/money";
 import { useSourcesOfMoneyContext } from "@/components/features/sources-of-money/context";
+import { cn } from "@/libs/shadcn/utils";
 
 /** Tổng tiền mặt / dư nợ thẻ / tín dụng khả dụng trên toàn bộ nguồn (không theo bộ lọc). */
 export default function SourcesSummary() {
@@ -15,11 +16,15 @@ export default function SourcesSummary() {
     ];
 
     return (
-        <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-border bg-card">
+        // Điện thoại xếp dọc: ba cột không đủ chỗ cho số tiền hàng trăm triệu, hàng tỷ
+        <div className="grid overflow-hidden rounded-xl border border-border bg-card min-[480px]:grid-cols-3">
             {cells.map((cell, index) => (
                 <div
                     key={cell.label}
-                    className={index ? "border-l border-border p-3 sm:p-4" : "p-3 sm:p-4"}
+                    className={cn(
+                        "flex items-center justify-between gap-3 px-3 py-2 min-[480px]:block min-[480px]:py-3 sm:p-4",
+                        index && "border-t border-border min-[480px]:border-t-0 min-[480px]:border-l",
+                    )}
                 >
                     <p className="text-xs text-muted-foreground">{cell.label}</p>
                     <div className="text-sm font-semibold sm:text-lg">{cell.node}</div>
