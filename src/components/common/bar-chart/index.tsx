@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/shadcn/ui/tooltip";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { cn } from "@/libs/shadcn/utils";
@@ -101,6 +101,43 @@ interface IBarChartProps {
 }
 
 /**
+ * Tooltip Radix chỉ mở bằng hover / focus bàn phím, nên trên cảm ứng phải tự mở khi chạm. Cột có
+ * `onClick`: chạm lần đầu xem số, chạm lần nữa mới chạy `onClick`. Cột không có: chạm lần nữa để đóng.
+ * Chuột và bàn phím giữ nguyên (bấm là chạy `onClick`).
+ */
+function useChartTooltip() {
+    const [openKey, setOpenKey] = useState<string | null>(null);
+    const touchRef = useRef<{ wasOpen: boolean } | null>(null);
+
+    return (key: string, onClick?: () => void) => ({
+        root: {
+            open: openKey === key,
+            onOpenChange: (open: boolean) =>
+                setOpenKey((current) => (open ? key : current === key ? null : current)),
+        },
+        trigger: {
+            // Ghi trạng thái trước khi Radix đóng tooltip ở pointerdown
+            onPointerDown: (event: PointerEvent) => {
+                touchRef.current = event.pointerType === "mouse" ? null : { wasOpen: openKey === key };
+            },
+            onClick: (event: MouseEvent) => {
+                const touch = touchRef.current;
+                touchRef.current = null;
+                if (touch) {
+                    // Chặn Radix đóng tooltip khi click
+                    event.preventDefault();
+                    if (!touch.wasOpen || !onClick) {
+                        setOpenKey(touch.wasOpen ? null : key);
+                        return;
+                    }
+                }
+                onClick?.();
+            },
+        },
+    });
+}
+
+/**
  * Biểu đồ cột nhóm vẽ bằng div + CSS (không thư viện biểu đồ): màu theo token nên tự đúng sáng/tối,
  * số tiền có class `money-value` cho chế độ ẩn số dư, cột mọc từ dưới lên khi hiện (`bar-grow`).
  */
@@ -120,6 +157,7 @@ export default function BarChart({
     }, [groups, series]);
     const height = (value: number) => (value > 0 ? `${Math.max(1.5, (value / max) * 100)}%` : "0%");
     const scroll = isMobile && mobileMinWidthClassName;
+    const tooltipProps = useChartTooltip();
 
     return (
         <div className={cn("flex flex-col gap-2", className)}>
@@ -181,15 +219,15 @@ export default function BarChart({
                                         group.onClick && !group.disabled && "cursor-pointer",
                                         group.highlight && "border-r border-dashed border-primary/60",
                                     );
+                                    const tooltip = tooltipProps(group.key, group.onClick);
                                     return (
-                                        <Tooltip key={group.key}>
-                                            <TooltipTrigger asChild>
+                                        <Tooltip key={group.key} {...tooltip.root}>
+                                            <TooltipTrigger asChild {...tooltip.trigger}>
                                                 {group.onClick ? (
                                                     <button
                                                         type="button"
                                                         disabled={group.disabled}
                                                         aria-label={group.ariaLabel}
-                                                        onClick={group.onClick}
                                                         className={triggerClass}
                                                     >
                                                         {bars}

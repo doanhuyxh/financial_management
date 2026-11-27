@@ -100,7 +100,7 @@ export default function CashflowPanel() {
     const header: Record<PanelTab, { title: string; subtitle: React.ReactNode }> = {
         day: {
             title: `Thu chi theo ngày · ${monthLabel}`,
-            subtitle: "Mọi ngày trong tháng · bấm một ngày để xem chi tiêu ngày đó",
+            subtitle: "Mọi ngày trong tháng · bấm một ngày để xem chi tiêu ngày đó (cảm ứng: chạm lần nữa)",
         },
         category: {
             title: `Chi tiêu tháng ${monthLabel} theo danh mục`,
