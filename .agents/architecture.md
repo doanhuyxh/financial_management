@@ -108,3 +108,7 @@ Bảng URL → feature, query param của từng trang, menu và điều hướn
 5. Client: `networkApi/<entity>.api.ts` → `customHooks/use<Entity>.ts` → query key mới trong `configQueryKey`.
 6. UI: `components/features/<entity>/` theo [conventions.md](conventions.md), page ở `app/(protected)/<entity>/`, thêm menu + `menuKey`, cập nhật [pages.md](pages.md).
 7. Thêm file nghiệp vụ trong [business/](business/README.md) và dòng định tuyến tương ứng trong `AGENTS.md`.
+
+## Mở app từ Màn hình chính (iOS)
+
+iOS hiện ảnh `apple-touch-startup-image` trong lúc chờ HTML + CSS (nếu không có thì trắng). Khai ở `app/layout.tsx` (`appleWebApp.startupImage`, kèm thẻ `apple-mobile-web-app-capable` vì Next 16 không sinh; thiếu thẻ này iOS bỏ qua ảnh). Danh sách cỡ máy: `libs/constants/startupImages.ts`; ảnh tĩnh ở `public/startup/` (luôn nền tối, logo trùng vị trí splash `common/loading`), cache 1 năm, `proxy.ts` cho tải không cần đăng nhập. iOS tải đúng một ảnh khớp máy lúc thêm vào Màn hình chính.

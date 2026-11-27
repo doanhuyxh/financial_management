@@ -36,6 +36,8 @@ export default function HistoryToolbar() {
         <div className="flex flex-wrap items-center gap-3">
             <Segmented<KindOption>
                 block={isMobile}
+                // Thẻ tín dụng có 6 mục: máy hẹp thì vuốt ngang thay vì chữ đè lên nhau
+                className="no-scrollbar max-w-full overflow-x-auto *:shrink-0 *:grow *:basis-auto"
                 aria-label="Loại giao dịch"
                 value={kind || ALL_KINDS}
                 options={isCreditCard ? CREDIT_KIND_OPTIONS : KIND_OPTIONS}

@@ -71,7 +71,8 @@ export default function TransfersTable() {
                         color={OTHER_COLOR}
                         icon={<ArrowLeftRight className="size-4" />}
                         title={
-                            <span className="truncate">
+                            // Xuống dòng thay vì cắt: cắt thì mất tên nguồn nhận
+                            <span className="min-w-0 break-words">
                                 {from?.name ?? "—"} → {to?.name ?? "—"}
                             </span>
                         }

@@ -40,6 +40,7 @@ Chạy bằng `bun scripts/<file>.ts` từ thư mục gốc (alias `@/` hoạt �
 | `backfill-opening-balance.ts` | Chạy một lần trước khi dùng đối soát: bổ sung "Số dư ban đầu" (OPENING) cho nguồn tạo trước khi có BalanceAdjustment, đánh dấu bản ghi số dư ban đầu cũ, đặt `ledgerCompleteAt`. Mặc định chạy thử; `--apply`, `--user <id>` |
 | `reconcile-balances.ts` | So số dư/dư nợ đang lưu với sổ cái, in bù trừ lỗi chưa xử lý. `--apply` sửa số lưu về theo sổ (chỉ nguồn sửa được), `--all` gồm nguồn đã lưu trữ, `--user <id>`. Mã thoát 1 khi còn lệch |
 | `backfill-category-icons.ts` | Gán emoji cho danh mục chưa có icon, đoán theo từ khóa trong tên (bỏ dấu). Chỉ đụng danh mục chưa lưu trữ và chưa có icon; không đổi màu. Mặc định chạy thử; `--apply` để ghi DB |
+| `generate-startup-images.ts` | Vẽ ảnh khởi động iOS vào `public/startup/` từ `icon-512.png` theo danh sách máy ở `libs/constants/startupImages.ts` (cần `ffmpeg`; không đụng DB). Đổi icon, màu hoặc thêm máy thì chạy lại, tăng `STARTUP_VERSION` nếu ảnh cũ đổi nội dung, commit ảnh |
 
 ## Deploy
 

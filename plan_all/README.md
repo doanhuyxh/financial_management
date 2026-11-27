@@ -13,6 +13,7 @@ Các kế hoạch đã triển khai xong được xóa khỏi thư mục này. `
 | 19 | Bảng màu tài chính: đã chọn và code phương án A "Xanh ngân hàng" (slate + xanh `#1d4ed8`, tín dụng tím, icon mới) 16/11/2026 (commit `be6ee8c`). Còn: kiểm icon/thanh trình duyệt trên điện thoại thật, xem với dữ liệu thật | Trung bình | [19-de-xuat-bang-mau-tai-chinh.md](19-de-xuat-bang-mau-tai-chinh.md) · [mockup](19-de-xuat-bang-mau-tai-chinh-mockup.html) |
 | 20 | Tiết kiệm dữ liệu 4G: đã code + commit 16/11/2026 (`8d0ecd1`, `db8e11b`, `30df778`; đã merge `main`, chưa kiểm production): bỏ G2 → biểu đồ tự vẽ có tooltip màu, font hệ thống, bỏ `motion` → hiệu ứng CSS, staleTime 5 phút + nút Làm mới, ETag chỉ cho lãi suất, bỏ pravatar, cache favicon. Lần đầu 753 → 537 KB, trang biểu đồ 486 → 68 KB. Còn: bật gzip nginx, kiểm điện thoại thật, xác nhận deploy và đo lại trên production (biểu đồ mobile tự cuộn tới hôm nay đã làm 27/11) | Trung bình | [20-tiet-kiem-du-lieu-4g.md](20-tiet-kiem-du-lieu-4g.md) |
 | 21 | Giảm màu gây mất tập trung: bảng token ổn, vấn đề là cách dùng — chi tiêu thường tô đỏ khắp nơi, 4–6 màu nhấn mỗi màn, danh mục 10 màu đậm, nhiều nút đặc. Đề xuất "trung tính trước, màu khi cần chú ý" (A–H). Đã code đủ A–H 24/11/2026. Còn: kiểm điện thoại thật (cột lương áp đảo biểu đồ ngày đã xử lý 27/11) | Trung bình | [21-giam-mau-gay-mat-tap-trung.md](21-giam-mau-gay-mat-tap-trung.md) · [mockup](21-giam-mau-gay-mat-tap-trung-mockup.html) |
+| 22 | Mở app từ Màn hình chính thấy đen rồi trắng: đen là chờ khởi động + phản hồi đầu, trắng là chờ CSS chặn vẽ. Đã code ảnh khởi động iOS, máy ảo hết khung trắng (27/11/2026); còn kiểm iPhone thật, service worker chưa làm | Thấp | [22-man-hinh-khoi-dong.md](22-man-hinh-khoi-dong.md) |
 
 ## Kiểm trên iPhone ảo (27/11/2026)
 
@@ -26,6 +27,8 @@ iPhone 17, iOS 27.2, Safari, bản build local với dữ liệu giả. Không t
 | 18, 19 | Thanh trạng thái Safari đổi theo theme app ngay khi bấm (máy đang sáng, app tối); sidebar tối đọc rõ; icon Màn hình chính đúng, tên "Money" | Mở web app lần đầu: màn đen → trắng → trang đăng nhập (chưa xem lại với theme tối) |
 | 20 | Drawer kéo đóng, không thấy lỗi font | Đã sửa 27/11: chạm cột hiện tooltip, chạm lần nữa mới chuyển trang |
 | 21 | Chi tiêu không đỏ, dư nợ đỏ đúng khi sắp hạn hoặc gần hết hạn mức. Đã xử lý 27/11: cắt cột đột biến, có vạch đứt | — |
+
+Quét thêm mọi trang ở bề ngang 360px (khung trình duyệt giả lập, 27/11/2026), đã sửa: khoản chi dự kiến đến hạn bị số tiền đè tên; bộ lọc loại ở lịch sử thẻ đè chữ; số tổng trang Nguồn tiền sát/tràn ô; chip "Cần chú ý" bị cắt nút; dòng chuyển tiền mất tên nguồn nhận; tiêu đề tab còn tiếng Anh.
 
 Chưa kiểm: máy thật, Android Chrome, hiệu ứng chuyển động của modal/dropdown, gzip nginx, production.
 

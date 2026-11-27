@@ -51,8 +51,9 @@ export default function PlannedExpensesPanel() {
                     const name = category?.name ?? "—";
                     const due = isDue(record);
                     return (
-                        <div key={record._id} className="flex items-center gap-2 pr-3">
-                            <div className="min-w-0 flex-1">
+                        // Mobile: nút Xác nhận xuống dòng riêng, nếu không tên danh mục bị số tiền đè lên
+                        <div key={record._id} className="flex flex-col pr-3 sm:flex-row sm:items-center sm:gap-2">
+                            <div className="min-w-0 sm:flex-1">
                                 <TransactionRow
                                     color={getCategoryColor(category?._id, category?.color)}
                                     icon={category?.icon || name.charAt(0).toUpperCase()}
@@ -88,6 +89,7 @@ export default function PlannedExpensesPanel() {
                                 <Button
                                     type="button"
                                     size="sm"
+                                    className="mb-2.5 self-end sm:mb-0 sm:self-auto"
                                     onClick={() => handleConfirmPlanned(record)}
                                 >
                                     Xác nhận

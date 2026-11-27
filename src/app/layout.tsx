@@ -6,6 +6,7 @@ import NextTopLoader from "nextjs-toploader";
 import ClientApp from "@/components/providers/client-app";
 import { THEME_SURFACE } from "@/libs/constants/brandColors";
 import { configCookieKey } from "@/libs/constants/configKey";
+import { STARTUP_IMAGES } from "@/libs/constants/startupImages";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -25,7 +26,10 @@ export const metadata: Metadata = {
     capable: true,
     title: "Money",
     statusBarStyle: "default",
+    startupImage: STARTUP_IMAGES,
   },
+  // Next 16 chỉ sinh `mobile-web-app-capable`; iOS cần thẻ `apple-` thì mới dùng ảnh khởi động
+  other: { "apple-mobile-web-app-capable": "yes" },
   formatDetection: { telephone: false },
   icons: {
     icon: "/favicon.ico?v=3",

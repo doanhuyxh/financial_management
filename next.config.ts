@@ -12,7 +12,7 @@ const loggingDev: NextConfig["logging"] = {
 }
 
 const nextConfig: NextConfig = {
-  // deploy.sh build vào thư mục tạm (NEXT_DIST_DIR) trong khi bản cũ vẫn chạy, xong mới đổi sang .next.
+  // Cho phép build ra thư mục khác (VD smoke test) mà không đè .next đang dùng
   distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   reactCompiler: false,
@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
       // Icon có tham số phiên bản (?v=3, đổi icon thì tăng số) nên cache 1 năm: không tải lại favicon mỗi lần chuyển trang trên 4G
       {
         source: "/:icon(favicon.ico|apple-touch-icon.png|icon-192.png|icon-512.png)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      // Ảnh khởi động iOS cũng đổi bằng ?v= (STARTUP_VERSION)
+      {
+        source: "/startup/:file",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
       {

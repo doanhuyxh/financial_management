@@ -3,7 +3,7 @@ import DashboardComponent from "@/components/features/dashboard"
 import { Suspense } from "react"
 
 export const metadata = {
-    title: "Dashboard",
+    title: "Tổng quan",
     description: "Dashboard page",
 }
 
