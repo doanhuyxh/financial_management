@@ -87,6 +87,9 @@ export default function SourceDailyChart({ sourceId, isCreditCard, initialDay }:
                     series={series}
                     groups={groups}
                     legend
+                    clipOutliers
+                    // Tháng hiện tại: mở ở hôm nay; tháng khác không khớp ngày nào nên mở từ đầu
+                    scrollToKey={dayjs().format("YYYY-MM-DD")}
                     heightClassName="h-56"
                     barClassName="max-w-2"
                     mobileMinWidthClassName="min-w-160"

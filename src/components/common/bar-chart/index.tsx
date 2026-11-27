@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/shadcn/ui/tooltip";
 import { useIsMobile } from "@/libs/hooks/use-mobile";
 import { cn } from "@/libs/shadcn/utils";
@@ -21,6 +21,25 @@ export function niceMax(value: number) {
     const magnitude = 10 ** Math.floor(Math.log10(raw));
     const step = (NICE_STEPS.find((item) => item * magnitude >= raw) ?? 10) * magnitude;
     return step * GRID_STEPS;
+}
+
+/** Giá trị lớn hơn mức này × giá trị kế tiếp thì coi là đột biến (VD ngày nhận lương). */
+const OUTLIER_RATIO = 2.5;
+/** Tối đa số cột đột biến được cắt (VD hai kỳ lương trong tháng). */
+const MAX_OUTLIERS = 2;
+
+/**
+ * Đỉnh dùng để chia trục khi cho cắt cột đột biến: bỏ qua tối đa `MAX_OUTLIERS` giá trị cao vượt hẳn
+ * phần còn lại, để các cột nhỏ không bị ép thành vạch. Ít hơn 4 giá trị dương thì giữ đỉnh thật.
+ */
+export function axisPeak(values: number[]) {
+    const sorted = values.filter((value) => value > 0).sort((a, b) => b - a);
+    if (sorted.length >= 4) {
+        for (let count = 1; count <= MAX_OUTLIERS; count += 1) {
+            if (sorted[count - 1] > sorted[count] * OUTLIER_RATIO) return sorted[count];
+        }
+    }
+    return sorted[0] ?? 0;
 }
 
 export interface IBarSeries {
@@ -97,6 +116,10 @@ interface IBarChartProps {
     /** Bề rộng tối thiểu trên mobile để cuộn ngang khi nhiều cột, VD "min-w-160" */
     mobileMinWidthClassName?: string;
     legend?: boolean;
+    /** Cắt cột cao đột biến (đánh dấu vạch đứt, số thật xem ở tooltip) để các cột còn lại đọc được */
+    clipOutliers?: boolean;
+    /** Khi biểu đồ cuộn ngang: mở ở vị trí thấy được nhóm này (VD hôm nay) */
+    scrollToKey?: string;
     className?: string;
 }
 
@@ -148,15 +171,30 @@ export default function BarChart({
     barClassName = "max-w-3",
     mobileMinWidthClassName,
     legend = false,
+    clipOutliers = false,
+    scrollToKey,
     className,
 }: IBarChartProps) {
     const isMobile = useIsMobile();
-    const max = useMemo(() => {
-        const peak = Math.max(0, ...groups.flatMap((group) => series.map((item) => group.values[item.key] ?? 0)));
-        return niceMax(peak);
-    }, [groups, series]);
-    const height = (value: number) => (value > 0 ? `${Math.max(1.5, (value / max) * 100)}%` : "0%");
-    const scroll = isMobile && mobileMinWidthClassName;
+    const { max, clipped } = useMemo(() => {
+        const values = groups.flatMap((group) => series.map((item) => group.values[item.key] ?? 0));
+        const peak = Math.max(0, ...values);
+        const axisMax = niceMax(clipOutliers ? axisPeak(values) : peak);
+        return { max: axisMax, clipped: peak > axisMax };
+    }, [groups, series, clipOutliers]);
+    const height = (value: number) => (value > 0 ? `${Math.min(100, Math.max(1.5, (value / max) * 100))}%` : "0%");
+    const scroll = Boolean(isMobile && mobileMinWidthClassName);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const scrollIndex = groups.findIndex((group) => group.key === scrollToKey);
+    const groupCount = groups.length;
+
+    useEffect(() => {
+        const element = scrollRef.current;
+        if (!element || !scroll || scrollIndex < 0) return;
+        // Chừa thêm 2 nhóm bên phải để nhóm đích không nằm sát mép
+        const right = (element.scrollWidth * (scrollIndex + 3)) / groupCount;
+        element.scrollLeft = Math.max(0, right - element.clientWidth);
+    }, [scroll, scrollIndex, groupCount]);
     const tooltipProps = useChartTooltip();
 
     return (
@@ -171,22 +209,23 @@ export default function BarChart({
                     ))}
                 </div>
             ) : null}
-            <div className={scroll ? "overflow-x-auto pb-1" : undefined}>
-                {/* pt: nhãn trục Y trên cùng dịch lên nửa dòng, chừa chỗ để không bị cắt */}
-                <div className={cn("flex gap-2 pt-1.5", scroll && mobileMinWidthClassName)}>
-                    <div
-                        className={cn(
-                            "flex w-10 shrink-0 flex-col-reverse justify-between text-right text-[10px] leading-none text-muted-foreground tabular-nums",
-                            heightClassName,
-                        )}
-                    >
-                        {Array.from({ length: GRID_STEPS + 1 }, (_, index) => (
-                            <span key={index} className="money-value -translate-y-1/2 first:translate-y-0">
-                                {index === 0 ? "0" : formatCompactMoney((max * index) / GRID_STEPS)}
-                            </span>
-                        ))}
-                    </div>
-                    <div className="min-w-0 flex-1">
+            {/* pt: nhãn trục Y trên cùng dịch lên nửa dòng, chừa chỗ để không bị cắt */}
+            <div className="flex gap-2">
+                {/* Trục Y nằm ngoài vùng cuộn để luôn nhìn thấy */}
+                <div
+                    className={cn(
+                        "mt-1.5 flex w-10 shrink-0 flex-col-reverse justify-between text-right text-[10px] leading-none text-muted-foreground tabular-nums",
+                        heightClassName,
+                    )}
+                >
+                    {Array.from({ length: GRID_STEPS + 1 }, (_, index) => (
+                        <span key={index} className="money-value -translate-y-1/2 first:translate-y-0">
+                            {index === 0 ? "0" : formatCompactMoney((max * index) / GRID_STEPS)}
+                        </span>
+                    ))}
+                </div>
+                <div ref={scrollRef} className={cn("min-w-0 flex-1 pt-1.5", scroll && "overflow-x-auto pb-1")}>
+                    <div className={scroll ? mobileMinWidthClassName : undefined}>
                         <div className={cn("relative border-b border-border", heightClassName)}>
                             {Array.from({ length: GRID_STEPS }, (_, index) => (
                                 <span
@@ -204,12 +243,17 @@ export default function BarChart({
                                                 <span
                                                     key={item.key}
                                                     className={cn(
-                                                        "bar-grow w-full rounded-t-sm opacity-85 group-hover:opacity-100",
+                                                        "bar-grow relative w-full rounded-t-sm opacity-85 group-hover:opacity-100",
                                                         barClassName,
                                                         group.colorClassNames?.[item.key] ?? item.colorClassName,
                                                     )}
                                                     style={{ height: height(group.values[item.key] ?? 0) }}
-                                                />
+                                                >
+                                                    {(group.values[item.key] ?? 0) > max ? (
+                                                        // Vạch đứt: cột cao hơn trục
+                                                        <span className="absolute -inset-x-px top-2 h-1 -skew-y-12 bg-card" />
+                                                    ) : null}
+                                                </span>
                                             ))}
                                         </span>
                                     );
@@ -283,6 +327,11 @@ export default function BarChart({
                     </div>
                 </div>
             </div>
+            {clipped ? (
+                <p className="text-[11px] text-muted-foreground">
+                    Cột có vạch đứt cao hơn trục, xem số thật khi chạm hoặc rê vào cột.
+                </p>
+            ) : null}
         </div>
     );
 }
