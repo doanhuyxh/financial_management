@@ -1,10 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import dayjs, { type Dayjs } from "dayjs";
 import type { IPageChange } from "@/components/common/pagination";
 import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
+import { useConsumeSearchParams } from "@/libs/hooks/useConsumeSearchParams";
 import {
     useCreateExpense,
     useDeleteExpense,
@@ -34,6 +35,7 @@ import type { IExpensesContextProps } from "./type";
 import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 
 // 20 dòng lấp đủ màn hình desktop; mobile cuộn tiếp
+const CONSUMED_PARAMS = ["action", "date", "sourceOfMoneyId", "amount", "note", "cardFeeType"] as const;
 const DEFAULT_PAGE_SIZE = 20;
 const EMPTY_ITEMS: IExpensesData[] = [];
 const EMPTY_DAY_TOTALS: IDayTotal[] = [];
@@ -175,17 +177,8 @@ export default function ExpensesContextProvider({
         setModalOpen(true);
     }, []);
 
-    // Drop `?action=create` / `?date=...` once consumed so a reload doesn't
-    // reopen the modal or re-apply the filter. Native history API syncs with
-    // the Next router without a server round-trip.
-    useEffect(() => {
-        const consumed = ["action", "date", "sourceOfMoneyId", "amount", "note", "cardFeeType"];
-        if (!consumed.some((key) => searchParams.has(key))) return;
-        const params = new URLSearchParams(searchParams.toString());
-        consumed.forEach((key) => params.delete(key));
-        const qs = params.toString();
-        window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
-    }, [searchParams]);
+    // Đã đọc `?action=create` / `?date=...` thì xóa khỏi địa chỉ
+    useConsumeSearchParams(CONSUMED_PARAMS);
 
     const closeModal = useCallback(() => {
         setModalOpen(false);

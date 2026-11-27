@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import type { Dayjs } from "dayjs";
 import type { IPageChange } from "@/components/common/pagination";
 import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
+import { useConsumeSearchParams } from "@/libs/hooks/useConsumeSearchParams";
 import {
     useCreateIncome,
     useDeleteIncome,
@@ -17,6 +18,8 @@ import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 import { useSearchParams } from "next/navigation";
 
 // 20 dòng lấp đủ màn hình desktop; mobile cuộn tiếp
+/** Query dùng một lần để mở sẵn form tạo mới */
+const CONSUMED_PARAMS = ["action"] as const;
 const DEFAULT_PAGE_SIZE = 20;
 const EMPTY_ITEMS: IIncomesData[] = [];
 const EMPTY_DAY_TOTALS: IDayTotal[] = [];
@@ -53,6 +56,7 @@ export default function IncomesContextProvider({
         () => searchParams.get("action") === "create",
     );
     const [editingItem, setEditingItem] = useState<IIncomesData | null>(null);
+    useConsumeSearchParams(CONSUMED_PARAMS);
 
     const query = useMemo(
         () => ({

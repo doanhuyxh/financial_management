@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import type { Dayjs } from "dayjs";
 import type { IPageChange } from "@/components/common/pagination";
 import { useAppFeedback } from "@/libs/hooks/useAppFeedback";
+import { useConsumeSearchParams } from "@/libs/hooks/useConsumeSearchParams";
 import {
     useCreateTransfer,
     useDeleteTransfer,
@@ -19,6 +20,8 @@ import { formatMoney } from "@/libs/utils/formatMoney";
 import type { IDayTotal } from "@/libs/interfaces/ApiResponseData";
 
 // 20 dòng lấp đủ màn hình desktop; mobile cuộn tiếp
+/** Query dùng một lần để mở sẵn form tạo mới */
+const CONSUMED_PARAMS = ["action", "fromSourceId", "toSourceId", "amount"] as const;
 const DEFAULT_PAGE_SIZE = 20;
 const EMPTY_ITEMS: ITransfersData[] = [];
 const EMPTY_DAY_TOTALS: IDayTotal[] = [];
@@ -66,6 +69,8 @@ export default function TransfersContextProvider({
         };
         return Object.values(defaults).some((value) => value !== undefined) ? defaults : null;
     });
+
+    useConsumeSearchParams(CONSUMED_PARAMS);
 
     const query = useMemo(
         () => ({
