@@ -265,7 +265,8 @@ export default function CardRolloverModal({
 
     const interest = interestRate != null && advanced > 0 ? estimateInterest(advanced, interestRate) : null;
     const mismatch = Math.abs(paymentAmount + advanced - debt) > 1;
-    const debtAfter = swiped;
+    // Server chỉ cộng phí vào dư nợ, x đi bằng chuyển tiền; đáo một phần thì phần còn lại vẫn nợ
+    const debtAfter = Math.max(0, debt - paymentAmount) + feeAmount;
     const diff = paymentAmount - feeAmount;
 
     const submit = handleSubmit(async (values) => {

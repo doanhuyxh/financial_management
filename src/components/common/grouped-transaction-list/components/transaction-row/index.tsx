@@ -15,8 +15,9 @@ interface ITransactionRowProps {
     /** Dòng phụ dưới tiêu đề; khi có `columns` thì chỉ hiện dưới lg */
     subtitle?: ReactNode;
     /**
-     * Cột thông tin trên màn hình ≥ lg (VD: [nguồn, ghi chú]). Cột đầu cố định, cột cuối giãn lấp
-     * chỗ trống; dưới lg các cột ẩn và dùng `subtitle`.
+     * Cột thông tin trên màn hình ≥ lg (VD: [nguồn, ghi chú]). Các cột đầu rộng chuẩn và co lại khi
+     * danh sách hẹp (để số tiền và menu không bị đẩy ra ngoài), cột cuối giãn lấp chỗ trống; dưới lg
+     * các cột ẩn và dùng `subtitle`.
      */
     columns?: ReactNode[];
     amount: ReactNode;
@@ -75,7 +76,7 @@ export default function TransactionRow({
             >
                 {icon}
             </span>
-            <div className={cn("min-w-0 flex-1", columns?.length && "lg:w-64 lg:flex-none")}>
+            <div className={cn("min-w-0 flex-1", columns?.length && "lg:flex-[0_1_16rem]")}>
                 <div className="flex flex-wrap items-center gap-1 font-medium">{title}</div>
                 {subtitle ? (
                     <p
@@ -93,13 +94,14 @@ export default function TransactionRow({
                     key={index}
                     className={cn(
                         "hidden min-w-0 truncate text-sm text-muted-foreground lg:block",
-                        index === columns.length - 1 ? "flex-1" : "w-52 shrink-0",
+                        index === columns.length - 1 ? "flex-[1_1_6rem]" : "flex-[0_1_13rem]",
                     )}
                 >
                     {column || "—"}
                 </div>
             ))}
-            <div className="shrink-0 text-right font-semibold">{amount}</div>
+            {/* lg: bề rộng tối thiểu để cột các dòng thẳng hàng dù số tiền dài ngắn khác nhau */}
+            <div className={cn("shrink-0 text-right font-semibold", columns?.length && "lg:min-w-36")}>{amount}</div>
             {lockedHint ? (
                 <span className="w-16 shrink-0 text-right text-[11px] leading-tight text-muted-foreground">
                     {lockedHint}

@@ -44,7 +44,8 @@ export default function JourneyTimeline() {
                             </div>
                             {event.debtAfter != null ? (
                                 <div className="col-start-2 text-xs md:col-start-3 md:text-right">
-                                    <span className="text-debt tabular-nums">nợ {event.kind === "projected" ? "≈" : ""}{formatMoney(event.debtAfter)}</span>
+                                    <span className="text-debt tabular-nums">{/* Lần đáo / khoản trả thực tế chỉ theo phần đã đáo, không phải toàn bộ dư nợ thẻ */}
+                                    {event.kind === "projected" ? "nợ ≈" : "phần đáo còn "}{formatMoney(event.debtAfter)}</span>
                                     {event.cumFee != null ? (
                                         <span className="block text-muted-foreground tabular-nums">phí tích lũy {formatMoney(event.cumFee)} · {((event.feeRatio ?? 0) * 100).toFixed(1)}%</span>
                                     ) : null}

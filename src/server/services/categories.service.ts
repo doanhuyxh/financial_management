@@ -86,6 +86,23 @@ function normalizeAppearance(category: IFromCategoriesData) {
     return result;
 }
 
+const DUPLICATE_NAME_MESSAGE = "Đã có danh mục cùng tên trong loại này";
+
+/** Trùng tên trong cùng loại (không phân biệt hoa thường, có phân biệt dấu); bỏ qua danh mục đã lưu trữ. */
+async function isNameTaken(userId: string, name: string, kind: CategoryKind | undefined, excludeId?: string) {
+    const found = await CategoriesModel.findOne({
+        userId,
+        name,
+        ...(kind ? { kind } : {}),
+        ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+        ...NOT_ARCHIVED,
+    })
+        .collation({ locale: "vi", strength: 2 })
+        .select("_id")
+        .lean();
+    return Boolean(found);
+}
+
 export class CategoriesService {
     static async getCategories(query: IPaginatedCategoriesQuery) {
         await dbConnect();
@@ -152,6 +169,11 @@ export class CategoriesService {
             return errorResponseWithStatusCode(appearance.error, 400);
         }
 
+        const name = category.name.trim();
+        if (await isNameTaken(user.userId, name, category.kind)) {
+            return errorResponseWithStatusCode(DUPLICATE_NAME_MESSAGE, 400);
+        }
+
         const last = await CategoriesModel.findOne({ userId: user.userId })
             .sort({ sortOrder: -1 })
             .select("sortOrder")
@@ -160,7 +182,7 @@ export class CategoriesService {
         const sortOrder = (last?.sortOrder ?? -1) + 1;
 
         const newCategory = await CategoriesModel.create({
-            name: category.name.trim(),
+            name,
             kind: category.kind,
             icon: appearance.icon ?? null,
             color: appearance.color ?? null,
@@ -182,8 +204,8 @@ export class CategoriesService {
         }
 
         const existing = await CategoriesModel.findOne({ _id: id, userId: user.userId, ...NOT_ARCHIVED })
-            .select("kind")
-            .lean<{ kind?: CategoryKind }>();
+            .select("kind name")
+            .lean<{ kind?: CategoryKind; name: string }>();
         if (!existing) {
             return errorResponseWithStatusCode("Không tìm thấy danh mục", 404);
         }
@@ -211,6 +233,14 @@ export class CategoriesService {
                 );
             }
             update.kind = category.kind;
+        }
+
+        // Chỉ kiểm khi đổi tên hoặc loại: danh mục trùng tên có từ trước vẫn sửa icon/màu được
+        const name = category.name.trim();
+        const kind = category.kind || existing.kind;
+        const renamed = name.localeCompare(existing.name, "vi", { sensitivity: "accent" }) !== 0;
+        if ((renamed || kind !== existing.kind) && (await isNameTaken(user.userId, name, kind, id))) {
+            return errorResponseWithStatusCode(DUPLICATE_NAME_MESSAGE, 400);
         }
 
         const updatedCategory = await CategoriesModel.findOneAndUpdate(
