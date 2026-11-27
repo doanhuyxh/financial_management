@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { niceMax } from "@/components/common/bar-chart";
+import { axisPeak, niceMax } from "@/components/common/bar-chart";
 
 // Trục Y của biểu đồ cột tự vẽ (plan 20): 4 vạch, mỗi vạch phải là số tròn
 describe("niceMax", () => {
@@ -25,5 +25,17 @@ describe("niceMax", () => {
 
     test("không có dữ liệu: trục mặc định, không chia cho 0", () => {
         expect(niceMax(0)).toBeGreaterThan(0);
+    });
+});
+
+describe("axisPeak", () => {
+    test.each([
+        ["một cột đột biến", [28_000_000, 4_500_000, 300_000, 200_000], 4_500_000],
+        ["hai cột đột biến", [28_000_000, 27_000_000, 4_500_000, 300_000], 4_500_000],
+        ["chênh vừa phải: giữ đỉnh", [9_000_000, 4_500_000, 3_000_000, 200_000], 9_000_000],
+        ["ít dữ liệu: giữ đỉnh", [28_000_000, 100_000, 0, 0], 28_000_000],
+        ["không có dữ liệu", [0, 0], 0],
+    ])("%s", (_name, values, expected) => {
+        expect(axisPeak(values)).toBe(expected);
     });
 });

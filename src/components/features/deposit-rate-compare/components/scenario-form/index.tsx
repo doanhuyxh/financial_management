@@ -19,8 +19,8 @@ export default function ScenarioForm() {
     const { scenario, availableTerms, handleScenarioChange } = useDepositRateCompareContext();
 
     return (
-        <div className="grid gap-4 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] md:items-start">
-            <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] md:items-start">
+            <div className="flex min-w-0 flex-col gap-2">
                 <label className="flex flex-col gap-1 text-sm">
                     <span className="text-xs text-muted-foreground">Số tiền gửi (VND)</span>
                     <Input

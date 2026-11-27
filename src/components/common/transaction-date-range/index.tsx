@@ -40,7 +40,7 @@ export default function TransactionDateRange({ value, onChange, layout }: ITrans
     }
 
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex w-full min-w-0 flex-col gap-2">
             {chips}
             <DateRangeFields value={value} onChange={onChange} />
         </div>

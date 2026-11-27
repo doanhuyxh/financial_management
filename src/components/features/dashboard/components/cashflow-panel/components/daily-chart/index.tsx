@@ -87,5 +87,13 @@ export default function DailyChart() {
     if (groups.length === 0) return <EmptyState description="Chưa có số liệu của tháng này" />;
 
     // Mobile: ~30 ngày × 2 cột không vừa chiều ngang nên cho cuộn ngang
-    return <BarChart series={SERIES} groups={groups} mobileMinWidthClassName="min-w-160" />;
+    return (
+        <BarChart
+            series={SERIES}
+            groups={groups}
+            clipOutliers
+            scrollToKey={today ? String(today) : undefined}
+            mobileMinWidthClassName="min-w-160"
+        />
+    );
 }

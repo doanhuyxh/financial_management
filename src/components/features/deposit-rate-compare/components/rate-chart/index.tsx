@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useDepositRateCompareContext } from "@/components/features/deposit-rate-compare/context";
 import { formatRate } from "@/components/features/deposit-rate-compare/utils";
-import { getCategoryColor } from "@/libs/utils/categoryColor";
+import { CATEGORY_PALETTE } from "@/libs/utils/categoryColor";
 import { cn } from "@/libs/shadcn/utils";
 
 const WIDTH = 1000;
@@ -34,13 +34,14 @@ export default function RateChart() {
         // Hai lựa chọn cùng tên ngân hàng (VD tự nhập + tự lấy) thì thêm tên sản phẩm cho dễ phân biệt
         const nameCount = new Map<string, number>();
         options.forEach((option) => nameCount.set(option.bankName, (nameCount.get(option.bankName) ?? 0) + 1));
-        const lines = options.map((option) => ({
+        const lines = options.map((option, index) => ({
             option,
             label:
                 (nameCount.get(option.bankName) ?? 0) > 1 && option.product
                     ? `${option.bankName} · ${option.product}`
                     : option.bankName,
-            color: getCategoryColor(option.id),
+            // Theo thứ tự, không băm id: hai đường chỉ trùng màu khi nhiều hơn số màu trong bảng
+            color: CATEGORY_PALETTE[index % CATEGORY_PALETTE.length],
             points: availableTerms.flatMap((term, index) =>
                 option.rates.has(term) ? [{ term, rate: option.rates.get(term)!, x: x(index), y: y(option.rates.get(term)!) }] : [],
             ),

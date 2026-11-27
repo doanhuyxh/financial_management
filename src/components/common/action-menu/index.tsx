@@ -35,7 +35,8 @@ export default function ActionMenu({ items, onClick, children, align = "end", on
     return (
         <DropdownMenu onOpenChange={onOpenChange}>
             <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-            <DropdownMenuContent align={align}>
+            {/* Rộng theo chữ, không theo nút mở ("⋯" rất hẹp làm nhãn dài xuống dòng) */}
+            <DropdownMenuContent align={align} className="w-max">
                 {items.map((item, index) =>
                     "type" in item ? (
                         <DropdownMenuSeparator key={item.key ?? `divider-${index}`} />

@@ -20,7 +20,7 @@ type MatrixUnit = "rate" | "money";
 
 /**
  * Bảng đầy đủ: mọi lựa chọn × mọi kỳ hạn (theo bậc của số tiền đang nhập).
- * Chỉ tô xanh ô cao nhất mỗi kỳ hạn; cột kỳ hạn đang chọn nền cam nhạt. Đổi xem %/năm hoặc tiền lãi.
+ * Chỉ tô xanh ô cao nhất mỗi kỳ hạn; cột kỳ hạn đang chọn nền màu nhạt. Đổi xem %/năm hoặc tiền lãi.
  */
 export default function RateMatrix() {
     const { rows, availableTerms, scenario, handleScenarioChange } = useDepositRateCompareContext();
@@ -40,7 +40,7 @@ export default function RateMatrix() {
                 <div>
                     <h2 className="text-base font-semibold">Bảng chi tiết</h2>
                     <p className="text-xs text-muted-foreground">
-                        Tô xanh ô cao nhất mỗi kỳ hạn · cột cam là kỳ hạn đang chọn · bấm tên kỳ hạn để chọn
+                        Tô xanh ô cao nhất mỗi kỳ hạn · cột nền xanh là kỳ hạn đang chọn · bấm tên kỳ hạn để chọn
                     </p>
                 </div>
                 <Segmented<MatrixUnit>
